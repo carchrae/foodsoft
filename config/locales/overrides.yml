@@ -6,7 +6,7 @@ en:
   number:
     currency:
       format:
-        unit: ! "€\u202f"
+        unit: ! "$\u202f"
 nl:
   number:
     currency:
