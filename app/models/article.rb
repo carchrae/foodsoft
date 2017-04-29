@@ -44,9 +44,9 @@ class Article < ActiveRecord::Base
   has_many :article_prices, -> { order("created_at DESC") }
 
   # Replace numeric seperator with database format
-  localize_input_of :price, :tax, :deposit
+  # localize_input_of :price, :tax, :deposit
   # Get rid of unwanted whitespace. {Unit#new} may even bork on whitespace.
-  normalize_attributes :name, :unit, :note, :manufacturer, :origin, :order_number
+  # normalize_attributes :name, :unit, :note, :manufacturer, :origin, :order_number
 
   scope :undeleted, -> { where(deleted_at: nil) }
   scope :available, -> { undeleted.where(availability: true) }
