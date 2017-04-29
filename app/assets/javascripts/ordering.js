@@ -50,19 +50,30 @@ function addData(orderArticleId, itemPrice, itemUnit, itemSubtotal, itemQuantity
 function increaseQuantity(item) {
     var $el   = $('#q_' + item),
         value = Number($el.val()) + 1,
-        max   = $el.data('max');
+        max   = $el.data('max'),
+        tolerance = $('#t_' + item).val(),
+        minTolerance = Math.floor(5/price[item]);
+
+    if (value==1 && tolerance==0){
+        tolerance = minTolerance;
+    }
     if (value > max) { value = max; }
     if (!isStockit || (value <= (quantityAvailable[item] + itemsAllocated[item]))) {
-        update(item, value, $('#t_' + item).val());
+        update(item, value, tolerance);
     }
 }
 
 function decreaseQuantity(item) {
     var $el   = $('#q_' + item),
         value = Number($el.val()) - 1,
-        min   = $el.data('min') || 0;
+        min   = $el.data('min') || 0,
+        tolerance = $('#t_' + item).val(),
+        minTolerance = Math.floor(5/price[item]);
+    if (value==0 && tolerance==minTolerance){
+        tolerance = 0;
+    }
     if (value >= min) {
-        update(item, value, $('#t_' + item).val());
+        update(item, value, tolerance);
     }
 }
 
