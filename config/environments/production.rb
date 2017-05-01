@@ -79,8 +79,25 @@ Foodsoft::Application.configure do
   host = ENV['HOSTNAME'].blank? ? `hostname -f` : ENV['HOSTNAME']
   config.action_mailer.default_url_options = { host: host, protocol: 'https' }
 
-  # Use sendmail to avoid ssl cert problems
-  config.action_mailer.delivery_method = :sendmail
+
+  if ENV['SMTP_DOMAIN'].blank?
+    puts 'No email configuration found, using test method.  Set EMAIL_DOMAIN (eg, gmail.com), EMAIL_USER, EMAIL_PASSWORD'
+    config.action_mailer.delivery_method = :test
+  else
+    config.action_mailer.delivery_method = :smtp
+    settings = {
+        address: ENV['SMTP_SERVER'],
+        port: (ENV['SMTP_PORT'] || 587).to_i,
+        domain: ENV['SMTP_DOMAIN'],
+        user_name: ENV['SMTP_USER_NAME'],
+        password: ENV['SMTP_PASSWORD'],
+        authentication: :login,
+        enable_starttls_auto: true
+    }
+    config.action_mailer.smtp_settings = settings
+    puts "using email settings: #{settings.as_json}"
+  end
+
 
   # Use default logging formatter so that PID and timestamp are not suppressed.
   config.log_formatter = ::Logger::Formatter.new
