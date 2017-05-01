@@ -20,7 +20,7 @@ en:
         origin: Origin
         price: Price (net)
         supplier: Supplier
-        tax: VAT
+        tax: Tax
         unit: Unit
         unit_quantity: Unit quantity
         unit_quantity_short: U.Q.
@@ -31,7 +31,7 @@ en:
       article_price:
         deposit: Deposit
         price: Price (net)
-        tax: VAT
+        tax: Tax
         unit_quantity: Unit quantity
       delivery:
         delivered_on: Delivery date
@@ -517,7 +517,7 @@ en:
       stop_ordering_under: Members can only order when they have at least this many apple points.
       tasks_period_days: Number of days between two periodic tasks (default 7, which is a week).
       tasks_upfront_days: For how many days in advance you would like to schedule periodic tasks.
-      tax_default: Default VAT percentage for new articles.
+      tax_default: Default tax percentage for new articles.
       tolerance_is_costly: Order as much of the member tolerance as possible (compared to only as much needed to fill the last box). Enabling this also includes the tolerance in the total price of the open member order.
       use_apple_points: When the apple point system is enabled, members are required to do some tasks to be able to keep ordering.
       use_boxfill: When enabled, near end of an order, members are only able to change their order when increases the total amount ordered. This helps to fill any remaining boxes. You still need to set a box-fill date for the orders.
@@ -568,7 +568,7 @@ en:
       stop_ordering_under: Minimum apple points
       tasks_period_days: Period
       tasks_upfront_days: Create upfront
-      tax_default: Default VAT
+      tax_default: Default tax
       time_zone: Time zone
       tolerance_is_costly: Tolerance is costly
       use_apple_points: Apple points
@@ -705,19 +705,19 @@ en:
       - Price
       title: 'Order sorted by articles: %{name}, closed at %{date}'
     order_by_groups:
-      filename: Order %{name}-%{date} - by group
+      filename: Bin Sheets %{name} - %{date}
       rows:
-      - Article
       - Ordered
       - Received
-      - Price
-      - U.Q.
       - Unit
-      - Sum
-      sum: Sum
-      title: 'Order sorted by group: %{name}, closed at %{date}'
+      - Unit Price
+      - Article
+      -
+      - Total
+      sum: Estimated Total (may be adjusted depending on actual received and spoilage)
+      title: '%{name} Order - %{date} - ordering by %{user_name}'
     order_fax:
-      filename: Order %{name}-%{date} - Fax
+      filename: Order %{name} - %{date} - Fax
       rows:
       - Order Number
       - Amount
@@ -728,15 +728,19 @@ en:
       - Subtotal
       total: Total
     order_matrix:
-      filename: Order %{name}-%{date} - sorting matrix
-      heading: Article overview
+      filename: Splitsheets %{name}-%{date}
+      heading: Delivery Checklist
       rows:
       - Article
       - Unit
       - Unit quantity
-      - FC-Price
-      - Amount
-      title: 'Order sorting matrix: %{name}, closed at %{date}'
+      - Unit Price
+      - Case Price
+      - Cases
+      - Received
+      - Spoilage (%)
+      title: 'Split sheets: %{name} - %{date} - Ordered by %{user_name}'
+      note: 'Ensure that %{user_name} (%{user_email}) gets this ASAP to request any refunds.'
       total:
         one: One article in total
         other: "%{count} articles in total"
@@ -780,7 +784,8 @@ en:
       group_order_articles:
         add_group: Add group
         total: Total costs
-        total_fc: Sum (FC-price)
+        total_fc: Total paid by coop members
+        total_supplier: Total paid to supplier
         units: Units
       index:
         title: Closed orders
@@ -814,8 +819,8 @@ en:
       order_article:
         confirm: Are you sure?
       orders:
-        clear: accounting
-        cleared: accounted (%{amount})
+        clear: Settle Accounts
+        cleared: Accounted (%{amount})
         end: End
         ended: closed
         name: Supplier
@@ -1045,8 +1050,8 @@ en:
       messages:
         title: Newest Messages
         view_all:
+          text: 'Show %{messages} or %{threads}'
           messages: all messages
-          text: Show %{messages} or %{threads}
           threads: threads
       my_ordergroup:
         funds: "| Available Credit:"
@@ -1383,7 +1388,7 @@ en:
       notice: The order has been closed.
     form:
       ignore_warnings: Ignore warnings
-      prices: Prices (net/FC)
+      prices: Prices (net/coop/supplier)
       select_all: Select all
       stockit: In stock
       title: Article
@@ -1423,7 +1428,7 @@ en:
     show:
       action_end: Close!
       amounts: 'Net/gross sum:'
-      articles: Article overview
+      articles: Order Summary
       articles_ordered: 'Ordered articles:'
       comments:
         title: Comments
@@ -1440,13 +1445,13 @@ en:
         starts_ends: open from %{starts} until %{ends}
       description2: "%{ordergroups} ordered %{article_count} articles, with a total value of %{net_sum} / %{gross_sum} (net / gross)."
       download:
-        article_pdf: Article PDF
+        article_pdf: Split Sheets for Articles PDF
         download_file: Download file
-        fax_csv: Fax CSV
-        fax_pdf: Fax PDF
-        fax_txt: Fax text
-        group_pdf: Group PDF
-        matrix_pdf: Matrix PDF
+        fax_csv: Supplier Order CSV
+        fax_pdf: Supplier Order PDF
+        fax_txt: Supplier Order text
+        group_pdf: Bin Sheets (for Members) PDF
+        matrix_pdf: Split Sheets (for Receipts) PDF
         title: Download
       group_orders: 'Group orders:'
       search_placeholder:
@@ -1455,8 +1460,8 @@ en:
         groups: Search for ordergroups...
       search_reset: Reset search
       show_invoice: Show invoice
-      sort_article: Sorted in articles
-      sort_group: Sorted in groups
+      sort_article: Group by Article
+      sort_group: Group by Member
       stock_order: Stock Order
       title: 'Order: %{name}'
       warn_not_closed: Warning, order is not yet settled.

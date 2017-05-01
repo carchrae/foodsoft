@@ -1,7 +1,7 @@
 # encoding: utf-8
 class OrderMatrix < OrderPdf
 
-  MAX_ARTICLES_PER_PAGE = 16 # How many order_articles shoud written on a page
+  MAX_ARTICLES_PER_PAGE = 8 # How many order_articles shoud written on a page
 
   def filename
     I18n.t('documents.order_matrix.filename', :name => @order.name, :date => @order.ends.to_date) + '.pdf'
@@ -9,14 +9,19 @@ class OrderMatrix < OrderPdf
 
   def title
     I18n.t('documents.order_matrix.title', :name => @order.name,
-      :date => @order.ends.strftime(I18n.t('date.formats.default')))
+      :date => @order.ends.strftime(I18n.t('date.formats.default')),
+      :user_name => @order.created_by.name
+    )
   end
 
   def body
-    order_articles = @order.order_articles.ordered
+    order_articles = @order.order_articles.ordered.sort_by {|o| o.article.name }
 
     text I18n.t('documents.order_matrix.heading'), style: :bold
     move_down 5
+    text I18n.t('documents.order_matrix.note', :user_name => @order.created_by.name,
+                :user_email => @order.created_by.email), {size: fontsize(8), style: :bold}
+
     text I18n.t('documents.order_matrix.total', :count => order_articles.size), size: fontsize(8)
     move_down 10
 
@@ -27,7 +32,9 @@ class OrderMatrix < OrderPdf
                               a.article.unit,
                               a.price.unit_quantity,
                               number_with_precision(article_price(a), precision: 2),
-                              a.units]
+                              number_with_precision((a.price.unit_quantity * article_price(a)), precision: 2),
+                              a.units,
+                              '','']
     end
 
     table order_articles_data, cell_style: {size: fontsize(8), overflow: :shrink_to_fit} do |table|
@@ -51,16 +58,18 @@ class OrderMatrix < OrderPdf
 
       # Make order_articles header
       header = [""]
+      header2 = ["split unit"]
       for header_article in current_order_articles
         name = header_article.article.name.gsub(/[-\/]/, " ").gsub(".", ". ")
         name = name.split.collect { |w| w.truncate(8) }.join(" ")
-        header << name.truncate(30)
+        header << name.truncate(480/MAX_ARTICLES_PER_PAGE)
+        header2 << header_article.article.unit
       end
 
       # Collect group results
-      groups_data = [header]
+      groups_data = [header, header2]
 
-      @order.group_orders.includes(:ordergroup).each do |group_order|
+      @order.group_orders.includes(:ordergroup).sort_by(&:ordergroup_name).each do |group_order|
 
         group_result = [group_order.ordergroup_name.truncate(20)]
 
@@ -72,9 +81,23 @@ class OrderMatrix < OrderPdf
         groups_data << group_result
       end
 
+      group_result = ['Total Units']
+      for order_article in current_order_articles
+        # get the Ordergroup result for this order_article
+        group_result << " #{order_article.units * order_article.price.unit_quantity} X #{order_article.article.unit}"
+      end
+      groups_data << group_result
+
+      group_result = ['Cases']
+      for order_article in current_order_articles
+        # get the Ordergroup result for this order_article
+        group_result << "#{order_article.units}"
+      end
+      groups_data << group_result
+
       # Make table
       column_widths = [85]
-      (MAX_ARTICLES_PER_PAGE + 1).times { |i| column_widths << 41 unless i == 0 }
+      (MAX_ARTICLES_PER_PAGE + 1).times { |i| column_widths << (656/MAX_ARTICLES_PER_PAGE) unless i == 0 }
       table groups_data, column_widths: column_widths, cell_style: {size: fontsize(8), overflow: :shrink_to_fit} do |table|
         table.cells.border_width = 1
         table.cells.border_color = '666666'
