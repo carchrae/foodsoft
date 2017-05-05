@@ -1,5 +1,7 @@
 # A sample Gemfile
 source "https://rubygems.org"
+ruby '2.3.4'
+
 
 gem "rails", '~> 4.2'
 
@@ -27,7 +29,7 @@ gem 'haml-rails'
 gem 'kaminari'
 gem 'simple_form'
 gem 'inherited_resources'
-gem 'localize_input', git: "https://github.com/bennibu/localize_input.git"
+gem 'localize_input', git: 'https://github.com/carchrae/localize_input.git'
 gem 'daemons'
 gem 'twitter-bootstrap-rails', '~> 2.2.8'
 gem 'simple-navigation', '~> 3.14.0' # 3.x for simple_navigation_bootstrap
@@ -46,7 +48,9 @@ gem 'roo'
 gem 'roo-xls'
 gem 'spreadsheet'
 gem 'gaffe'
-gem 'ruby-filemagic'
+#gem 'ruby-filemagic'
+gem 'pg', require: false
+gem 'rails_12factor', require: false
 
 # we use the git version of acts_as_versioned, and need to include it in this Gemfile
 gem 'acts_as_versioned', git: 'https://github.com/technoweenie/acts_as_versioned.git'
@@ -61,6 +65,8 @@ gem 'foodsoft_messages', path: 'plugins/messages'
 
 group :production do
   gem 'exception_notification'
+  gem 'puma', require: false
+  gem 'newrelic_rpm', require: false
 end
 
 group :development do
@@ -96,6 +102,9 @@ end
 
 group :development, :test do
   gem 'ruby-prof', require: false
+  gem 'dotenv-rails', require: false
+  gem 'derailed_benchmarks', require: false
+  gem 'derailed', require: false
 end
 
 group :test do
