@@ -184,7 +184,7 @@ class ApplicationController < ActionController::Base
     if params[:per_page] && params[:per_page].to_i > 0 && params[:per_page].to_i <= 500
       @per_page = params[:per_page].to_i
     else
-      @per_page = 20
+      @per_page = FoodsoftConfig[:default_per_page]
     end
   end
 
