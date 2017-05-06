@@ -21,7 +21,7 @@ class ArticlesController < ApplicationController
     end
 
     @articles = Article.undeleted.where(supplier_id: @supplier, :type => nil).includes(:article_category).order(sort)
-    @articles = @articles.where('articles.name LIKE ?', "%#{params[:query]}%") unless params[:query].nil?
+    @articles = @articles.where('lower(articles.name) LIKE ?', "%#{params[:query].downcase}%") unless params[:query].nil?
 
     @articles = @articles.page(params[:page]).per(@per_page)
 
