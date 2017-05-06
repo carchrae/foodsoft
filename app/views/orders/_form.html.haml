@@ -1,21 +1,26 @@
 = simple_form_for @order do |f|
   = f.hidden_field :supplier_id
+
   .fold-line
     = f.input :starts, as: :date_picker_time
     = f.input :boxfill, as: :date_picker_time if @order.is_boxfill_useful?
     = f.input :ends, as: :date_picker_time
     = f.input :pickup, as: :date_picker, input_html: {class: 'input-small'}
+
+
   = f.input :note, input_html: {rows: 2, class: 'input-xxlarge'}
 
+
+
+  .pull-right
+    = f.submit class: 'btn'
+    = link_to t('ui.or_cancel'), orders_path
+    - unless @order.erroneous_article_ids.empty?
+      &nbsp;
+      = check_box_tag 'order[ignore_warnings]'
+      = t '.ignore_warnings'
   %h2= t '.title'
-  .well.well-small
-    .pull-right
-      = f.submit class: 'btn'
-      = link_to t('ui.or_cancel'), orders_path
-      - unless @order.erroneous_article_ids.empty?
-        &nbsp;
-        = check_box_tag 'order[ignore_warnings]'
-        = t '.ignore_warnings'
+
 
   - if @order.errors.has_key?(:articles)
     .alert.alert-error
