@@ -15,13 +15,15 @@ class SharedArticle < ActiveRecord::Base
         :manufacturer => manufacturer,
         :origin => origin,
         :price => price,
+        :supplier_price => supplier_price,
         :tax => tax,
         :deposit => deposit,
         :unit_quantity => unit_quantity,
         :order_number => number,
         :article_category => ArticleCategory.find_match(category),
         # convert to db-compatible-string
-        :shared_updated_on => updated_on.to_formatted_s(:db)
+        :shared_updated_on => updated_on.to_formatted_s(:db),
+        :skip_sync => false
     )
   end
 end
