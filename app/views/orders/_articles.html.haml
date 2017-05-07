@@ -9,6 +9,7 @@
       - else
         %th= 'Members'
         %th= t '.units_full'
+        %th= ''
     - total_net, total_gross, counter = 0, 0, 0
   %tbody.list
     - order.articles_grouped_by_category.each do |category_name, order_articles|
@@ -38,6 +39,8 @@
             %td{title: units_history_line(order_article, plain: true)}
               = units
               = pkg_helper order_article.price
+          %td= link_to t('ui.edit'), edit_supplier_article_path(order_article.article.supplier_id, order_article.article),
+            :remote => true, class: 'btn btn-mini'
 %p
   = t '.prices_sum'
   = "#{number_to_currency(total_net)} / #{number_to_currency(total_gross)}"
