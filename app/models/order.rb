@@ -5,7 +5,7 @@ class Order < ActiveRecord::Base
 
   # Associations
   has_many :order_articles, :dependent => :destroy
-  has_many :articles, :through => :order_articles
+  has_many :articles, -> { order('name')}, :through => :order_articles
   has_many :group_orders, :dependent => :destroy
   has_many :ordergroups, :through => :group_orders
   has_many :users_ordered, :through => :ordergroups, :source => :users
