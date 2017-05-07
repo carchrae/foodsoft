@@ -7,20 +7,22 @@
         -#%td.center= t('.units')
         %td.center
           %acronym{:title => t('shared.articles.received_desc')}= t 'shared.articles.received'
+        %td= 'amount'
         %td= t('.total')
         %td{:colspan => "3",:style => "width:14em"}
           = link_to t('.add_group'), new_group_order_article_path(order_article_id: order_article.id),
             remote: true, class: 'btn btn-mini'
     %tbody
       - totals = {result: 0}
-      - for group_order_article in order_article.group_order_articles.select { |goa| goa.result > 0 }
+      - for group_order_article in order_article.group_order_articles.select { |goa| goa.result > 0 }.sort_by { | goa | goa.group_order.ordergroup_name  }
         %tr[group_order_article]
           %td
           %td{:style=>"width:50%"}
             = group_order_article.group_order.ordergroup_name
           %td.center= group_order_article_edit_result(group_order_article)
-          %td.numeric= number_to_currency(group_order_article.order_article.price.fc_price * group_order_article.result)
-          %td.actions{:style=>"width:1em"}
+          %td= group_order_article_edit_amount(group_order_article)
+          %td.numeric{:style=>'width:6em'}= number_to_currency(group_order_article.order_article.price.fc_price * group_order_article.result)
+          %td.actions{:style=>'width:1em'}
             = link_to t('ui.delete'), group_order_article_path(group_order_article), method: :delete,
               remote: true, class: 'btn btn-mini btn-danger'
           %td
@@ -30,5 +32,15 @@
         %td
         %td{:style => "width:8em"}= t('.total_fc')
         %td.center= totals[:result]
+        %td.center= group_order_article_total_amount(totals[:result], order_article)
         %td.numeric= number_to_currency(order_article.group_orders_sum[:price])
+        %td{:colspan => "3"}
+      %tr
+        %td
+        %td{:style => "width:8em"}= t('.total_supplier')
+        %td.center
+          = order_article.units
+          = pkg_helper order_article.article_price
+        %td.center= group_order_article_total_amount((order_article.units*order_article.article_price.unit_quantity), order_article)
+        %td.numeric= number_to_currency(order_article.total_gross_price)
         %td{:colspan => "3"}
