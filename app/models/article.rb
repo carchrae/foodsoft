@@ -67,10 +67,22 @@ class Article < ActiveRecord::Base
   before_save :update_price_history
   before_destroy :check_article_in_use
 
-  # The financial gross, net plus tax and deposti
-  def gross_price
-    ((price + deposit) * (tax / 100 + 1)).round(2)
+  attr_accessor :skip_sync
+
+  # The financial gross, net plus tax and deposit
+  # not ready yet, more testing
+  def gross_price_supplier
+    if (supplier_price)
+      unit_price = supplier_price / unit_quantity
+    else
+      unit_price = price
+    end
+    ((unit_price + deposit) * (tax / 100 + 1)).round(2)
   end
+
+  # def gross_price
+  #   ((price + deposit) * (tax / 100 + 1)).round(2)
+  # end
 
   # The price for the foodcoop-member.
   def fc_price
@@ -127,6 +139,7 @@ class Article < ActiveRecord::Base
       new_price, new_unit_quantity = convert_units(new_article)
     end
     if new_price && new_unit_quantity
+      #use the current unit as we've converted to that
       new_unit = self.unit
     else
       new_price = new_article.price
@@ -134,19 +147,30 @@ class Article < ActiveRecord::Base
       new_unit = new_article.unit
     end
 
+    #if the coop changed the unit_quantity, don't try and update it if this is the only difference
+    # maybe do this if the price is changed, but otherwise allow the coop to override this
+    # (eg, supplier catalog lists items by price per KG but certain items have a minimum of 2KG )
+    new_unit_quantity = self.unit_quantity
+
+    # TC: not sure about this yet.  idea is that supplier price should be adjust, eg, if the coop knows there is a min quantity of 6, then if supplier price given for 1 unit, supplier prrice should be 6X that
+    # if (new_unit_quantity != self.unit_quantity)
+    #   new_article.supplier_price = (new_article.supplier_price/new_unit_quantity)* self.unit_quantity
+    # end
+
     return Article.compare_attributes(
-      {
-        :name => [self.name, new_article.name],
-        :manufacturer => [self.manufacturer, new_article.manufacturer.to_s],
-        :origin => [self.origin, new_article.origin],
-        :unit => [self.unit, new_unit],
-        :price => [self.price.to_f.round(2), new_price.to_f.round(2)],
-        :tax => [self.tax, new_article.tax],
-        :deposit => [self.deposit.to_f.round(2), new_article.deposit.to_f.round(2)],
-        # take care of different num-objects.
-        :unit_quantity => [self.unit_quantity.to_s.to_f, new_unit_quantity.to_s.to_f],
-        :note => [self.note.to_s, new_article.note.to_s]
-      }
+        {
+            :name => [self.name, new_article.name],
+            :manufacturer => [self.manufacturer, new_article.manufacturer.to_s],
+            :origin => [self.origin, new_article.origin],
+            :unit => [self.unit, new_unit],
+            :price => [self.price.to_f.round(2), new_price.to_f.round(2)],
+            :supplier_price => [self.supplier_price.to_f.round(2), new_article.supplier_price.to_f.round(2)],
+            :tax => [self.tax, new_article.tax],
+            :deposit => ([self.deposit.to_f.round(2), new_article.deposit.to_f.round(2)] unless new_article.deposit.to_f.round(2) == 0),
+            # take care of different num-objects.
+            :unit_quantity => [self.unit_quantity.to_s.to_f, new_unit_quantity.to_s.to_f],
+            :note => ([self.note.to_s, new_article.note.to_s] unless new_article.note.blank?)
+        }.compact
     )
   end
 
@@ -184,12 +208,14 @@ class Article < ActiveRecord::Base
           false
         end
       else # use ruby-units to convert
-        fc_unit = (::Unit.new(unit) rescue nil)
-        supplier_unit = (::Unit.new(new_article.unit) rescue nil)
+        fc_unit = (::Unit.new(unit) rescue nil) || (::Unit.new(unit.downcase) rescue nil)
+        supplier_unit = (::Unit.new(new_article.unit) rescue nil) || (::Unit.new(new_article.unit.downcase) rescue nil)
         if fc_unit && supplier_unit && fc_unit =~ supplier_unit
           conversion_factor = (supplier_unit / fc_unit).to_base.to_r
           new_price = new_article.price / conversion_factor
           new_unit_quantity = new_article.unit_quantity * conversion_factor
+          #handle rounding errors, eg, 0.99999999999999 units
+          new_unit_quantity = new_unit_quantity.round if (new_unit_quantity.round - new_unit_quantity).abs < 0.000001
           [new_price, new_unit_quantity]
         else
           false
