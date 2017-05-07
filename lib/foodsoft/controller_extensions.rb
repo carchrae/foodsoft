@@ -48,7 +48,7 @@ module Foodsoft
         end
 
         locale = session[:locale] = ::I18n.locale
-        logger.info("Set locale to #{locale}")
+        # logger.info("Set locale to #{locale}")
       end
 
     end
