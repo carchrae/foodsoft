@@ -16,7 +16,7 @@
       .foo{style: 'clear:both'}
 
     = simple_fields_for :article, @order_article.article do |f|
-      = f.input :name
+      = f.input :name, class: '.input-large'
 
       - if @order_article.article.is_a?(StockArticle)
         %div.alert= t '.stock_alert'
