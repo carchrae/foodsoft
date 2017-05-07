@@ -88,6 +88,11 @@ class OrderArticle < ActiveRecord::Base
     units * price.unit_quantity * price.gross_price
   end
 
+  # total paid to supplier
+  def total_supplier_price
+    units * price.supplier_price unless price.supplier_price.nil?
+  end
+
   def ordered_quantities_different_from_group_orders?(ordered_mark="!", billed_mark="?", received_mark="?")
     if not units_received.nil?
       ((units_received * price.unit_quantity) == group_orders_sum[:quantity]) ? false : received_mark
