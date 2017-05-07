@@ -8,21 +8,33 @@
   = f.input :note, input_html: {rows: 2, class: 'input-xxlarge'}
 
   %h2= t '.title'
+  .well.well-small
+    .pull-right
+      = f.submit class: 'btn'
+      = link_to t('ui.or_cancel'), orders_path
+      - unless @order.erroneous_article_ids.empty?
+        &nbsp;
+        = check_box_tag 'order[ignore_warnings]'
+        = t '.ignore_warnings'
+
   - if @order.errors.has_key?(:articles)
     .alert.alert-error
       = @order.errors.get(:articles).join(" ")
   %table.table.table-hover#articleList
-    %tr
-      %th= check_box_tag 'checkall', "1", false, { 'data-check-all' => '#articleList' }
-      %th= heading_helper Article, :name
-      %th= heading_helper Article, :note
-      - if @order.stockit?
-        %th= t '.stockit'
-      - else
-        %th= heading_helper Article, :origin
-        %th= heading_helper Article, :manufacturer
-        %th= heading_helper Article, :units
-      %th= t '.prices'
+    %thead
+      %tr
+        %th= check_box_tag 'checkall', '1', false, { 'data-check-all' => '#articleList tr:visible' }
+        %th= search_field_tag :query, params[:query], class: 'input-medium search-query',
+            placeholder: 'Name', onkeyup: 'search(1)', onkeypress: 'return event.keyCode!=13'
+        %th= heading_helper Article, :note
+        - if @order.stockit?
+          %th= t '.stockit'
+        - else
+          %th= heading_helper Article, :origin
+          %th= heading_helper Article, :manufacturer
+          %th= heading_helper Article, :units
+        %th= t '.prices'
+    %tbody
     - for category_name, articles in @order.articles_for_ordering
       %tr.article-category
         %td
@@ -50,10 +62,10 @@
               = article.unit
               - if article.unit_quantity > 1
                 %span{style: 'color: grey'} &times; #{article.unit_quantity}#{pkg_helper_icon}
-          %td= "#{number_to_currency(article.price)} / #{number_to_currency(article.fc_price)}"
+          %td= "#{number_to_currency(article.price)} / #{number_to_currency(article.fc_price)} (#{number_to_currency(article.supplier_price)})"
     %tr
       %td
-        = check_box_tag 'checkall', "1", false, { 'data-check-all' => '#articleList' }
+        = check_box_tag 'checkall', "1", false, { 'data-check-all' => '#articleList tr:visible' }
         -# also when all are deselected, make sure this parameter is sent (controller removes empty values again)
         = hidden_field_tag "order[article_ids][]", nil
       %td{:colspan => "6"}= t '.select_all'
@@ -68,3 +80,33 @@
       &nbsp;
       = check_box_tag 'order[ignore_warnings]'
       = t '.ignore_warnings'
+
+
+  - content_for :javascript do
+    :javascript
+      var search = debounce(250, function() {
+          // Declare variables
+          var input, filter, table, tr, td, i, allchecked = true;
+          input = document.getElementById("query");
+          filter = input.value.toUpperCase();
+          table = document.getElementById("articleList");
+          tr = table.getElementsByTagName("tr");
+          console.log('searching for '+filter);
+          // Loop through all table rows, and hide those who don't match the search query
+          for (i = 0; i < tr.length; i++) {
+            td = tr[i].getElementsByTagName("td")[1];
+            if (td) {
+              if (td.innerHTML.toUpperCase().indexOf(filter) > -1) {
+                tr[i].style.display = "";
+                var checkbox = $('input[type="checkbox"]', tr[i].getElementsByTagName("td")[0])[0];
+                if (checkbox && checkbox.checked === false){
+                  allchecked=false;
+                }
+              } else {
+                tr[i].style.display = "none";
+              }
+            }
+          }
+          $('#checkall')[0].checked = allchecked;
+        }
+      );
