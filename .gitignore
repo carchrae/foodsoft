@@ -9,6 +9,7 @@ config/environments/development.rb
 *.swp
 *~
 public/**/*_cached.*
+public/assets
 .idea
 .get-dump.yml
 .sass-cache/
@@ -23,3 +24,4 @@ config/deploy/*
 log/localeapp.yml
 .bundle
 rspec.failures
+coverage
