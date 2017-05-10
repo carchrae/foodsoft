@@ -25,3 +25,4 @@ log/localeapp.yml
 .bundle
 rspec.failures
 coverage
+.env
