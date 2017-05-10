@@ -245,7 +245,8 @@ class FoodsoftConfig
           shared_lists: true,
           protected: true,
           database: true
-        }
+        },
+        max_shared_articles_for_sync_all_methods: 200
       }
       # allow engines to easily add to this
       engines = Rails::Engine.subclasses.map(&:instance).select { |e| e.respond_to?(:default_foodsoft_config) }
