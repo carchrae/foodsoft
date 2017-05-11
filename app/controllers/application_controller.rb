@@ -4,9 +4,19 @@ class ApplicationController < ActionController::Base
   helper_method :available_locales
 
   protect_from_forgery
-  before_filter  :select_foodcoop, :authenticate, :set_user_last_activity, :store_controller, :items_per_page
+
+  if FoodsoftConfig[:multi_coop_install]
+    before_filter :select_foodcoop
+    around_filter :set_time_zone, :set_currency
+  else
+    Time.zone = FoodsoftConfig[:time_zone] if FoodsoftConfig[:time_zone]
+    new_currency = FoodsoftConfig[:currency_unit] || ''
+    new_currency += "\u202f" if FoodsoftConfig[:currency_space]
+    ::I18n.backend.store_translations(::I18n.locale, number: {currency: {format: {unit: new_currency}}})
+  end
+  before_filter :authenticate, :set_user_last_activity, :store_controller, :items_per_page
   after_filter  :remove_controller
-  around_filter :set_time_zone, :set_currency
+
 
   
   # Returns the controller handling the current request.
