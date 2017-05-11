@@ -1,5 +1,7 @@
 # encoding: utf-8
 class ArticlesController < ApplicationController
+  helper_method :article_by_id
+
   before_filter :authenticate_article_meta, :find_supplier
 
   def index
@@ -164,6 +166,14 @@ class ArticlesController < ApplicationController
     end
   end
 
+  def article_by_id(id)
+    articles_by_id[id]
+  end
+
+  def articles_by_id
+    @articles_by_id ||= Article.all.map{ |a| [a.id, a]}.to_h
+  end
+
   # Updates, deletes articles when upload or sync form is submitted
   def update_synchronized
     @outlisted_articles = Article.find(params[:outlisted_articles].try(:keys)||[])
@@ -196,7 +206,7 @@ class ArticlesController < ApplicationController
       redirect_to supplier_articles_path(@supplier), notice: I18n.t('articles.controller.update_sync.notice')
     else
       @updated_article_pairs = @updated_articles.map do |article|
-        orig_article = Article.find(article.id)
+        orig_article = article_by_id(article.id)
         [article, orig_article.unequal_attributes(article)]
       end
       flash.now.alert = I18n.t('articles.controller.error_invalid')

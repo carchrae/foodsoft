@@ -15,7 +15,7 @@
   %tbody
     - articles.each do |changed_article, attrs|
       - unless changed_article.new_record?
-        - article = Article.find(changed_article.id)
+        - article = article_by_id(changed_article.id)
         %tr{:style => 'color:grey'}
           %td= article.name
           %td= article.note
