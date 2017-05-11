@@ -69,6 +69,7 @@ group :production do
   gem 'exception_notification'
   gem 'puma', require: false
   gem 'newrelic_rpm', require: false
+  gem 'rack-cache'
 end
 
 group :development do
