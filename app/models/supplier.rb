@@ -25,13 +25,21 @@ class Supplier < ActiveRecord::Base
   scope :undeleted, -> { where(deleted_at: nil) }
   scope :having_articles, -> { where(id: Article.undeleted.select(:supplier_id).distinct) }
 
+  def get_articles
+    @undeleted||=articles.undeleted.all.map{|a| [a.order_number, a]}.to_h
+  end
+
+  def get_article(id)
+    get_articles[id]
+  end
+
   # sync all articles with the external database
   # returns an array with articles(and prices), which should be updated (to use in a form)
   # also returns an array with outlisted_articles, which should be deleted
   # also returns an array with new articles, which should be added (depending on shared_sync_method)
   def sync_all
     updated_article_pairs, outlisted_articles, new_articles = [], [], []
-    for article in articles.undeleted
+    for article in get_articles.values
       # try to find the associated shared_article
       shared_article = article.shared_article(self)
 
@@ -50,8 +58,9 @@ class Supplier < ActiveRecord::Base
     end
     # Find any new articles, unless the import is manual
     unless shared_sync_method == 'import'
-      for shared_article in shared_supplier.shared_articles
-        unless articles.undeleted.find_by_order_number(shared_article.number) || !shared_article.available
+      # for shared_article in shared_supplier.shared_articles
+      for shared_article in shared_supplier.cached_articles.values
+        unless get_article(shared_article.number) || !shared_article.available
           new_articles << shared_article.build_new_article(self)
         end
       end
