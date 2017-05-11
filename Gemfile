@@ -3,8 +3,9 @@ source "https://rubygems.org"
 ruby '2.3.4'
 
 
-gem "rails", '~> 4.2'
+gem 'rails', '~> 4.2'
 
+gem 'dotenv-rails', :groups => [:development, :test]
 
 gem 'sass-rails'
 gem 'less-rails'
@@ -51,6 +52,7 @@ gem 'gaffe'
 #gem 'ruby-filemagic'
 gem 'pg', require: false
 gem 'rails_12factor', require: false
+gem 'lograge'
 
 # we use the git version of acts_as_versioned, and need to include it in this Gemfile
 gem 'acts_as_versioned', git: 'https://github.com/technoweenie/acts_as_versioned.git'
@@ -102,7 +104,6 @@ end
 
 group :development, :test do
   gem 'ruby-prof', require: false
-  gem 'dotenv-rails', require: false
   gem 'derailed_benchmarks', require: false
   gem 'derailed', require: false
 end
@@ -123,3 +124,4 @@ group :test do
   gem 'simplecov', require: false
   gem 'coveralls', require: false
 end
+
