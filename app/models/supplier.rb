@@ -35,7 +35,7 @@ class Supplier < ActiveRecord::Base
       # try to find the associated shared_article
       shared_article = article.shared_article(self)
 
-      if shared_article # article will be updated
+      if shared_article && shared_article.available # article will be updated
         unequal_attributes = article.shared_article_changed?(self)
         unless unequal_attributes.blank? # skip if shared_article has not been changed
           article.attributes = unequal_attributes
@@ -51,7 +51,7 @@ class Supplier < ActiveRecord::Base
     # Find any new articles, unless the import is manual
     unless shared_sync_method == 'import'
       for shared_article in shared_supplier.shared_articles
-        unless articles.undeleted.find_by_order_number(shared_article.number)
+        unless articles.undeleted.find_by_order_number(shared_article.number) || !shared_article.available
           new_articles << shared_article.build_new_article(self)
         end
       end
