@@ -80,9 +80,9 @@ class Article < ActiveRecord::Base
     ((unit_price + deposit) * (tax / 100 + 1)).round(2)
   end
 
-  # def gross_price
-  #   ((price + deposit) * (tax / 100 + 1)).round(2)
-  # end
+  def gross_price
+    ((price + deposit) * (tax / 100 + 1)).round(2)
+  end
 
   # The price for the foodcoop-member.
   def fc_price
