@@ -39,7 +39,7 @@ class Supplier < ActiveRecord::Base
   # also returns an array with new articles, which should be added (depending on shared_sync_method)
   def sync_all
     updated_article_pairs, outlisted_articles, new_articles = [], [], []
-    for article in get_articles.values
+    for article in get_articles.values.sort_by(&:name)
       # try to find the associated shared_article
       shared_article = article.shared_article(self)
 
@@ -59,7 +59,7 @@ class Supplier < ActiveRecord::Base
     # Find any new articles, unless the import is manual
     unless shared_sync_method == 'import'
       # for shared_article in shared_supplier.shared_articles
-      for shared_article in shared_supplier.cached_articles.values
+      for shared_article in shared_supplier.cached_articles.values.sort_by(&:name)
         unless get_article(shared_article.number) || !shared_article.available
           new_articles << shared_article.build_new_article(self)
         end
