@@ -1,10 +1,11 @@
 - title t('.title')
 
+
 = render 'form'
 - if @order.article_ids.empty?
   - content_for :javascript do
     :javascript
       // select all articles by default
-      $(function() {
-        $('#checkall').click();
-      });
+      // $(function() {
+      //   $('#checkall').click();
+      // });
