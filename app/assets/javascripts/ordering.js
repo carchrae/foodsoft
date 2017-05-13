@@ -15,6 +15,7 @@ var isStockit = false;          // Whether the order is from stock oder normal s
 var price = new Array();
 var unit = new Array();              // items per order unit
 var itemTotal = new Array();         // total item price
+var itemToleranceTotal = new Array();    // total item price for tolerance units
 var quantityOthers = new Array();
 var toleranceOthers = new Array();
 var itemsAllocated = new Array();    // how many items the group has been allocated and should definitely get
@@ -51,12 +52,7 @@ function increaseQuantity(item) {
     var $el   = $('#q_' + item),
         value = Number($el.val()) + 1,
         max   = $el.data('max'),
-        tolerance = $('#t_' + item).val(),
-        minTolerance = Math.floor(5/price[item]);
-
-    if (value==1 && tolerance==0){
-        tolerance = minTolerance;
-    }
+        tolerance = $('#t_' + item).val();
     if (value > max) { value = max; }
     if (!isStockit || (value <= (quantityAvailable[item] + itemsAllocated[item]))) {
         update(item, value, tolerance);
@@ -67,11 +63,7 @@ function decreaseQuantity(item) {
     var $el   = $('#q_' + item),
         value = Number($el.val()) - 1,
         min   = $el.data('min') || 0,
-        tolerance = $('#t_' + item).val(),
-        minTolerance = Math.floor(5/price[item]);
-    if (value==0 && tolerance==minTolerance){
-        tolerance = 0;
-    }
+        tolerance = $('#t_' + item).val();
     if (value >= min) {
         update(item, value, tolerance);
     }
@@ -95,12 +87,38 @@ function decreaseTolerance(item) {
 }
 
 function update(item, quantity, tolerance) {
+    var oldQuantity = $('#q_' + item).val(),
+        minTolerance = Math.floor(5/price[item]);  /* $5 worth */
+
+    // in case it is only quantity or tolerance, fetch missing ones
+    tolerance = (tolerance === undefined ? $('#t_' + item).val() : tolerance);
+    quantity = (quantity === undefined ? $('#q_' + item).val() : quantity);
+
     // set modification flag
-    modified = true
+    modified = true;
+    // check and add tolerance if needed
+    if (oldQuantity==0 && quantity>0 && tolerance==0){
+        tolerance = minTolerance;
+    }
+    if (quantity==0 && tolerance==minTolerance){
+        tolerance = 0;
+    }
 
     // update hidden input fields
     $('#q_' + item).val(quantity);
     $('#t_' + item).val(tolerance);
+
+    // update visible input fields too
+    $('#dq_' + item).val(quantity);
+    $('#dt_' + item).val(tolerance);
+
+    recalculate(item);
+}
+
+var recalculate = debounce(200,function(item){
+    var quantity = Number($('#q_' + item).val()),
+        tolerance = Number($('#t_' + item).val()),
+        t_used;
 
     // calculate how many units would be ordered in total
     var units = calcUnits(unit[item], quantityOthers[item] + Number(quantity), toleranceOthers[item] + Number(tolerance));
@@ -131,12 +149,17 @@ function update(item, quantity, tolerance) {
     }
 
     // update total price
+    itemToleranceTotal[item] = price[item] * (Number(tolerance));
     if(toleranceIsCostly == true) {
         itemTotal[item] = price[item] * (Number(quantity) + Number(tolerance));
     } else {
         itemTotal[item] = price[item] * (Number(quantity));
     }
-    $('#price_' + item + '_display').html(I18n.l("currency", itemTotal[item]));
+
+    $('#price_' + item + '_display').html(I18n.l("currency", itemTotal[item])).toggle(itemToleranceTotal[item] > 0);
+    $('#tolerance_price_' + item + '_display').html(I18n.l("currency", itemToleranceTotal[item]));
+    $('#total_price_' + item + '_display').html(I18n.l("currency", itemTotal[item] + itemToleranceTotal[item]));
+
 
     // update missing units
     var missing_units = calcMissingItems(unit[item], quantityOthers[item] + Number(quantity), toleranceOthers[item] + Number(tolerance)),
@@ -162,7 +185,7 @@ function update(item, quantity, tolerance) {
 
     updateBalance();
     updateButtons($('#q_'+item).closest('tr'));
-}
+});
 
 function calcUnits(unitSize, quantity, tolerance) {
     var units = Math.floor(quantity / unitSize)
@@ -182,11 +205,14 @@ function unitCompletedFromTolerance(unitSize, quantity, tolerance) {
 
 function updateBalance() {
     // update total price and order balance
-    var total = 0;
+    var total = 0, toleranceTotal = 0;
     for (i in itemTotal) {
         total += itemTotal[i];
+        if (itemToleranceTotal[i])
+            toleranceTotal += itemToleranceTotal[i];
     }
     $('#total_price').html(I18n.l("currency", total));
+    $('#total_max').html(I18n.l("currency", total + toleranceTotal));
     var balance = groupBalance - total;
     $('#new_balance').html(I18n.l("currency", balance));
     $('#total_balance').val(I18n.l("currency", balance));

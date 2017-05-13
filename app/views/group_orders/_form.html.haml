@@ -17,6 +17,12 @@
         page: 10000,
         indexAsync: true
       });
+      $('input').keydown(function(event){
+        if(event.keyCode == 13) {
+          event.preventDefault();
+          return false;
+        }
+      });
     });
 
 - title t('.title'), false
@@ -76,11 +82,11 @@
         %th{style: "width:4.5em;"}= heading_helper Article, :unit
         - unless @order.stockit?
           %th{style: "width:70px;"}= heading_helper OrderArticle, :missing_units, short: true
-          %th#col_required= heading_helper GroupOrderArticle, :quantity
-          %th#col_tolerance= heading_helper GroupOrderArticle, :tolerance
+          %th#col_required.center= heading_helper GroupOrderArticle, :quantity
+          %th#col_tolerance.center= heading_helper GroupOrderArticle, :tolerance
         - else
-          %th(style="width:20px")= heading_helper StockArticle, :available
-          %th#col_required= heading_helper GroupOrderArticle, :quantity
+          %th.center(style="width:20px")= heading_helper StockArticle, :available
+          %th.center#col_required= heading_helper GroupOrderArticle, :quantity
         %th{style: "width:15px;"}= heading_helper GroupOrderArticle, :total_price
     %tbody.list
       - @order.articles_grouped_by_category.each do |category, order_articles|
@@ -90,8 +96,14 @@
             %i.icon-tag
           %td{colspan: "9"}
         - order_articles.each do |order_article|
+          - total_price = @ordering_data[:order_articles][order_article.id][:total_price]
+          - tolerance_price = @ordering_data[:order_articles][order_article.id][:tolerance] * order_article.price.price
+          - tolerance_shown = @ordering_data[:order_articles][order_article.id][:unit] > 1
           %tr{class: "#{cycle('even', 'odd', name: 'articles')} order-article #{get_missing_units_css_class(@ordering_data[:order_articles][order_article.id][:missing_units])}", valign: "top"}
-            %td.name= order_article.article.name
+            %td.name
+              %span= order_article.article.name
+              %br/
+              %small= order_article.article.manufacturer
             - if @order.stockit?
               %td= truncate order_article.article.supplier.name, length: 15
             %td= h order_article.article.origin
@@ -108,26 +120,52 @@
               %span.used{id: "q_used_#{order_article.id}"}= @ordering_data[:order_articles][order_article.id][:used_quantity]
               +
               %span.unused{id: "q_unused_#{order_article.id}"}= @ordering_data[:order_articles][order_article.id][:quantity] - @ordering_data[:order_articles][order_article.id][:used_quantity]
-              .btn-group
-                %a.btn.btn-ordering{'data-increase_quantity' => order_article.id}
-                  %i.icon-plus
-                %a.btn.btn-ordering{'data-decrease_quantity' => order_article.id}
-                  %i.icon-minus
+              -#.btn-group
+              -#  %a.btn.btn-ordering{'data-increase_quantity' => order_article.id}
+              -#    %i.icon-plus
+              -#  %a.btn.btn-ordering{'data-decrease_quantity' => order_article.id}
+              -#    %i.icon-minus
+              - min_quantity =  @order.boxfill? ? @ordering_data[:order_articles][order_article.id][:quantity] : 0
+              - max_quantity =  @order.boxfill? ? @ordering_data[:order_articles][order_article.id][:quantity]+@ordering_data[:order_articles][order_article.id][:missing_units] : ''
+              %input{id: "dq_#{order_article.id}", name: "group_order[group_order_articles_attributes][#{order_article.id}][quantity]",
+                onkeyup: "update(#{order_article.id},this.value); event.preventDefault(); return false;",
+                onchange: "update(#{order_article.id},this.value); event.preventDefault(); return false;",
+                class: 'input-mini', type: "number",
+                min: min_quantity, 'max' => (max_quantity if @order.boxfill?),
+                required: true,
+                value: @ordering_data[:order_articles][order_article.id][:quantity],
+                'data-min' => (min_quantity if @order.boxfill?),
+                'data-max' => (max_quantity if @order.boxfill?)}
+              -#- if (tolerance_shown)
+              -#  %span{id: "price_#{order_article.id}_display"}= number_to_currency(total_price)
 
             %td.tolerance{style: ('display:none' if @order.stockit?)}
-              %input{id: "t_#{order_article.id}", name: "group_order[group_order_articles_attributes][#{order_article.id}][tolerance]", type: "hidden", value: @ordering_data[:order_articles][order_article.id][:tolerance], 'data-min' => (@ordering_data[:order_articles][order_article.id][:tolerance] if @order.boxfill?)}/
-              - if (@ordering_data[:order_articles][order_article.id][:unit] > 1)
+              - min_tolerance = @order.boxfill? ? @ordering_data[:order_articles][order_article.id][:tolerance] : 0
+              %input{id: "t_#{order_article.id}", name: "group_order[group_order_articles_attributes][#{order_article.id}][tolerance]", type: "hidden", value: @ordering_data[:order_articles][order_article.id][:tolerance], 'data-min' => (@ordering_data[:order_articles][order_article.id][:tolerance] if @order.boxfill?)}
+              - if (tolerance_shown)
                 %span.used{id: "t_used_#{order_article.id}"}= @ordering_data[:order_articles][order_article.id][:used_tolerance]
                 +
                 %span.unused{id: "t_unused_#{order_article.id}"}= @ordering_data[:order_articles][order_article.id][:tolerance] - @ordering_data[:order_articles][order_article.id][:used_tolerance]
-                .btn-group
-                  %a.btn.btn-ordering{'data-increase_tolerance' => order_article.id}
-                    %i.icon-plus
-                  %a.btn.btn-ordering{'data-decrease_tolerance' => order_article.id}
+                -#.btn-group
+                -#  %a.btn.btn-ordering{'data-increase_tolerance' => order_article.id}
+                -#    %i.icon-plus
+                -#  %a.btn.btn-ordering{'data-decrease_tolerance' => order_article.id}
                     %i.icon-minus
+              %input{id: "dt_#{order_article.id}", name: "group_order[group_order_articles_attributes][#{order_article.id}][tolerance]",
+                  onkeyup: "update(#{order_article.id},undefined,this.value); event.preventDefault();",
+                  onchange: "update(#{order_article.id},undefined,this.value); event.preventDefault();",
+                  step: 1, class: 'input-mini', type: "#{tolerance_shown ? 'number' : 'hidden'}",
+                  value: @ordering_data[:order_articles][order_article.id][:tolerance],
+                  min: min_tolerance, required: true,
+                  'data-min' => (min_tolerance if @order.boxfill?)}
+              - if (tolerance_shown)
+                %span{id: "tolerance_price_#{order_article.id}_display"}= number_to_currency(tolerance_price)
 
             %td{id: "td_price_#{order_article.id}", style: "text-align:right; padding-right:10px; width:4em"}
-              %span{id: "price_#{order_article.id}_display"}= number_to_currency(@ordering_data[:order_articles][order_article.id][:total_price])
+              - prices_equal = total_price == (total_price+tolerance_price)
+              %span{id: "price_#{order_article.id}_display", 'style' => ('display: none' if prices_equal) }= number_to_currency(total_price)
+              %span{id: "total_price_#{order_article.id}_display"}= number_to_currency(total_price+tolerance_price)
+
               .article-info
                 .article-name= order_article.article.name
                 .pull-right
@@ -147,6 +185,9 @@
                   %br/
                   #{heading_helper Article, :note}: #{order_article.article.note}
                   %br/
+
+
+
   #order-footer
     #info-box
     #total-sum
@@ -155,6 +196,10 @@
           %td= t('.total_sum_amount') + ':'
           %td.currency
             %span#total_price= number_to_currency(@group_order.price)
+            = '(at most '
+            -#%span#total_tolerance= number_to_currency(@ordering_data[:total_tolerance_cost])
+            %span#total_max= number_to_currency(@group_order.price+@ordering_data[:total_tolerance_cost])
+            = ')'
         %tr
           %td= heading_helper(Ordergroup, :available_funds) + ':'
           %td.currency= number_to_currency(@ordering_data[:available_funds])
@@ -168,3 +213,4 @@
         #{link_to t('ui.or_cancel'), group_orders_path}
   %input#total_balance{name: "total_balance", type: "hidden", value: @ordergroup.account_balance - @group_order.price}/
   %input{name: "version", type: "hidden", value: @version}/
+

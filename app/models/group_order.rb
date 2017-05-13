@@ -26,6 +26,7 @@ class GroupOrder < ActiveRecord::Base
 
     # load prices and other stuff....
     data[:order_articles] = {}
+    total_tolerance_cost = 0
     order.articles_grouped_by_category.each do |article_category, order_articles|
       order_articles.each do |order_article|
 
@@ -46,9 +47,11 @@ class GroupOrder < ActiveRecord::Base
             :missing_units => order_article.missing_units,
             :quantity_available => (order.stockit? ? order_article.article.quantity_available : 0)
         }
+
+        total_tolerance_cost += (goa ? (goa.tolerance * order_article.article.fc_price) : 0)
       end
     end
-
+    data[:total_tolerance_cost] = total_tolerance_cost
     data
   end
 
