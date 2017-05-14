@@ -193,6 +193,14 @@ class GroupOrderArticle < ActiveRecord::Base
     end
   end
 
+  def tolerance_price(order_article = self.order_article)
+    [0,result.to_f - quantity].max * order_article.article.fc_price
+  end
+
+  def tolerance_price_limit(order_article = self.order_article)
+    tolerance * order_article.article.fc_price
+  end
+
   # Check if the result deviates from the result_computed
   def result_manually_changed?
     result != result_computed unless result.nil?

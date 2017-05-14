@@ -19,6 +19,22 @@ class GroupOrder < ActiveRecord::Base
 
   scope :ordered, -> { includes(:ordergroup).order('groups.name') }
 
+  def total_tolerance_cost
+    # group_order_articles.map { |goa| {
+    #     article: goa.order_article.article.name,
+    #     tolerance_used: [0,goa.result.to_f - goa.quantity].max,
+    #     tolerance: goa.tolerance,
+    #     quantity: goa.quantity,
+    #     result: goa.result.to_f,
+    # } }
+    #
+    @total_tolerance_cost ||= group_order_articles.map { |goa| goa.tolerance_price }.sum
+  end
+
+  def toleance_data
+    group_order_articles.map { |goa| goa.order_article.slice(:quantity,:tolerance,:units_to_order) }
+  end
+
   # Generate some data for the javascript methods in ordering view
   def load_data
     data = {}
