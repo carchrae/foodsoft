@@ -65,12 +65,12 @@ class OrderFax < OrderPdf
     each_order_article do |oa|
       subtotal = oa.units_to_order * oa.price.unit_quantity * oa.price.price
       total += subtotal
-      data << [oa.article.order_number,
-               oa.units_to_order,
+      data << [((oa.article.order_number.include?'PRO-') ? oa.article.order_number.sub('PRO-','') : ''),
                oa.article.name,
-               oa.price.unit_quantity,
-               oa.article.unit,
-               number_to_currency(oa.price.price),
+               '', #oa.price.unit_quantity,
+               '', #oa.article.unit,
+               oa.units_to_order,
+               number_to_currency(oa.price.supplier_price),
                number_to_currency(subtotal)]
     end
     data << [I18n.t('documents.order_fax.total'), nil, nil, nil, nil, nil, number_to_currency(total)]
