@@ -719,12 +719,12 @@ en:
     order_fax:
       filename: Order %{name} - %{date} - Fax
       rows:
-      - Order Number
-      - Amount
+      - SKU
       - Name
-      - Unit quantity
-      - Unit
-      - Price/Unit
+      - #Unit quantity
+      - #Unit
+      - Amount
+      - Cost Per
       - Subtotal
       total: Total
     order_matrix:
