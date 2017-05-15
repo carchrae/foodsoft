@@ -729,7 +729,7 @@ en:
       total: Total
     order_matrix:
       filename: Splitsheets %{name}-%{date}
-      heading: Delivery Checklist
+      heading: Delivery Checklist Page for Credit/Refunds - GIVE TO ORDERING PERSON
       rows:
       - Article
       - Unit
@@ -737,10 +737,10 @@ en:
       - Unit Price
       - Case Price
       - Cases
-      - Received
+      - Count/Weight
       - Spoilage (%)
       title: 'Split sheets: %{name} - %{date} - Ordered by %{user_name}'
-      note: 'Ensure that %{user_name} (%{user_email}) gets this ASAP to request any refunds.'
+      note: ''
       total:
         one: One article in total
         other: "%{count} articles in total"

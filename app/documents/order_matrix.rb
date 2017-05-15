@@ -22,8 +22,8 @@ class OrderMatrix < OrderPdf
     text I18n.t('documents.order_matrix.note', :user_name => @order.created_by.name,
                 :user_email => @order.created_by.email), {size: fontsize(8), style: :bold}
 
-    text I18n.t('documents.order_matrix.total', :count => order_articles.size), size: fontsize(8)
-    move_down 10
+    # text I18n.t('documents.order_matrix.total', :count => order_articles.size), size: fontsize(8)
+    # move_down 10
 
     order_articles_data = [I18n.t('documents.order_matrix.rows')]
 
@@ -76,7 +76,8 @@ class OrderMatrix < OrderPdf
         for order_article in current_order_articles
           # get the Ordergroup result for this order_article
           goa = order_article.group_order_articles.where(group_order_id: group_order.id).first
-          group_result << ((goa.nil? || goa.result == 0) ? "" : goa.result.to_i)
+          result = ((goa.nil? || goa.result == 0) ? ''  : goa.result.to_i)
+          group_result <<  result
         end
         groups_data << group_result
       end
