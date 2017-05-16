@@ -1,7 +1,7 @@
 # encoding: utf-8
 class OrderMatrix < OrderPdf
 
-  MAX_ARTICLES_PER_PAGE = 8 # How many order_articles shoud written on a page
+  MAX_ARTICLES_PER_PAGE = 8 # How many order_articles on each page
 
   def filename
     I18n.t('documents.order_matrix.filename', :name => @order.name, :date => @order.ends.to_date) + '.pdf'
@@ -28,7 +28,7 @@ class OrderMatrix < OrderPdf
     order_articles_data = [I18n.t('documents.order_matrix.rows')]
 
     order_articles.each do |a|
-      order_articles_data << [a.article.name,
+      order_articles_data << [a.article.name.gsub(/\s+/,' '),
                               a.article.unit,
                               a.price.unit_quantity,
                               number_with_precision(article_price(a), precision: 2),
@@ -58,16 +58,14 @@ class OrderMatrix < OrderPdf
 
       # Make order_articles header
       header = [""]
-      header2 = ["split unit"]
       for header_article in current_order_articles
-        name = header_article.article.name.gsub(/[-\/]/, " ").gsub(".", ". ")
+        name = header_article.article.name.gsub(/[-\/]/, " ").gsub(".", ". ").gsub(/\s+/,' ')
         name = name.split.collect { |w| w.truncate(8) }.join(" ")
-        header << name.truncate(480/MAX_ARTICLES_PER_PAGE)
-        header2 << header_article.article.unit
+        header << name
       end
 
       # Collect group results
-      groups_data = [header, header2]
+      groups_data = [header]
 
       @order.group_orders.includes(:ordergroup).sort_by(&:ordergroup_name).each do |group_order|
 
@@ -98,8 +96,9 @@ class OrderMatrix < OrderPdf
 
       # Make table
       column_widths = [85]
-      (MAX_ARTICLES_PER_PAGE + 1).times { |i| column_widths << (656/MAX_ARTICLES_PER_PAGE) unless i == 0 }
+      (MAX_ARTICLES_PER_PAGE + 1).times { |i| column_widths << (656/(MAX_ARTICLES_PER_PAGE+1)).floor unless i == 0 }
       table groups_data, column_widths: column_widths, cell_style: {size: fontsize(8), overflow: :shrink_to_fit} do |table|
+        table.row(0).style(:size => 6)
         table.cells.border_width = 1
         table.cells.border_color = '666666'
         table.row_colors = ['ffffff','ececec']
