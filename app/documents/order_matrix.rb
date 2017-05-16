@@ -61,7 +61,7 @@ class OrderMatrix < OrderPdf
       for header_article in current_order_articles
         name = header_article.article.name.gsub(/[-\/]/, " ").gsub(".", ". ").gsub(/\s+/,' ')
         name = name.split.collect { |w| w.truncate(8) }.join(" ")
-        header << name
+        header << name.truncate(30)
       end
 
       # Collect group results
@@ -98,10 +98,11 @@ class OrderMatrix < OrderPdf
       column_widths = [85]
       (MAX_ARTICLES_PER_PAGE + 1).times { |i| column_widths << (656/(MAX_ARTICLES_PER_PAGE+1)).floor unless i == 0 }
       table groups_data, column_widths: column_widths, cell_style: {size: fontsize(8), overflow: :shrink_to_fit} do |table|
-        table.row(0).style(:size => 6)
+        # table.row(0).style(:size => 6)
         table.cells.border_width = 1
         table.cells.border_color = '666666'
         table.row_colors = ['ffffff','ececec']
+        table.row(groups_data.length-1).style(bold: true)
       end
 
     end
