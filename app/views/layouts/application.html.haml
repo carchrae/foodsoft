@@ -29,7 +29,7 @@
   .container-fluid
     .row-fluid
       - if content_for?(:sidebar)
-        .span3
+        .span3.hidden-phone
           = yield(:sidebar)
         .span9
           = bootstrap_flash_patched
