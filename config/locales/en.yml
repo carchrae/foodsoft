@@ -1,6 +1,4 @@
 en:
-  date_format: '%d %M'
-  time_format: '%H:%mm'
   activerecord:
     attributes:
       article:
@@ -1058,7 +1056,7 @@ en:
       my_ordergroup:
         funds: "| Available Credit:"
         last_update: Last update was %{when} ago
-        title: My ordergroup
+        title: My Account
         transactions:
           title: Last Transactions
           view: Show account statement
