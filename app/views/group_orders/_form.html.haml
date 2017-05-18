@@ -233,7 +233,7 @@
     .navbar-inner
       .container{style: 'padding-left: 20px; padding-right: 20px; '}
         .center
-          %span.label.label-success.credit_label
+          %span.label.credit_label{:class => ( (@ordering_data[:available_funds] - @group_order.price)>0 ? 'label-success' : 'label-important')}
             %span= 'Credit'
             %span.new_balance= number_to_currency(@ordering_data[:available_funds] - @group_order.price)
           %br/
