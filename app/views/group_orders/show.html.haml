@@ -4,9 +4,9 @@
       $('tr.ignored').hide();
     });
 
-- title t('.title', order: @order.name)
+- title t('.title', order: @order.name, ordergroup: @ordergroup.name)
 
-.well
+.row-fluid
   // Order summary
   %dl.dl-horizontal
     %dt= heading_helper Order, :name

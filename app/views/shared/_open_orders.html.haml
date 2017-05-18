@@ -8,29 +8,36 @@
       %thead
         %tr
           %th= heading_helper Order, :name
-          %th= heading_helper Order, :pickup
+          %th.hidden-phone= heading_helper Order, :pickup
           %th= heading_helper Order, :ends
-          %th= t '.who_ordered'
+          %th.hidden-phone= t '.who_ordered'
           %th.numeric= heading_helper GroupOrder, :price
+          %th
       %tbody
         - total = 0
         - Order.open.each do |order|
           %tr
             %td= link_to_ordering(order)
-            %td= format_date(order.pickup) unless order.pickup.nil?
+            %td.hidden-phone= format_date(order.pickup) unless order.pickup.nil?
             %td= format_time(order.ends) unless order.ends.nil?
             - if group_order = order.group_order(ordergroup)
               - total += group_order.price
-              %td= "#{show_user group_order.updated_by} (#{format_time(group_order.updated_on)})"
+              %td.hidden-phone= "#{show_user group_order.updated_by} (#{format_time(group_order.updated_on)})"
               %td.numeric
                 = link_to_ordering(order, show: true) do
                   = number_to_currency(group_order.price)
             - else
               %td{:colspan => 2}
+            %td.btn-group
+              %span
+                = link_to_ordering(order) do
+                  %button.btn.btn-small Place Order
       - if total > 0
         %tfooter
           %tr
-            %th(colspan="3")
+            %th
+            %th.hidden-phone
+            %th.hidden-phone
             %th= t('.total_sum') + ':'
             %th.numeric= number_to_currency(total)
   - else
