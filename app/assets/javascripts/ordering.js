@@ -123,9 +123,16 @@ var recalculate = debounce(200,function(item){
     // calculate how many units would be ordered in total
     var units = calcUnits(unit[item], quantityOthers[item] + Number(quantity), toleranceOthers[item] + Number(tolerance));
     if (unitCompletedFromTolerance(unit[item], quantityOthers[item] + Number(quantity), toleranceOthers[item] + Number(tolerance))) {
-        $('#units_' + item).html('<span style=\"color:grey\">' + String(units) + '</span>');
+        $('#units_' + item).html(String(units));
+        $('.units_' + item).addClass('label-warning');
+        $('.units_' + item).removeClass('label-success');
     } else {
         $('#units_' + item).html(String(units));
+        if (units>0) {
+            $('.units_' + item).addClass('label-success');
+        }else {
+            $('.units_' + item).removeClass('label-success');
+        }
     }
 
     // update used/unused quantity
@@ -156,16 +163,19 @@ var recalculate = debounce(200,function(item){
         itemTotal[item] = price[item] * (Number(quantity));
     }
 
-    $('#price_' + item + '_display').html(I18n.l("currency", itemTotal[item])).toggle(itemToleranceTotal[item] > 0);
-    $('#tolerance_price_' + item + '_display').html(I18n.l("currency", itemToleranceTotal[item]));
+    $('#price_' + item + '_display').html(I18n.l("currency", itemTotal[item]));
+    $('#tolerance_price_' + item + '_display').html('+'+I18n.l("currency", itemToleranceTotal[item])).toggle(itemToleranceTotal[item] > 0);
     $('#total_price_' + item + '_display').html(I18n.l("currency", itemTotal[item] + itemToleranceTotal[item]));
 
 
     // update missing units
-    var missing_units = calcMissingItems(unit[item], quantityOthers[item] + Number(quantity), toleranceOthers[item] + Number(tolerance)),
+    var quantityTotal = quantityOthers[item] + Number(quantity),
+        toleranceTotal =toleranceOthers[item] + Number(tolerance),
+        unitSize = unit[item],
+        missing_units = calcMissingItems(unitSize, quantityTotal, toleranceTotal),
         missing_units_css = '';
 
-    if (missing_units <= 0 || missing_units == unit[item]) {
+    if (missing_units <= 0 || missing_units == unitSize) {
         missing_units = 0;
         if (units > 0) {
             missing_units_css = 'missing-none';
@@ -177,11 +187,22 @@ var recalculate = debounce(200,function(item){
     } else {
         missing_units_css = 'missing-many';
     }
-    $('#missing_units_' + item)
+
+    $('.missing_units_' + item)
+        .closest('.label')
+        .toggle(missing_units>0);
+    $('.missing_units_' + item)
         .html(String(missing_units))
-        .closest('tr')
+        .closest('tr.order-article')
         .removeClass('missing-many missing-few missing-none')
         .addClass(missing_units_css);
+
+    $('.extra_units_'+item)
+        .html(String(available));
+    $('.extra_units_' + item)
+        .closest('.label')
+        .toggle(available>0);
+
 
     updateBalance();
     updateButtons($('#q_'+item).closest('tr'));
@@ -211,11 +232,11 @@ function updateBalance() {
         if (itemToleranceTotal[i])
             toleranceTotal += itemToleranceTotal[i];
     }
-    $('#total_price').html(I18n.l("currency", total));
-    $('#total_max').html(I18n.l("currency", total + toleranceTotal));
+    $('.total_price').html(I18n.l("currency", total));
+    $('.total_max').html(I18n.l("currency", total + toleranceTotal));
     var balance = groupBalance - total;
-    $('#new_balance').html(I18n.l("currency", balance));
-    $('#total_balance').val(I18n.l("currency", balance));
+    $('.new_balance').html(I18n.l("currency", balance));
+    $('.total_balance').val(I18n.l("currency", balance));
     // determine bgcolor and submit button state according to balance
     var bgcolor = '';
     if (balance < minimumBalance) {
@@ -266,6 +287,20 @@ $(function() {
 
     $('a[data-confirm_switch_order]').on('touchclick', function() {
         return (!modified || confirm(I18n.t('js.ordering.confirm_change')));
+    });
+
+    var isSubmittingForm = false;
+    $('form').on('submit', function(e){
+        isSubmittingForm=true;
+    });
+    $(window).on('beforeunload', function (e) {
+        if (!modified || isSubmittingForm) {
+            return undefined;
+        }
+
+        var confirmationMessage = confirm(I18n.t('js.ordering.confirm_change'));
+        (e || window.event).returnValue = confirmationMessage; //Gecko + IE
+        return confirmationMessage; //Gecko + Webkit, Safari, Chrome etc.
     });
 
     updateButtons($(document));
