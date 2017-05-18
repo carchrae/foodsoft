@@ -197,11 +197,12 @@ var recalculate = debounce(200,function(item){
         .removeClass('missing-many missing-few missing-none')
         .addClass(missing_units_css);
 
+    var extra = Math.max(0,(units * unit[item]) - quantityTotal);
     $('.extra_units_'+item)
-        .html(String(available));
+        .html(String(extra));
     $('.extra_units_' + item)
         .closest('.label')
-        .toggle(available>0);
+        .toggle(extra>0);
 
 
     updateBalance();
