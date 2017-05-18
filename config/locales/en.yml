@@ -1,4 +1,6 @@
 en:
+  date_format: '%d %M'
+  time_format: '%H:%mm'
   activerecord:
     attributes:
       article:
@@ -50,14 +52,14 @@ en:
         ordergroup: Ordergroup
         user: Entered by
       group_order:
-        price: Order sum
+        price: Your Total
         updated_by: Last ordered by
       group_order_article:
         ordergroup_id: Ordergroup
         quantity: Amount
         result: Amount
         tolerance: Tolerance
-        total_price: Sum
+        total_price: Total
       invoice:
         amount: Amount
         attachment: Attachment
@@ -956,10 +958,10 @@ en:
       sum_amount: Current amount
       title: Orders
       total_sum_amount: Total amount
-      total_tolerance: Total tolerance
+      total_tolerance: Everyone's Tolerance
       units: Units
-      units_full: Filled units
-      units_total: Total units
+      units_full: Filled
+      units_total: Everyone Wants
     index:
       closed_orders:
         more: more...
@@ -981,22 +983,22 @@ en:
         edit_order: Edit order
         not_ordered_msg: You didn’t place an order yet
         order_closed_msg: Sorry, this order is closed.
-        order_nopen_title: Considering current orders of all groups
+        order_nopen_title: The amount you will get considering the current orders of everyone else
         order_not_open: Received
         order_now: This is your chance!
-        order_open: Available
+        order_open: Available to You
         ordered: Ordered
         ordered_title: Amount + tolerance
         show_hide: Show/hide articles not ordered
         show_note: Show note
         title: Article overview
-        unit_price: Unit price
+        unit_price: Price
       comment: Comment
       comments:
         title: Comments
       not_ordered: You didn’t order.
       sum: Sum
-      title: Your order result for %{order}
+      title: "%{order} for %{ordergroup}"
     switch_order:
       remaining: "%{remaining} remaining"
       title: Current orders
@@ -1575,7 +1577,7 @@ en:
       received_desc: Number of articles that (will be) received by member
     articles_by:
       price: Total price
-      price_sum: Sum
+      price_sum: Cost
     group:
       access: Access to
       activated: activated
@@ -1589,8 +1591,8 @@ en:
     open_orders:
       no_open_orders: There are no current orders
       not_enough_apples: Attention your ordergroup has too few apple points to place an order!
-      title: Current orders
-      total_sum: Total sum
+      title: Open orders
+      total_sum: Total cost
       who_ordered: Who ordered?
     task_list:
       accept_task: Accept task
