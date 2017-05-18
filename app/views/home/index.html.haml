@@ -6,6 +6,30 @@
 -# placeholder deface to add content using erb[silent]:contains()
 - '<dashboard_top_mark>'
 
+- if current_user.ordergroup
+  = render :partial => 'shared/open_orders', :locals => {:ordergroup => current_user.ordergroup}
+
+// finished orders
+- unless Order.finished_not_closed.empty?
+  - @ordergroup ||= current_user.ordergroup
+  %section
+    %h2= t 'Closed Orders (in process)'
+    = render :partial => 'group_orders/orders', :locals => {:orders => Order.finished_not_closed, :pagination => false}
+    - if current_user.ordergroup.value_of_finished_orders > 0
+      %p
+        = t('.finished_orders.total_sum') + ':'
+        %b= number_to_currency(current_user.ordergroup.value_of_finished_orders)
+
+// closed orders
+- unless Order.closed.empty?
+  - @ordergroup ||= current_user.ordergroup
+  %section
+    %h2= t 'Finished Orders (final)'
+    = render :partial => 'group_orders/orders', :locals => {:orders => Order.closed.limit(5), :pagination => false}
+    %br/
+    = link_to t('.closed_orders.more'), archive_group_orders_path
+
+
 - unless @unaccepted_tasks.empty? && @next_tasks.empty?
   %section.row-fluid
     - unless @next_tasks.empty?
@@ -27,8 +51,6 @@
     = render 'shared/task_list', tasks: @unassigned_tasks
     = link_to t('.tasks_open.view_all'), tasks_path
 
-- if current_user.ordergroup
-  = render :partial => 'shared/open_orders', :locals => {:ordergroup => current_user.ordergroup}
 
 // Stats
 - if current_user.ordergroup and FoodsoftConfig[:use_apple_points]
