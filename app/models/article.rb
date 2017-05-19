@@ -69,7 +69,6 @@ class Article < ActiveRecord::Base
 
   attr_accessor :skip_sync
 
-  # The financial gross, net plus tax and deposit
   # not ready yet, more testing
   def gross_price_supplier
     if (supplier_price)
@@ -80,6 +79,7 @@ class Article < ActiveRecord::Base
     ((unit_price + deposit) * (tax / 100 + 1)).round(2)
   end
 
+  # The financial gross, net plus tax and deposit
   def gross_price
     ((price + deposit) * (tax / 100 + 1)).round(2)
   end
@@ -250,13 +250,14 @@ class Article < ActiveRecord::Base
         :price => price,
         :tax => tax,
         :deposit => deposit,
-        :unit_quantity => unit_quantity
+        :unit_quantity => unit_quantity,
+        :supplier_price => supplier_price
       )
     end
   end
 
   def price_changed?
-    changed.detect { |attr| attr == 'price' || 'tax' || 'deposit' || 'unit_quantity' } ? true : false
+    changed.detect { |attr| attr == 'price' || 'tax' || 'deposit' || 'unit_quantity' || 'supplier_price' } ? true : false
   end
 
   # We used have the name unique per supplier+deleted_at+type. With the addition of shared_sync_method all,
