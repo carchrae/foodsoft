@@ -85,7 +85,11 @@ class OrderArticle < ActiveRecord::Base
 
   # Calculate gross price for ordered qunatity.
   def total_gross_price
-    units * price.unit_quantity * price.gross_price
+    if price.supplier_price
+      units * price.supplier_price
+    else
+      units * price.unit_quantity * price.gross_price
+    end
   end
 
   # total paid to supplier
