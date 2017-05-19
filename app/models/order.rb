@@ -165,7 +165,7 @@ class Order < ActiveRecord::Base
   # :fc, guess what...
   def sum(type = :gross)
     total = 0
-    if type == :net || type == :gross || type == :fc
+    if type == :net || type == :gross || type == :fc || type == :gross_price_supplier
       for oa in order_articles.ordered.includes(:article, :article_price)
         quantity = oa.units * oa.price.unit_quantity
         case type
@@ -175,6 +175,8 @@ class Order < ActiveRecord::Base
             total += quantity * oa.price.gross_price
           when :fc
             total += quantity * oa.price.fc_price
+          when :gross_price_supplier
+            total += quantity * oa.price.gross_price_supplier
         end
       end
     elsif type == :groups || type == :groups_without_markup

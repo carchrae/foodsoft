@@ -16,15 +16,21 @@
       %td= t('.groups_amount')
       %td.numeric= number_to_currency(order.sum(:groups))
     %tr
-      %td
-        = t('.fc_profit')
-        %small= t('.without_extra_charge')
-      %td.numeric= number_to_currency(order.profit(:without_markup => true))
+      %td= 'Supplier Price Total'
+      %td.numeric= number_to_currency(order.sum(:gross_price_supplier))
+    - without_markup = number_to_currency(order.profit(:without_markup => true))
+    - with_markup = number_to_currency(order.profit())
     %tr
       %td
         = t('.fc_profit')
-        %small= t('.with_extra_charge')        
-      %td#order_profit.numeric= number_to_currency(order.profit)
+        %small= t('.without_extra_charge')
+      %td.numeric= without_markup
+    - unless with_markup == without_markup
+      %tr
+        %td
+          = t('.fc_profit')
+          %small= t('.with_extra_charge')
+        %td#order_profit.numeric= number_to_currency(order.profit)
 #summaryChangedWarning.alert(style="display:none;")
   %strong= t '.changed'
   %br/
