@@ -66,8 +66,8 @@ en:
         date: Billing date
         delete_attachment: Delete attachment
         deliveries: Delivery
-        deposit: Deposit charged
-        deposit_credit: Deposit returned
+        deposit: Deduct Charges
+        deposit_credit: Refund Credits
         net_amount: Amount adjusted for refund
         note: Note
         number: Number
@@ -792,15 +792,15 @@ en:
       index:
         title: Closed orders
       invoice:
-        edit: Edit invoice
+        edit: Edit
         invoice_amount: 'Invoice amount:'
         invoice_date: 'Invoice date:'
         invoice_number: 'Invoice number:'
-        minus_refund_calculated: "- deposit charged:"
-        new: create new invoice
+        minus_refund_calculated: "Deduct Charges:"
+        new: Add invoice
         new_body: 'Create an invoice for this order:'
-        plus_refund_credited: "+ deposit returned:"
-        refund_adjusted_amount: 'amount adjusted for refund:'
+        plus_refund_credited: "Refund Credits:"
+        refund_adjusted_amount: 'Total:'
       new:
         alert: Attention, order was already accounted
         articles_overview: Overview of articles
@@ -832,13 +832,13 @@ en:
         changed: Data was changed!
         duration: From %{starts} till %{ends}
         fc_amount: 'Sales value:'
-        fc_profit: FC surplus
+        fc_profit: 'Final Balance'
         gross_amount: 'Gross value:'
-        groups_amount: 'Ordergroups sum:'
+        groups_amount: 'Charged to Members:'
         net_amount: 'Net value:'
         reload: Reload summary
-        with_extra_charge: 'with extra charge:'
-        without_extra_charge: 'without extra charge:'
+        with_extra_charge: 'with markup:'
+        without_extra_charge: ':'
     create:
       notice: Invoice was created.
     financial_transactions:
