@@ -1,4 +1,11 @@
 - if invoice
+  .pull-right= link_to t('.edit'), edit_finance_invoice_path(invoice), :class => 'btn btn-small'
+%h3= t('.invoice')
+
+- unless invoice
+  = t '.new_body'
+  = link_to t('.new'), new_finance_invoice_path(:order_id => @order, :supplier_id => @order.supplier)
+- else
   %table
     %tr
       %td= t('.invoice_number')
@@ -8,19 +15,19 @@
       %td= invoice.date
     %tr
       %td= t('.invoice_amount')
-      %td.curreny= number_to_currency invoice.amount
+      %td.currency= number_to_currency invoice.amount
     %tr
       %td= t('.minus_refund_calculated')
-      %td.curreny= number_to_currency invoice.deposit
+      %td.currency= number_to_currency invoice.deposit
     %tr
       %td= t('.plus_refund_credited')
-      %td.curreny= number_to_currency invoice.deposit_credit
+      %td.currency= number_to_currency invoice.deposit_credit
     %tr
       %td= t('.refund_adjusted_amount')
-      %td.curreny= number_to_currency invoice.net_amount
+      %td.currency= number_to_currency invoice.net_amount
   %br/
-  = link_to t('.edit'), edit_finance_invoice_path(invoice)
+  - if (invoice.note)
+    .row-fluid
+      %strong Note:
+      %pre= invoice.note
 
-- else
-  = t '.new_body'
-  = link_to t('.new'), new_finance_invoice_path(:order_id => @order, :supplier_id => @order.supplier)
