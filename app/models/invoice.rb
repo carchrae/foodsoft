@@ -19,7 +19,11 @@ class Invoice < ActiveRecord::Base
   def attachment=(incoming_file)
     self.attachment_data = incoming_file.read
     # allow to soft-fail when FileMagic isn't present and removed from Gemfile (e.g. Heroku)
-    self.attachment_mime = defined?(FileMagic) ? FileMagic.new(FileMagic::MAGIC_MIME).buffer(self.attachment_data) : 'application/octet-stream'
+    self.attachment_mime = allows_attachments? ? FileMagic.new(FileMagic::MAGIC_MIME).buffer(self.attachment_data) : 'application/octet-stream'
+  end
+
+  def allows_attachments?
+    defined?(FileMagic)
   end
 
   def delete_attachment=(value)
