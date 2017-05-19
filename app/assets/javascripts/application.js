@@ -185,11 +185,15 @@ function debounce(wait, func) {
     var timeout;
     return function() {
         var context = this, args = arguments;
-        clearTimeout(timeout);
-        timeout = setTimeout(function() {
-            timeout = null;
+        if (wait) {
+            clearTimeout(timeout);
+            timeout = setTimeout(function () {
+                timeout = null;
+                func.apply(context, args);
+            }, wait);
+        }else{
             func.apply(context, args);
-        }, wait);
+        }
     };
 }
 
