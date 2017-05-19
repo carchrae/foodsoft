@@ -7,16 +7,19 @@
     %table.table.table-striped
       %thead
         %tr
+          %th
           %th= heading_helper Order, :name
           %th.hidden-phone= heading_helper Order, :pickup
           %th= heading_helper Order, :ends
           %th.hidden-phone= t '.who_ordered'
           %th.numeric= heading_helper GroupOrder, :price
-          %th
       %tbody
         - total = 0
         - Order.open.each do |order|
           %tr
+            %td
+              = link_to_ordering(order) do
+                %button.btn.btn-mini Place Order
             %td= link_to_ordering(order)
             %td.hidden-phone= format_datetime_timespec(order.pickup,'%A (%d %b)') unless order.pickup.nil?
             %td= format_datetime_timespec(order.ends,'%k:%M%P %A (%d %b)') unless order.ends.nil?
@@ -29,11 +32,8 @@
                 = link_to_ordering(order, show: true) do
                   = number_to_currency(group_order.price)
             - else
-              %td{:colspan => 2}
-            %td.btn-group
-              %span
-                = link_to_ordering(order) do
-                  %button.btn.btn-mini Place Order
+              %td.hidden-phone
+              %td
       - if total > 0
         %tfooter
           %tr
