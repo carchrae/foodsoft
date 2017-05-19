@@ -1615,7 +1615,7 @@ en:
       article_category:
         description: comma-separated list of category names recognised at import/synchronisation
       order_article:
-        units_to_order: If you change the total amount of delivered units, you also have to change individual group amounts by clicking on the article name. They will not be automatically recalculated and so ordergroups may be accounted for articles that were not delivered!
+        units_to_order: If you change the received amount, you will need to update each member's amount received so members are charged the correct amount.
         update_global_price: Also update the price of future orders
       stock_article:
         copy:
