@@ -39,8 +39,8 @@
   }
 
   function updateSplitPrice(){
-    var units = parseFloat($('#article_unit_quantity').val());
-    var supplierPrice = parseFloat($('#article_supplier_price', form).val());
+    var units = parseFloat($('##{field}_unit_quantity').val());
+    var supplierPrice = parseFloat($('##{field}_supplier_price', form).val());
     var price = ((supplierPrice/units)*100);
     price = Math.ceil(price);
     price = price/100;
@@ -51,7 +51,7 @@
       'this button lets you quickly recalculate the split price, but the',
       'price is still the same!  price = (supplier price/unit)',
       'did you change unit or supplier price?',
-      ].join('\n'));
+      ].join(' '));
       return;
     }else{
       $('##{field}_price', form).val(price);
