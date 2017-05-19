@@ -1,33 +1,37 @@
 = simple_form_for([:finance, @invoice]) do |f|
-  - if @invoice.created_at
-    .fold-line
-      .control-group
-        %label.control-label{for: 'created_at'}
-          = Invoice.human_attribute_name(:created_at)
-        .controls.control-text#article_fc_price
-          = format_date @invoice.created_at
-      .control-group
-        %label.control-label{for: 'created_by'}
-          = Invoice.human_attribute_name(:created_by)
-        .controls.control-text#article_fc_price
-          = show_user @invoice.created_by
-  = f.association :supplier, collection: Supplier.order(:name), hint: false
-  - if Delivery.any?
-    = f.association :deliveries, collection: @deliveries_collection, input_html: {size: 10}, multiple: true, label_method: method(:format_delivery_item)
-  = f.association :orders, collection: @orders_collection, multiple: true, label_method: method(:format_order_item)
-  = f.input :number
-  = f.input :date, as: :date_picker
-  - if current_user.role_finance?
-    = f.input :paid_on, as: :date_picker
-  = f.input :amount, as: :string
-  = f.input :deposit, as: :string
-  = f.input :deposit_credit, as: :string
-  = f.input :attachment, as: :file, hint: t('.attachment_hint')
-  - if f.object.attachment_data.present?
-    = f.input :delete_attachment, as: :boolean
-  = f.input :note
-  .form-actions
-    = f.submit class: 'btn'
-    = link_to t('ui.or_cancel'), :back
+  %fieldset
+    - if @invoice.created_at
+      .fold-line
+        .control-group
+          %label.control-label{for: 'created_at'}
+            = Invoice.human_attribute_name(:created_at)
+          .controls.control-text#article_fc_price
+            = format_date @invoice.created_at
+        .control-group
+          %label.control-label{for: 'created_by'}
+            = Invoice.human_attribute_name(:created_by)
+          .controls.control-text#article_fc_price
+            = show_user @invoice.created_by
+    = f.association :supplier, collection: Supplier.order(:name), hint: false
+    - if Delivery.any?
+      = f.association :deliveries, collection: @deliveries_collection, input_html: {size: 10}, multiple: true, label_method: method(:format_delivery_item)
+    = f.association :orders, collection: @orders_collection, multiple: true, label_method: method(:format_order_item),
+    hint: 'This should show the order associated with this invoice.  Most of the time, leave this alone.  In some cases, a supplier may invoice for several orders at once (eg, coffee)'
+    = f.input :date, as: :date_picker, required: true, hint: 'Enter the date shown on the invoice'
+    = f.input :number, hint: 'If there is an invoice number shown, you can enter it.  Billing date is usually sufficient.'
+    - if current_user.role_finance?
+      = f.input :paid_on, as: :date_picker
+    = f.input :amount, as: :string, required: true, hint: 'Enter the total amount to be paid, as shown on the invoice.  Include all delivery charges, etc.'
+    = f.input :deposit, hint: "Deduct any charges that won't be paid by the members' invoices (eg, fuel surcharge + fuel surcharge GST on Pro Organics orders)"
+    = f.input :deposit_credit, hint: 'If there have been any refunds due to missing/shorted items, or claims for spoiled goods, enter them in Refund Credits'
+    = f.input :note, rows: 5, cols: 80, hint: 'Enter the details of any charges and credits, eg, if there were refunds, how much and for what item, eg, $2 for missing cheese, or $25 refund on %50 spoiled apples '
+    - if @invoice.allows_attachments?
+      = f.input :attachment, as: :file, hint: t('.attachment_hint')
+    - if f.object.attachment_data.present?
+      = f.input :delete_attachment, as: :boolean
+
+    .form-actions
+      = f.submit class: 'btn'
+      = link_to t('ui.or_cancel'), :back
 
 = render :partial => 'form_js', :locals => {:invoice_id => invoice_id}
