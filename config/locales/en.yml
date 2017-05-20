@@ -861,11 +861,11 @@ en:
         paragraph: Here you can credit and debit money for the ordergroup <b>%{name}</b>.
         title: New transaction
       new_collection:
-        add_all_ordergroups: Add all ordergroups
-        new_ordergroup: Add new ordergroup
+        add_all_ordergroups: Add all member accounts
+        new_ordergroup: Add another member
         save: Save transaction
-        sidebar: Here you can update more accounts at the same time. For example all transfers of the ordergroup from one account statement.
-        title: Updating more accounts
+        sidebar: Here you can update many member's accounts at the same time. For example, add a monthly charge like a member fee to each member's account.
+        title: Add transaction
       ordergroup:
         remove: Remove
         remove_group: Remove group
@@ -1093,8 +1093,8 @@ en:
     start_nav:
       admin: Administration
       finances:
-        accounts: Update accounts
-        settle: Account orders
+        accounts: Member Accounts
+        settle: Order Accounting
         title: Finances
       foodcoop: Foodcoop
       members: Members
@@ -1324,10 +1324,10 @@ en:
     dashboard: Dashboard
     documents: Documents
     finances:
-      accounts: Manage accounts
-      balancing: Account orders
+      accounts: Member Accounts
+      balancing: Order Accounting
       home: Overview
-      invoices: Invoices
+      invoices: Supplier Invoices
       title: Finances
     foodcoop: Foodcoop
     members: Members
