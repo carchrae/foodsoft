@@ -17,4 +17,10 @@
     }
     $(function() {
       activate_search('#{j @view}', '#{j t("orders.show.search_placeholder.#{@view}")}');
+      $('#modalContainer').on('hidden',function(){
+        if (changed()){
+          $('#articles_table').addClass('muted')
+          window.location.reload();
+        }
+      });
     });

@@ -205,3 +205,14 @@ var updateReceived = debounce(1000,
         received.submit();
     }
 );
+
+
+function changed(changed){
+    if (changed===true){
+        this._changed=true;
+    } else
+    if (changed===false){
+        this._changed=false;
+    }
+    return this._changed || false;
+}
