@@ -25,6 +25,7 @@ class ArticlesController < ApplicationController
     @articles = Article.undeleted.where(supplier_id: @supplier, :type => nil).includes(:article_category).order(sort)
     @articles = @articles.where('lower(articles.name) LIKE ?', "%#{params[:query].downcase}%") unless params[:query].nil?
 
+    @count = @articles.count
     @articles = @articles.page(params[:page]).per(@per_page)
 
     respond_to do |format|
@@ -177,9 +178,12 @@ class ArticlesController < ApplicationController
   # Updates, deletes articles when upload or sync form is submitted
   def update_synchronized
     @outlisted_articles = Article.find(params[:outlisted_articles].try(:keys)||[])
-    @updated_articles = Article.find(params[:articles].try(:keys)||[])
+    @updated_articles = Article.includes(:article_category, :supplier).find(params[:articles].try(:keys)||[])
     @updated_articles.map{|a| a.assign_attributes(params[:articles][a.id.to_s]) }
     @new_articles = (params[:new_articles]||[]).map{|a| @supplier.articles.build(a) }
+
+    @updated_articles.each{ |a| a.skip_validation_uniqueness_of_name=true }
+    @new_articles.each{ |a| a.skip_validation_uniqueness_of_name=true }
 
     has_error = false
     Article.transaction do
