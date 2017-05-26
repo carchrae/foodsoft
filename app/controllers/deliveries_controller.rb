@@ -1,6 +1,7 @@
 # encoding: utf-8
 class DeliveriesController < ApplicationController
 
+  before_filter :authenticate_article_meta
   before_filter :find_supplier, :exclude => :fill_new_stock_article_form
   
   def index
