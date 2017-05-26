@@ -147,27 +147,30 @@
             - if @order.stockit?
               %td.hidden-phone
                 = order_article_data[:quantity_available]
-            %td.quantity.center
+            %td.quantity
               %input{id: "q_#{order_article.id}", name: "group_order[group_order_articles_attributes][#{order_article.id}][quantity]", type: "hidden", value: order_article_data[:quantity], 'data-min' => (order_article_data[:quantity] if @order.boxfill?), 'data-max' => (order_article_data[:quantity]+order_article_data[:missing_units] if @order.boxfill?)}/
-              %span.used{id: "q_used_#{order_article.id}"}= order_article_data[:used_quantity]
-              +
-              %span.unused{id: "q_unused_#{order_article.id}"}= order_article_data[:quantity] - order_article_data[:used_quantity]
-              .btn-group.hidden-desktop.hidden-tablet
-                %a.btn.btn-ordering{'data-decrease_quantity' => order_article.id}
+              .span12.text-center
+                %span.used{id: "q_used_#{order_article.id}"}= order_article_data[:used_quantity]
+                +
+                %span.unused{id: "q_unused_#{order_article.id}"}= order_article_data[:quantity] - order_article_data[:used_quantity]
+                %span amount
+              .visible-phone.span12.text-center
+                %a.btn.btn-small{'data-decrease_quantity' => order_article.id}
                   %i.icon-minus
-                %a.btn.btn-ordering{'data-increase_quantity' => order_article.id}
+                %a.btn.btn-small{'data-increase_quantity' => order_article.id}
                   %i.icon-plus
               - min_quantity =  @order.boxfill? ? order_article_data[:quantity] : 0
               - max_quantity =  @order.boxfill? ? order_article_data[:quantity]+order_article_data[:missing_units] : ''
-              %input.hidden-phone{id: "dq_#{order_article.id}", name: "group_order[group_order_articles_attributes][#{order_article.id}][quantity]",
-                onkeyup: "update(#{order_article.id},this.value); event.preventDefault(); return false;",
-                onchange: "update(#{order_article.id},this.value); event.preventDefault(); return false;",
-                class: 'input-mini', type: "number",
-                min: min_quantity, 'max' => (max_quantity if @order.boxfill?),
-                required: true,
-                value: order_article_data[:quantity],
-                'data-min' => (min_quantity if @order.boxfill?),
-                'data-max' => (max_quantity if @order.boxfill?)}
+              .span12.text-center.hidden-phone
+                %input{id: "dq_#{order_article.id}", name: "group_order[group_order_articles_attributes][#{order_article.id}][quantity]",
+                  onkeyup: "update(#{order_article.id},this.value); event.preventDefault(); return false;",
+                  onchange: "update(#{order_article.id},this.value); event.preventDefault(); return false;",
+                  class: 'input-mini', type: "number",
+                  min: min_quantity, 'max' => (max_quantity if @order.boxfill?),
+                  required: true,
+                  value: order_article_data[:quantity],
+                  'data-min' => (min_quantity if @order.boxfill?),
+                  'data-max' => (max_quantity if @order.boxfill?)}
               %span.label.hidden
                 = 'Everyone' + ':'
                 %span{id: "q_total_#{order_article.id}"}= order_article_data[:quantity] + order_article_data[:others_quantity]
@@ -176,26 +179,29 @@
               - min_tolerance = @order.boxfill? ? order_article_data[:tolerance] : 0
               %input{id: "t_#{order_article.id}", name: "group_order[group_order_articles_attributes][#{order_article.id}][tolerance]", type: "hidden", value: order_article_data[:tolerance], 'data-min' => (order_article_data[:tolerance] if @order.boxfill?)}
               - if (tolerance_shown)
-                %span.used{id: "t_used_#{order_article.id}"}= order_article_data[:used_tolerance]
-                +
-                %span.unused{id: "t_unused_#{order_article.id}"}= order_article_data[:tolerance] - order_article_data[:used_tolerance]
-                .btn-group.hidden-desktop.hidden-tablet
-                  %a.btn.btn-ordering{'data-decrease_tolerance' => order_article.id}
+                .span12.text-center
+                  %span.used{id: "t_used_#{order_article.id}"}= order_article_data[:used_tolerance]
+                  +
+                  %span.unused{id: "t_unused_#{order_article.id}"}= order_article_data[:tolerance] - order_article_data[:used_tolerance]
+                  %span extra
+                .span12.text-center.visible-phone
+                  %a.btn.btn-small{'data-decrease_tolerance' => order_article.id}
                     %i.icon-minus
-                  %a.btn.btn-ordering{'data-increase_tolerance' => order_article.id}
+                  %a.btn.btn-small{'data-increase_tolerance' => order_article.id}
                     %i.icon-plus
-              %input.hidden-phone{id: "dt_#{order_article.id}", name: "group_order[group_order_articles_attributes][#{order_article.id}][tolerance]",
-                  onkeyup: "update(#{order_article.id},undefined,this.value); event.preventDefault();",
-                  onchange: "update(#{order_article.id},undefined,this.value); event.preventDefault();",
-                  step: 1, class: 'input-mini', type: "#{tolerance_shown ? 'number' : 'hidden'}",
-                  value: order_article_data[:tolerance],
-                  min: min_tolerance, required: true,
-                  'data-min' => (min_tolerance if @order.boxfill?)}
-
+                .span12.text-center.hidden-phone
+                  %input.hidden-phone{id: "dt_#{order_article.id}", name: "group_order[group_order_articles_attributes][#{order_article.id}][tolerance]",
+                      onkeyup: "update(#{order_article.id},undefined,this.value); event.preventDefault();",
+                      onchange: "update(#{order_article.id},undefined,this.value); event.preventDefault();",
+                      step: 1, class: 'input-mini', type: "#{tolerance_shown ? 'number' : 'hidden'}",
+                      value: order_article_data[:tolerance],
+                      min: min_tolerance, required: true,
+                      'data-min' => (min_tolerance if @order.boxfill?)}
 
               %span.label.hidden
                 = 'Everyone' + ':'
                 %span{id: "t_total_#{order_article.id}"}= order_article_data[:tolerance] + order_article_data[:others_tolerance]
+
             %td{id: "td_price_#{order_article.id}", style: "text-align:right; padding-right:10px; width:4em"}
               - prices_equal = total_price == (total_price+tolerance_price)
               %span{id: "price_#{order_article.id}_display"}= number_to_currency(total_price)
