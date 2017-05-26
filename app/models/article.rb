@@ -172,7 +172,7 @@ class Article < ActiveRecord::Base
             :unit_quantity => [self.unit_quantity.to_s.to_f, new_unit_quantity.to_s.to_f],
             #tedious inconsistent name number vs order_number
             :order_number => [self.order_number, new_article.try(:number) || new_article.try(:order_number) ],
-            :note => ([self.note.to_s, new_article.note.to_s] unless new_article.note.blank? && self.note.to_s.length>10)
+            :note => ([self.note.to_s, new_article.note.to_s] unless new_article.note.blank?)
         }.compact
     )
   end
