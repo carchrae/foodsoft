@@ -2,7 +2,8 @@
 class ArticlesController < ApplicationController
   helper_method :article_by_id
 
-  before_filter :authenticate_article_meta, :find_supplier
+  before_filter :authenticate_article_meta, :except => [:index]
+  before_filter :find_supplier
 
   def index
     if params['sort']

@@ -195,8 +195,8 @@ en:
         article:
           attributes:
             name:
-              taken: name is already taken
-              taken_with_unit: name and unit are already taken
+              taken: is already taken
+              taken_with_unit: and unit are already taken
         supplier:
           attributes:
             shared_sync_method:
@@ -425,7 +425,7 @@ en:
         title: Import article
       new: New article
       new_order: Create new order
-      search_placeholder: Name ...
+      search_placeholder: enter search
       title: Articles from %{supplier} (%{count})
       upload: Upload articles
     model:
@@ -438,7 +438,7 @@ en:
     sync:
       outlist:
         alert_used: Warning, %{article} is used in an open order. Please remove it from the order first.
-        body: 'The following articles were removed from the list and will be <b>deleted</b>:'
+        body: 'The following %{count} articles were removed from the list and will be <b>deleted</b>:'
         body_ignored:
           one: One article without order number was skipped.
           other: "%{count} articles without order number were skipped."
