@@ -17,7 +17,7 @@
       - unless changed_article.new_record?
         - article = article_by_id(changed_article.id)
         %tr{:style => 'color:grey'}
-          %td= article.name
+          %td{data:{toggle:'tooltip', placement:'top'}, title: article.order_number}= article.name
           %td= article.note
           %td= article.manufacturer
           %td= article.origin

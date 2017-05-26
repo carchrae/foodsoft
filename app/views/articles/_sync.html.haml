@@ -1,12 +1,12 @@
 - if @outlisted_articles.any?
   %h2= t '.outlist.title'
   %p
-    = t('.outlist.body').html_safe
+    = t('.outlist.body', count: @outlisted_articles.length).html_safe
     %ul
       - for article in @outlisted_articles
         %li
           = hidden_field_tag "outlisted_articles[#{article.id}]", '1'
-          = article.name
+          = "#{article.name} (#{article.origin}) - #{article.manufacturer}"
           - if article.in_open_order
             .alert= t '.outlist.alert_used', article: article.name
   %hr/
@@ -17,7 +17,7 @@
     %i
       = t '.update.update_msg', count: @updated_article_pairs.size
       = t '.update.body'
-  = render 'sync_table', articles: @updated_article_pairs, field: 'articles', hidden_fields: %w(shared_updated_on)
+  = render 'sync_table', articles: @updated_article_pairs, field: 'articles', hidden_fields: %w(shared_updated_on order_number)
   %hr/
 
 - if @new_articles.any?
