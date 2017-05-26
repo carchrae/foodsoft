@@ -1,5 +1,7 @@
 class StockitController < ApplicationController
 
+  before_filter :authenticate_article_meta
+
   def index
     @stock_articles = StockArticle.undeleted.includes(:supplier, :article_category).
         order('suppliers.name, article_categories.name, articles.name')
