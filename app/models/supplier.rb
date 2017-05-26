@@ -39,15 +39,20 @@ class Supplier < ActiveRecord::Base
   # also returns an array with new articles, which should be added (depending on shared_sync_method)
   def sync_all
     updated_article_pairs, outlisted_articles, new_articles = [], [], []
+    existing_articles = {}
     for article in get_articles.values.sort_by(&:name)
       # try to find the associated shared_article
       shared_article = article.shared_article(self)
+
+      existing_articles[shared_article.id]=true unless shared_article.nil?
 
       if shared_article && shared_article.available # article will be updated
         unequal_attributes = article.shared_article_changed?(self)
         unless unequal_attributes.blank? # skip if shared_article has not been changed
           article.attributes = unequal_attributes
           updated_article_pairs << [article, unequal_attributes]
+          # ugly, cache update in case where order_number has changed
+          get_articles[shared_article.number]=article unless shared_article.number == article.order_number
         end
       # Articles with no order number can be used to put non-shared articles
       # in a shared supplier, with sync keeping them.
@@ -59,8 +64,8 @@ class Supplier < ActiveRecord::Base
     # Find any new articles, unless the import is manual
     unless shared_sync_method == 'import'
       # for shared_article in shared_supplier.shared_articles
-      for shared_article in shared_supplier.cached_articles.values.sort_by(&:name)
-        unless get_article(shared_article.number) || !shared_article.available
+      for shared_article in shared_supplier.cached_articles.sort_by(&:name)
+        unless existing_articles[shared_article.id] || !shared_article.available
           new_articles << shared_article.build_new_article(self)
         end
       end

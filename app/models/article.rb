@@ -61,7 +61,8 @@ class Article < ActiveRecord::Base
   validates_numericality_of :deposit, :tax
   #validates_uniqueness_of :name, :scope => [:supplier_id, :deleted_at, :type], if: Proc.new {|a| a.supplier.shared_sync_method.blank? or a.supplier.shared_sync_method == 'import' }
   #validates_uniqueness_of :name, :scope => [:supplier_id, :deleted_at, :type, :unit, :unit_quantity]
-  validate :uniqueness_of_name
+  attr_accessor :skip_validation_uniqueness_of_name
+  validate :uniqueness_of_name unless :skip_validation_uniqueness_of_name
 
   # Callbacks
   before_save :update_price_history
@@ -169,7 +170,9 @@ class Article < ActiveRecord::Base
             :deposit => ([self.deposit.to_f.round(2), new_article.deposit.to_f.round(2)] unless new_article.deposit.to_f.round(2) == 0),
             # take care of different num-objects.
             :unit_quantity => [self.unit_quantity.to_s.to_f, new_unit_quantity.to_s.to_f],
-            :note => ([self.note.to_s, new_article.note.to_s] unless new_article.note.blank?)
+            #tedious inconsistent name number vs order_number
+            :order_number => [self.order_number, new_article.try(:number) || new_article.try(:order_number) ],
+            :note => ([self.note.to_s, new_article.note.to_s] unless new_article.note.blank? && self.note.to_s.length>10)
         }.compact
     )
   end
@@ -186,9 +189,19 @@ class Article < ActiveRecord::Base
 
   # to get the correspondent shared article
   def shared_article(supplier = self.supplier)
-    self.order_number.blank? and return nil
+    # self.order_number.blank? and return nil
     # @shared_article ||= supplier.shared_supplier.shared_articles.find_by_number(self.order_number) rescue nil
     @shared_article ||= supplier.shared_supplier.find_article_by_number(self.order_number) rescue nil
+    @shared_article ||= supplier.shared_supplier.find_article_by_name_origin_manufacture(self.name, self.origin, self.manufacturer)
+    @shared_article ||= supplier.shared_supplier.find_article_by_name_manufacture(self.name, self.manufacturer)
+    if @shared_article
+      unless @shared_article.linked_to
+        @shared_article.linked_to=self
+      else
+        raise "already linked to #{@shared_article.linked_to} not #{self.id}" unless @shared_article.linked_to == self
+      end
+    end
+    @shared_article
   end
 
   # convert units in foodcoop-size
