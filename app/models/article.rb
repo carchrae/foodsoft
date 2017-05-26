@@ -41,7 +41,7 @@ class Article < ActiveRecord::Base
   belongs_to :supplier
   # @!attribute article_prices
   #   @return [Array<ArticlePrice>] Price history (current price first).
-  has_many :article_prices, -> { order("created_at DESC") }
+  has_many :article_prices, -> { order("created_at DESC") }, dependent: :destroy
 
   # Replace numeric seperator with database format
   # localize_input_of :price, :tax, :deposit
