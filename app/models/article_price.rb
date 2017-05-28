@@ -12,6 +12,7 @@ class ArticlePrice < ActiveRecord::Base
   # @!attribute unit_quantity
   #   @return [Number] Number of units in wholesale package (box).
   #   @see Article#unit
+
   #   @see Article#unit_quantity
   # @!attribute article
   #   @return [Article] Article this price is about.
@@ -51,6 +52,13 @@ class ArticlePrice < ActiveRecord::Base
     (gross_price * (FoodsoftConfig[:price_markup] / 100 + 1)).round(2)
   end
 
+  def supplier_price
+    unless self[:supplier_price]
+      unit_quantity*price
+    else
+      self[:supplier_price]
+    end
+  end
   # def supplier_price=(new_price)
   #   new_price = new_price.to_f
   #   write_attribute(:supplier_price, new_price)
