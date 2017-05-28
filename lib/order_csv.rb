@@ -5,7 +5,7 @@ class OrderCsv < RenderCSV
   def header
     [
       OrderArticle.human_attribute_name(:units_to_order),
-      Article.human_attribute_name(:order_number),
+      #Article.human_attribute_name(:order_number),
       Article.human_attribute_name(:name),
       Article.human_attribute_name(:unit),
       Article.human_attribute_name(:unit_quantity_short),
@@ -18,7 +18,7 @@ class OrderCsv < RenderCSV
     @object.order_articles.ordered.includes([:article, :article_price]).all.map do |oa|
       yield [
               oa.units_to_order,
-              oa.article.order_number,
+              #oa.article.order_number,
               oa.article.name,
               oa.article.unit,
               oa.price.unit_quantity > 1 ? oa.price.unit_quantity : nil,
