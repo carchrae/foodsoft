@@ -52,7 +52,7 @@ class OrderFax < OrderPdf
     text Date.today.strftime(I18n.t('date.formats.default')), align: :right
 
     move_down 10
-    unless false
+    unless true
       text "#{Delivery.human_attribute_name :delivered_on}:"
       move_down 10
     end
@@ -104,7 +104,7 @@ class OrderFax < OrderPdf
         data << ['',
                  '',
                  'deposit',
-                 units_to_order * oa.price.unit_quantity, #'', #oa.price.unit_quantity,
+                 '', #'', #oa.price.unit_quantity,
                  '',
                  number_to_currency(oa.price.deposit),
                  number_to_currency(total_deposit)]
