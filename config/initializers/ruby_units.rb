@@ -20,6 +20,12 @@ if defined? RubyUnits
     unit.kind       = :counting
   end
 
+  RubyUnits::Unit.define('count') do |unit|
+    unit.definition = RubyUnits::Unit.new('1 each')
+    unit.aliases    = %w{ct caps}   # locale: en
+    unit.kind       = :counting
+  end
+
   RubyUnits::Unit.define('bag') do |unit|
     unit.definition = RubyUnits::Unit.new('1 each')
     unit.aliases    = %w{bag bags blt sachet sachets} # locale: en
