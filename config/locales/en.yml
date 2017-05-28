@@ -720,11 +720,11 @@ en:
       filename: Order %{name} - %{date} - Fax
       rows:
       - SKU
+      - Quantity
       - Name
-      - #Unit quantity
-      - #Unit
-      - Amount
-      - Cost Per
+      - Total
+      - Units
+      - Price
       - Subtotal
       total: Total
     order_matrix:
