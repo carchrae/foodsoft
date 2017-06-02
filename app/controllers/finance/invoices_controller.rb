@@ -44,7 +44,8 @@ class Finance::InvoicesController < ApplicationController
         redirect_to [:finance, @invoice]
       end
     else
-      render :action => "new"
+      fill_deliveries_and_orders_collection @invoice.id, @invoice.supplier_id
+      render :action => 'new'
     end
   end
 
