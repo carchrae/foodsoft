@@ -2,7 +2,7 @@
 class Finance::BalancingController < Finance::BaseController
 
   def index
-    @orders = Order.finished.page(params[:page]).per(@per_page).order('ends DESC')
+    @orders = Order.finished.includes(:updated_by, :supplier).page(params[:page]).per(@per_page).order('ends DESC')
   end
 
   def new
@@ -11,8 +11,7 @@ class Finance::BalancingController < Finance::BaseController
     @comments = @order.comments
 
     @articles = @order.order_articles.ordered_or_member.includes(:article, :article_price,
-                                                       group_order_articles: {group_order: :ordergroup})
-
+                                                       group_order_articles: {group_order: [:ordergroup, :order]})
     sort_param = params['sort'] || 'name'
     @articles = case sort_param
                   when 'name' then
@@ -82,6 +81,16 @@ class Finance::BalancingController < Finance::BaseController
     redirect_to finance_order_index_url, notice: t('finance.balancing.close_direct.notice')
   rescue => error
     redirect_to finance_order_index_url, alert: t('finance.balancing.close_direct.alert', message: error.message)
+  end
+
+  # Balances the Order, Update of the Ordergroup.account_balances
+  def reopen
+    @order = Order.find(params[:id])
+    @order.reopen!(@current_user)
+    redirect_to finance_order_index_url, notice: t('finance.balancing.reopen.notice')
+
+  rescue => error
+    redirect_to new_finance_order_url(order_id: @order.id), alert: t('finance.balancing.reopen.alert', message: error.message)
   end
 
 end
