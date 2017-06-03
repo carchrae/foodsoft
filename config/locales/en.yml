@@ -767,10 +767,13 @@ en:
     balancing:
       close:
         alert: 'An error occured while accounting: %{message}'
-        notice: Order was settled succesfully, the balance of the account was updated.
+        notice: Order was settled succesfully, the balances of members have been charged.
       close_direct:
         alert: 'Order can not be settled: %{message}'
         notice: Order was settled.
+      reopen:
+        alert: 'An error occured while reopening: %{message}'
+        notice: Order was reropened succesfully, the balances of members account have been refunded.
       confirm:
         clear: Settle
         first_paragraph: 'When the order is settled, all group accounts will be updated.<br />The accounts will be charged as follows:'
@@ -809,6 +812,7 @@ en:
         comment_on_transaction: Here you can add a comment to your accounting.
         comments: Comments
         confirm_order: Settle order
+        confirm_reopen_order: Reopen Order
         create_invoice: Add invoice
         edit_note: Edit note
         edit_order: Edit order
@@ -1409,10 +1413,12 @@ en:
       close_direct_message: Order settled without charging member accounts.
       error_boxfill_before_ends: must be after the box-fill date (or remain empty)
       error_closed: Order was already settled
+      error_not_closed: Order isn't already settled
       error_nosel: At least one article must be selected. You may want to delete the order instead?
       error_starts_before_boxfill: must be after the start date (or remain empty)
       error_starts_before_ends: must be after the start date (or remain empty)
-      notice_close: 'Order: %{name}, until %{ends}'
+      notice_close: 'Order: %{name} - %{ends}'
+      notice_reopen: 'Order: %{name} - %{ends} (reopened)'
       stock: Stock
       warning_ordered: 'Warning: articles marked red have already been ordered within this open order. If you uncheck them here, all existing orders of these articles will be deleted. To proceed, confirm below.'
       warning_ordered_stock: 'Warning: Articles marked red have already been ordered/purchased within this open stock order. If you uncheck them here, all existing orders/purchases of these articles will be deleted and it will not be accounted for them. Confirm below to proceed.'

@@ -18,6 +18,7 @@ class Finance::InvoicesController < ApplicationController
   end
 
   def edit
+    session[:return_after_edit] = request.env['HTTP_REFERER']
     fill_deliveries_and_orders_collection @invoice.id, @invoice.supplier_id
   end
 
@@ -44,17 +45,27 @@ class Finance::InvoicesController < ApplicationController
         redirect_to [:finance, @invoice]
       end
     else
-      render :action => "new"
+      fill_deliveries_and_orders_collection @invoice.id, @invoice.supplier_id
+      render :action => 'new'
     end
   end
 
   def update
     if @invoice.update_attributes(params[:invoice])
-      redirect_to [:finance, @invoice], notice: I18n.t('finance.update.notice')
+      if session[:return_after_edit]
+        # Redirect to where we initiated this edit (eg, balancing page)
+        url = session[:return_after_edit]
+        session[:return_after_edit] = ''
+        redirect_to url
+      else
+        redirect_to [:finance, @invoice], notice: I18n.t('finance.update.notice')
+      end
     else
+      fill_deliveries_and_orders_collection @invoice.id, @invoice.supplier_id
       render :edit
     end
   end
+
 
   def destroy
     @invoice.destroy
