@@ -1151,7 +1151,7 @@ en:
       logout: Logout
       ordergroup: My ordergroup
       profile: Edit profile
-    logo: "<span>food</span>soft"
+    logo: "<span>Testing Site</span>"
   lib:
     order_pdf:
       page: Page %{number} of %{count}
