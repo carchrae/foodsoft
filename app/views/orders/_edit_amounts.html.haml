@@ -79,10 +79,14 @@
       $(this).replaceWith('<i class="icon icon-warning-sign add-on"></i>');
     }
 
+
+%div.alert.alert-danger.center
+  %h2 WARNING
+  %span Do not use this feature after printing split sheets!  Changing quantities here will automatically reallocate the amounts received.
 %table#order_articles.ordered-articles.table.table-striped.stupidtable{style: 'margin-bottom: 0'}
   %thead
     %tr
-      %th.sort{:data => {:sort => 'string'}}= heading_helper Article, :order_number, short: true
+      -#%th.sort{:data => {:sort => 'string'}}= heading_helper Article, :order_number, short: true
       %th.sort{:data => {:sort => 'string'}}= heading_helper Article, :name
       %th.sort{:data => {:sort => 'string'}}= heading_helper Article, :unit
       %th= heading_helper Article, :price
