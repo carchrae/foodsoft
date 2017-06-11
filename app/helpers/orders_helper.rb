@@ -148,12 +148,15 @@ module OrdersHelper
   # @option options [String] :class Classes added to the button's class attribute.
   # @return [String] Order receive button.
   def receive_button(order, options={})
-    content_tag :div, t('orders.index.action_receive'), class: "btn disabled #{options[:class]}"
-    # if order.stockit?
-    #   content_tag :div, t('orders.index.action_receive'), class: "btn disabled #{options[:class]}"
-    # else
-    #   was_received = order.order_articles.where('units_received IS NOT NULL').any?
-    #   link_to t('orders.index.action_receive'), receive_order_path(order), class: "btn#{' btn-success' unless was_received} #{options[:class]}"
-    # end
+    unless current_user.role_admin?
+      content_tag :div, t('orders.index.action_receive'), class: "btn disabled #{options[:class]}"
+    else
+      if order.stockit?
+        content_tag :div, t('orders.index.action_receive'), class: "btn disabled #{options[:class]}"
+      else
+        was_received = order.order_articles.where('units_received IS NOT NULL').any?
+        link_to t('orders.index.action_receive'), receive_order_path(order), class: "btn#{' btn-success' unless was_received} #{options[:class]}"
+      end
+    end
   end
 end
