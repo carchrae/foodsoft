@@ -113,13 +113,13 @@ class GroupOrderArticle < ActiveRecord::Base
 
     # Get total
     if not total.nil?
-      logger.debug "<#{order_article.article.name}> => #{total} (given)"
+      logger.debug {"<#{order_article.article.name}> => #{total} (given)"}
     elsif order_article.article.is_a?(StockArticle)
       total = order_article.article.quantity
-      logger.debug "<#{order_article.article.name}> (stock) => #{total}"
+      logger.debug {"<#{order_article.article.name}> (stock) => #{total}"}
     else
       total = order_article.units_to_order * order_article.price.unit_quantity
-      logger.debug "<#{order_article.article.name}> units_to_order #{order_article.units_to_order} => #{total}"
+      logger.debug {"<#{order_article.article.name}> units_to_order #{order_article.units_to_order} => #{total}"}
     end
 
     if total > 0
@@ -127,14 +127,14 @@ class GroupOrderArticle < ActiveRecord::Base
       #
       # Get all GroupOrderArticleQuantities for this OrderArticle...
       order_quantities = GroupOrderArticleQuantity.where(group_order_article_id: order_article.group_order_article_ids).order('created_on')
-      logger.debug "GroupOrderArticleQuantity records found: #{order_quantities.size}"
+      logger.debug {"GroupOrderArticleQuantity records found: #{order_quantities.size}"}
 
       # Determine quantities to be ordered...
       order_quantities.each do |goaq|
         q = [goaq.quantity, total - total_quantity].min
         total_quantity += q
         if goaq.group_order_article_id == self.id
-          logger.debug "increasing quantity by #{q}"
+          logger.debug {"increasing quantity by #{q}"}
           quantity += q
         end
         break if total_quantity >= total
@@ -142,19 +142,19 @@ class GroupOrderArticle < ActiveRecord::Base
 
       # Determine tolerance to be ordered...
       if total_quantity < total
-        logger.debug "determining additional items to be ordered from tolerance"
+        logger.debug {"determining additional items to be ordered from tolerance"}
         order_quantities.each do |goaq|
           q = [goaq.tolerance, total - total_quantity].min
           total_quantity += q
           if goaq.group_order_article_id == self.id
-            logger.debug "increasing tolerance by #{q}"
+            logger.debug {"increasing tolerance by #{q}"}
             tolerance += q
           end
           break if total_quantity >= total
         end
       end
 
-      logger.debug "determined quantity/tolerance/total: #{quantity} / #{tolerance} / #{quantity + tolerance}"
+      logger.debug {"determined quantity/tolerance/total: #{quantity} / #{tolerance} / #{quantity + tolerance}"}
     end
 
     # memoize result unless a total is given
