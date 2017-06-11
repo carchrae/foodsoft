@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170505231557) do
+ActiveRecord::Schema.define(version: 20170611191120) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -60,7 +60,6 @@ ActiveRecord::Schema.define(version: 20170505231557) do
 
   add_index "articles", ["article_category_id"], name: "index_articles_on_article_category_id", using: :btree
   add_index "articles", ["name", "supplier_id"], name: "index_articles_on_name_and_supplier_id", using: :btree
-  add_index "articles", ["supplier_id", "type", "deleted_at", "order_number"], name: "articles_supplier_id_type_deleted_at_order_number_index", using: :btree
   add_index "articles", ["supplier_id"], name: "index_articles_on_supplier_id", using: :btree
   add_index "articles", ["type"], name: "index_articles_on_type", using: :btree
 
@@ -203,15 +202,15 @@ ActiveRecord::Schema.define(version: 20170505231557) do
   end
 
   create_table "order_articles", force: :cascade do |t|
-    t.integer "order_id",         default: 0, null: false
-    t.integer "article_id",       default: 0, null: false
-    t.integer "quantity",         default: 0, null: false
-    t.integer "tolerance",        default: 0, null: false
-    t.integer "units_to_order",   default: 0, null: false
-    t.integer "lock_version",     default: 0, null: false
+    t.integer "order_id",                                 default: 0, null: false
+    t.integer "article_id",                               default: 0, null: false
+    t.integer "quantity",                                 default: 0, null: false
+    t.integer "tolerance",                                default: 0, null: false
+    t.integer "units_to_order",                           default: 0, null: false
+    t.integer "lock_version",                             default: 0, null: false
     t.integer "article_price_id"
-    t.integer "units_billed"
-    t.integer "units_received"
+    t.decimal "units_billed",     precision: 8, scale: 3
+    t.decimal "units_received",   precision: 8, scale: 3
   end
 
   add_index "order_articles", ["order_id", "article_id"], name: "index_order_articles_on_order_id_and_article_id", unique: true, using: :btree

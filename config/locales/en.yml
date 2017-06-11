@@ -720,7 +720,7 @@ en:
       filename: Order %{name} - %{date} - Fax
       rows:
       - SKU
-      - Quantity
+      - Cases
       - Name
       - Total
       - Units
