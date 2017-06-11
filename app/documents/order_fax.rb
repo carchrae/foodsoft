@@ -73,8 +73,15 @@ class OrderFax < OrderPdf
 
       begin
         unit = Unit.new(oa.article.unit) rescue Unit.new(oa.article.unit.downcase)
-        total_quantity = units_to_order * oa.price.unit_quantity * unit.scalar
-        unit = unit.units
+        total_quantity = units_to_order * oa.price.unit_quantity #* unit.scalar
+        unit = unit #.units
+
+        if (unit.scalar == 1)
+          unit = unit.units
+        else
+          unit = "X #{unit}"
+        end
+        unit = unit.to_s.upcase
       rescue
         unit = oa.article.unit
         total_quantity = units_to_order * oa.price.unit_quantity
@@ -98,21 +105,21 @@ class OrderFax < OrderPdf
                number_to_currency(subtotal)]
 
       #if there is a deposit, show it as a line item
-      if (oa.price.deposit > 0)
-        total_deposit = oa.units_to_order * oa.price.unit_quantity * oa.price.deposit
-        total += total_deposit
-        data << ['',
-                 '',
-                 'deposit',
-                 '', #'', #oa.price.unit_quantity,
-                 '',
-                 number_to_currency(oa.price.deposit),
-                 number_to_currency(total_deposit)]
-      end
+      # if (oa.price.deposit > 0)
+      #   total_deposit = oa.units_to_order * oa.price.unit_quantity * oa.price.deposit
+      #   total += total_deposit
+      #   data << ['',
+      #            '',
+      #            'deposit',
+      #            '', #'', #oa.price.unit_quantity,
+      #            '',
+      #            number_to_currency(oa.price.deposit),
+      #            number_to_currency(total_deposit)]
+      # end
     end
 
-    column_widths=[40, 60, 220, 40, 40, 70, 70]
-    data << [I18n.t('documents.order_fax.total'), nil, nil, nil, nil, nil, number_to_currency(total)]
+    column_widths=[30, 40, 220, 40, 70, 70, 70]
+    data << [nil, nil, nil, nil, nil, I18n.t('documents.order_fax.total'), number_to_currency(total)]
     table data, column_widths: column_widths, cell_style: {size: fontsize(8), font: 'Courier', overflow: :shrink_to_fit} do |table|
       table.header = true
       # table.cells.border_width = 1
