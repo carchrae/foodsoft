@@ -49,7 +49,8 @@ class OrderArticle < ActiveRecord::Base
       enforce_boxfill if order.boxfill?
       save!
     elsif order.finished?
-      update_attribute(:units_to_order, group_order_articles.collect(&:result).sum)
+      units_to_order = group_order_articles.collect(&:result).sum / price.unit_quantity
+      update_attribute(:units_to_order, units_to_order)
     end
   end
 
