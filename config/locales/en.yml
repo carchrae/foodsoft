@@ -721,9 +721,8 @@ en:
       rows:
       - SKU
       - Cases
+      - Total Quantity
       - Name
-      - Total
-      - Units
       - Price
       - Subtotal
       total: Total
@@ -836,9 +835,9 @@ en:
         changed: Data was changed!
         duration: From %{starts} till %{ends}
         fc_amount: 'Sales value:'
-        fc_profit: 'Final Balance'
+        fc_profit: 'Balance'
         gross_amount: 'Gross value:'
-        groups_amount: 'Charged to Members:'
+        groups_amount: 'Members Paid:'
         net_amount: 'Net value:'
         reload: Reload summary
         with_extra_charge: 'with markup:'

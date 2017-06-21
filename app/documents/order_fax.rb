@@ -49,7 +49,7 @@ class OrderFax < OrderPdf
     end
 
     move_down 5
-    text Date.today.strftime(I18n.t('date.formats.default')), align: :right
+    text order.ends.strftime(I18n.t('date.formats.default')), align: :right
 
     move_down 10
     unless true
@@ -68,7 +68,7 @@ class OrderFax < OrderPdf
       #subtotal = oa.units_to_order * oa.price.unit_quantity * oa.price.price
 
       price = oa.price
-      units_to_order = oa.units_to_order
+      units_to_order = oa.units #_to_order
       supplier_price = price.supplier_price
 
       begin
@@ -98,9 +98,8 @@ class OrderFax < OrderPdf
 
       data << [((oa.article.order_number.include? 'PRO-') ? oa.article.order_number.sub('PRO-', '') : ''),
                units_to_order,
-               oa.article.name,
-               total_quantity, #'', #oa.price.unit_quantity,
-               unit,
+               "#{total_quantity} #{unit}",
+               [oa.article.name.squeeze(' '),"\n",oa.article.origin,' - ', oa.article.manufacturer].join(''),
                number_to_currency(oa.price.supplier_price),
                number_to_currency(subtotal)]
 
@@ -118,8 +117,8 @@ class OrderFax < OrderPdf
       # end
     end
 
-    column_widths=[30, 40, 220, 40, 70, 70, 70]
-    data << [nil, nil, nil, nil, nil, I18n.t('documents.order_fax.total'), number_to_currency(total)]
+    column_widths=[30, 40, 110, 220,  70, 70]
+    data << [nil, nil, nil, nil, I18n.t('documents.order_fax.total'), number_to_currency(total)]
     table data, column_widths: column_widths, cell_style: {size: fontsize(8), font: 'Courier', overflow: :shrink_to_fit} do |table|
       table.header = true
       # table.cells.border_width = 1
@@ -128,10 +127,10 @@ class OrderFax < OrderPdf
 
       table.row(0).border_bottom_width = 2
       table.columns(0..6).align = :right
-      table.columns(2).align = :left
-      table.columns(3).align = :right
+      # table.columns(2).align = :right
+      table.columns(3).align = :left
       table.columns(4).align = :left
-      table.row(0).columns(2).align = :center
+      table.row(0).columns(3).align = :center
       # table.columns(3..6).align = :right
       table.row(data.length-1).columns(0..6).borders = [:top, :bottom]
       table.row(data.length-1).columns(0).borders = [:top, :bottom]
