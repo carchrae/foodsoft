@@ -39,7 +39,12 @@ class Invoice < ActiveRecord::Base
 
   # Amount without deposit
   def net_amount
-    amount - deposit + deposit_credit
+    payable_amount - deposit
+  end
+
+  # Amount without deposit
+  def payable_amount
+    amount - deposit_credit
   end
 
   protected

@@ -23,7 +23,8 @@
         %td= invoice.supplier.name
         %td= link_to h(format_date invoice.date), finance_invoice_path(invoice)
         %td= format_date invoice.paid_on
-        %td= number_to_currency invoice.amount
+        %td
+          = number_to_currency invoice.payable_amount
         - if Delivery.any?
           %td><
             - invoice.deliveries.each_with_index do |delivery, index|
