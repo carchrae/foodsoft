@@ -1374,7 +1374,7 @@ en:
   orders:
     articles:
       article_count: 'Ordered articles:'
-      prices: Net/gross price
+      prices: Net/gross/supplier price
       prices_sum: 'Sum (net/gross price):'
       units_full: Full units
       units_ordered: Units ordered
