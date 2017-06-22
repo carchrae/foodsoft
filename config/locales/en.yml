@@ -802,7 +802,7 @@ en:
         new: Add invoice
         new_body: 'Create an invoice for this order:'
         plus_refund_credited: "Refund Credits:"
-        refund_adjusted_amount: 'Total:'
+        refund_adjusted_amount: 'Net Charge:'
       new:
         alert: Attention, order was already accounted
         articles_overview: Overview of articles
@@ -833,7 +833,7 @@ en:
         state: State
       summary:
         changed: Data was changed!
-        duration: From %{starts} till %{ends}
+        duration: Order date %{ends}
         fc_amount: 'Sales value:'
         fc_profit: 'Balance'
         gross_amount: 'Gross value:'
