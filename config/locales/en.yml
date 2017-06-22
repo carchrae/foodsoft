@@ -1432,6 +1432,7 @@ en:
       submit: Receive order
       surplus_options: 'Distribution options:'
       title: Receiving %{order}
+      warning: <strong>Warning:</strong> Do not change received amounts here after printing split sheets!<br/>Changing quantities here may automatically reallocate the amounts received by each member, which means you need to print out new split sheets.
     show:
       action_end: Close!
       amounts: 'Net/gross sum:'
