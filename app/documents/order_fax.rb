@@ -42,6 +42,10 @@ class OrderFax < OrderPdf
       text order.name
       move_down 5
       text order.supplier.try(:address).to_s
+      unless order.supplier.try(:phone).blank?
+        move_down 5
+        text "#{Supplier.human_attribute_name :phone}: #{order.supplier[:phone]}"
+      end
       unless order.supplier.try(:fax).blank?
         move_down 5
         text "#{Supplier.human_attribute_name :fax}: #{order.supplier[:fax]}"
@@ -49,8 +53,11 @@ class OrderFax < OrderPdf
     end
 
     move_down 5
-    text order.ends.strftime(I18n.t('date.formats.default')), align: :right
-
+    text I18n.t('documents.order_fax.ordered_on', date: order.ends.strftime(I18n.t('date.formats.default'))), align: :right
+    unless order.pickup
+      move_down 5
+      text I18n.t('documents.order_fax.deliver_on', date: order.pickup.strftime(I18n.t('date.formats.default'))), align: :right
+    end
     move_down 10
     unless true
       text "#{Delivery.human_attribute_name :delivered_on}:"
@@ -62,6 +69,35 @@ class OrderFax < OrderPdf
     end
 
     # Articles
+    data, total = table_data
+
+    column_widths=[30, 40, 90, 40, 210, 60, 70]
+    data << [nil, nil, nil, nil, I18n.t('documents.order_fax.total'), number_to_currency(total)]
+    table data, column_widths: column_widths, cell_style: {size: fontsize(8), font: 'Courier', overflow: :shrink_to_fit} do |table|
+      table.header = true
+      # table.cells.border_width = 1
+      table.cells.border_color = '666666'
+      table.cells.borders = [:bottom]
+
+      table.row(0).border_bottom_width = 2
+      table.columns(0..6).align = :right
+      # table.columns(2).align = :right
+      table.columns(4).align = :left
+      # table.columns(5).align = :left
+      table.row(0).columns(3).align = :center
+      # table.columns(3..6).align = :right
+      table.row(data.length-1).columns(0..6).borders = [:top, :bottom]
+      table.row(data.length-1).columns(0).borders = [:top, :bottom]
+      table.row(data.length-1).border_top_width = 2
+    end
+    #font_size: fontsize(8),
+    #vertical_padding: 3,
+    #border_style: :grid,
+    #headers: ["BestellNr.", "Menge","Name", "Gebinde", "Einheit","Preis/Einheit"],
+    #align: {0 => :left}
+  end
+
+  def table_data
     total = 0
     data = [I18n.t('documents.order_fax.rows')]
     each_order_article do |oa|
@@ -88,7 +124,6 @@ class OrderFax < OrderPdf
       end
 
 
-
       #ugly fix for things like milk where supplier price is per unit, but unit qty is 6.
       if ((supplier_price - (price.unit_quantity*price.price)).abs>price.price)
         units_to_order = units_to_order * price.unit_quantity
@@ -99,7 +134,8 @@ class OrderFax < OrderPdf
       data << [((oa.article.order_number.include? 'PRO-') ? oa.article.order_number.sub('PRO-', '') : ''),
                units_to_order,
                "#{total_quantity} #{unit}",
-               [oa.article.name.squeeze(' '),"\n",oa.article.origin,' - ', oa.article.manufacturer].join(''),
+               oa.article.origin,
+               [oa.article.name.squeeze(' '), "\n", oa.article.manufacturer].join(''),
                number_to_currency(oa.price.supplier_price),
                number_to_currency(subtotal)]
 
@@ -116,31 +152,7 @@ class OrderFax < OrderPdf
       #            number_to_currency(total_deposit)]
       # end
     end
-
-    column_widths=[30, 40, 110, 220,  70, 70]
-    data << [nil, nil, nil, nil, I18n.t('documents.order_fax.total'), number_to_currency(total)]
-    table data, column_widths: column_widths, cell_style: {size: fontsize(8), font: 'Courier', overflow: :shrink_to_fit} do |table|
-      table.header = true
-      # table.cells.border_width = 1
-      table.cells.border_color = '666666'
-      table.cells.borders = [:bottom]
-
-      table.row(0).border_bottom_width = 2
-      table.columns(0..6).align = :right
-      # table.columns(2).align = :right
-      table.columns(3).align = :left
-      table.columns(4).align = :left
-      table.row(0).columns(3).align = :center
-      # table.columns(3..6).align = :right
-      table.row(data.length-1).columns(0..6).borders = [:top, :bottom]
-      table.row(data.length-1).columns(0).borders = [:top, :bottom]
-      table.row(data.length-1).border_top_width = 2
-    end
-    #font_size: fontsize(8),
-    #vertical_padding: 3,
-    #border_style: :grid,
-    #headers: ["BestellNr.", "Menge","Name", "Gebinde", "Einheit","Preis/Einheit"],
-    #align: {0 => :left}
+    return data, total
   end
 
   private
