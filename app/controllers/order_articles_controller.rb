@@ -46,7 +46,7 @@ class OrderArticlesController < ApplicationController
     if @order_article.group_order_articles.count == 0
       @order_article.destroy
     else
-      @order_article.group_order_articles.each { |goa| goa.update_attribute(:result, 0) }
+      @order_article.group_order_articles.each {|goa| goa.update_attribute(:result, 0)}
       @order_article.update_results!
     end
   end
