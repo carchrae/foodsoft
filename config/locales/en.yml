@@ -637,6 +637,9 @@ en:
       receive:
         no_finished_orders: There are currently no orders to receive.
         title: Receive orders
+  date:
+    formats:
+      default: '%B %d, %Y'
   deliveries:
     add_stock_change:
       how_many_units: 'How many units (%{unit}) to deliver? Stock article name: %{name}.'
@@ -722,10 +725,13 @@ en:
       - SKU
       - Cases
       - Total Quantity
+      - Origin
       - Name
       - Price
       - Subtotal
       total: Total
+      deliver_on: 'Delivery On: %{date}'
+      ordered_on: 'Order Date: %{date}'
     order_matrix:
       filename: Splitsheets %{name}-%{date}
       heading: Delivery Checklist Page for Credit/Refunds - GIVE TO ORDERING PERSON
