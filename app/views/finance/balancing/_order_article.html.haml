@@ -17,6 +17,7 @@
   :plain
     /
   = number_to_currency(order_article.total_gross_price, :unit => "")
+  %span{:style => "color:red;font-weight: bold"}= '$!' if order_article.supplier_price_different_than_charged?
 %td #{order_article.price.tax}%
 %td= order_article.price.deposit
 %td

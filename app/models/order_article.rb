@@ -98,6 +98,11 @@ class OrderArticle < ActiveRecord::Base
     units * price.supplier_price unless price.supplier_price.nil?
   end
 
+  #true if the supplier price is different than the amount charged to members - allowing for rounding errors
+  def supplier_price_different_than_charged?
+    (total_gross_price - total_price) * 100 > (units * price.unit_quantity)
+  end
+
   def ordered_quantities_different_from_group_orders?(ordered_mark="!", billed_mark="?", received_mark="?")
     if not units_received.nil?
       ((units_received * price.unit_quantity) == group_orders_sum[:quantity]) ? false : received_mark
