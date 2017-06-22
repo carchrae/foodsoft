@@ -637,6 +637,9 @@ en:
       receive:
         no_finished_orders: There are currently no orders to receive.
         title: Receive orders
+  date:
+    formats:
+      default: '%B %d, %Y'
   deliveries:
     add_stock_change:
       how_many_units: 'How many units (%{unit}) to deliver? Stock article name: %{name}.'
@@ -721,12 +724,14 @@ en:
       rows:
       - SKU
       - Cases
+      - Total Quantity
+      - Origin
       - Name
-      - Total
-      - Units
       - Price
       - Subtotal
       total: Total
+      deliver_on: 'Delivery On: %{date}'
+      ordered_on: 'Order Date: %{date}'
     order_matrix:
       filename: Splitsheets %{name}-%{date}
       heading: Delivery Checklist Page for Credit/Refunds - GIVE TO ORDERING PERSON
@@ -803,7 +808,7 @@ en:
         new: Add invoice
         new_body: 'Create an invoice for this order:'
         plus_refund_credited: "Refund Credits:"
-        refund_adjusted_amount: 'Total:'
+        refund_adjusted_amount: 'Net Charge:'
       new:
         alert: Attention, order was already accounted
         articles_overview: Overview of articles
@@ -834,11 +839,11 @@ en:
         state: State
       summary:
         changed: Data was changed!
-        duration: From %{starts} till %{ends}
+        duration: Order date %{ends}
         fc_amount: 'Sales value:'
-        fc_profit: 'Final Balance'
+        fc_profit: 'Balance'
         gross_amount: 'Gross value:'
-        groups_amount: 'Charged to Members:'
+        groups_amount: 'Members Paid:'
         net_amount: 'Net value:'
         reload: Reload summary
         with_extra_charge: 'with markup:'
@@ -1433,6 +1438,7 @@ en:
       submit: Receive order
       surplus_options: 'Distribution options:'
       title: Receiving %{order}
+      warning: <strong>Warning:</strong> Do not change received amounts here after printing split sheets!<br/>Changing quantities here may automatically reallocate the amounts received by each member, which means you need to print out new split sheets.
     show:
       action_end: Close!
       amounts: 'Net/gross sum:'

@@ -81,8 +81,7 @@
 
 
 %div.alert.alert-danger.center
-  %h2 WARNING
-  %span Do not use this feature after printing split sheets!  Changing quantities here will automatically reallocate the amounts received.
+  %span= raw t 'orders.receive.warning'
 %table#order_articles.ordered-articles.table.table-striped.stupidtable{style: 'margin-bottom: 0'}
   %thead
     %tr
