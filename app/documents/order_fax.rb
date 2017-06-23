@@ -166,7 +166,11 @@ class OrderFax < OrderPdf
   end
 
   def each_order_article
-    order_articles.find_each_with_order(batch_size: BATCH_SIZE) {|oa| yield oa}
+    order_articles
+        .find_each_with_order(batch_size: BATCH_SIZE) do |oa|
+      yield oa if oa.units>0
+    end
+
   end
 
 end
