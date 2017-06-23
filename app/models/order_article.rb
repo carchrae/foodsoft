@@ -33,6 +33,10 @@ class OrderArticle < ActiveRecord::Base
     units_to_order
   end
 
+  def units_to_order
+    self[:units_to_order].floor
+  end
+
   # Count quantities of belonging group_orders.
   # In balancing this can differ from ordered (by supplier) quantity for this article.
   def group_orders_sum
