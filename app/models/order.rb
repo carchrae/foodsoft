@@ -258,7 +258,7 @@ class Order < ActiveRecord::Base
     end
   end
 
-  # Sets order.status to 'close' and updates all Ordergroup.account_balances
+  # puts order.status back to 'finished' and updates all Ordergroup.account_balances
   def reopen!(user)
     raise I18n.t('orders.model.error_not_closed') unless closed?
     transaction_note = I18n.t('orders.model.notice_reopen', :name => name,

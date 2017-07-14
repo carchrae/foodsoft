@@ -6,6 +6,27 @@
 -# placeholder deface to add content using erb[silent]:contains()
 - '<dashboard_top_mark>'
 
+%div.pull-right
+  %a{ :href => '/f/wiki/Main_Page'}
+    %span Edit header
+- if @page = Page.find_by_permalink('Main_Page')
+  = render :partial => 'pages/body', :locals => {  }
+
+
+%div
+  -if current_user.ordergroup.get_available_funds < 200
+    .alert.alert-danger
+      Your available credit is
+      = number_to_currency(current_user.ordergroup.get_available_funds)
+      which is less than $200.  Please deposit funds ASAP or you may not be able to place an order.
+
+  -else
+    .alert.alert-success
+      Your available credit is
+      = number_to_currency(current_user.ordergroup.get_available_funds)
+      which is above $200.  Thanks for keeping your account up to date.
+
+
 - if current_user.ordergroup
   = render :partial => 'shared/open_orders', :locals => {:ordergroup => current_user.ordergroup}
 
