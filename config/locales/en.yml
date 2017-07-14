@@ -1145,7 +1145,7 @@ en:
       footer_2_foodsoft: 'Foodsoft: %{url}'
       footer_3_homepage: 'Foodcoop: %{url}'
       footer_4_help: 'Help: %{url}'
-    foodsoft: Foodsoft
+    foodsoft: Food coop
     footer:
       revision: revision %{revision}
     header:
@@ -1156,7 +1156,7 @@ en:
       logout: Logout
       ordergroup: My ordergroup
       profile: Edit profile
-    logo: "<span>food</span>soft"
+    logo: "food coop"
   lib:
     order_pdf:
       page: Page %{number} of %{count}
@@ -1208,7 +1208,7 @@ en:
 
         There was a charge of %{amount} for "%{note}" by %{user}.
 
-        Please deposit your account as soon as possible.
+        Please make a deposit to your account as soon as possible.
 
 
 
@@ -1237,7 +1237,6 @@ en:
         o Total sum: %{sum}
 
         You can view the order online: %{order_url}
-
 
         Kind regards from %{foodcoop}.
     reset_password:
