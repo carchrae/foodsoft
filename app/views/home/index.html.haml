@@ -6,6 +6,15 @@
 -# placeholder deface to add content using erb[silent]:contains()
 - '<dashboard_top_mark>'
 
+%div.pull-right
+  %a{ :href => '/f/wiki/Main_Page'}
+    %span Edit header
+- if @page = Page.find_by_permalink('Main_Page')
+  = render :partial => 'pages/body', :locals => {  }
+
+
+
+
 - if current_user.ordergroup
   = render :partial => 'shared/open_orders', :locals => {:ordergroup => current_user.ordergroup}
 
