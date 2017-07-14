@@ -13,6 +13,18 @@
   = render :partial => 'pages/body', :locals => {  }
 
 
+%div
+  -if current_user.ordergroup.get_available_funds < 200
+    .alert.alert-danger
+      Your available credit is
+      = number_to_currency(current_user.ordergroup.get_available_funds)
+      which is less than $200.  Please deposit funds ASAP or you may not be able to place an order.
+
+  -else
+    .alert.alert-success
+      Your available credit is
+      = number_to_currency(current_user.ordergroup.get_available_funds)
+      which is above $200.  Thanks for keeping your account up to date.
 
 
 - if current_user.ordergroup
