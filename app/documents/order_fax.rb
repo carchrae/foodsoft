@@ -54,7 +54,7 @@ class OrderFax < OrderPdf
 
     move_down 5
     text I18n.t('documents.order_fax.ordered_on', date: order.ends.strftime(I18n.t('date.formats.default'))), align: :right
-    unless order.pickup
+    unless order.pickup.nil?
       move_down 5
       text I18n.t('documents.order_fax.deliver_on', date: order.pickup.strftime(I18n.t('date.formats.default'))), align: :right
     end
@@ -124,10 +124,10 @@ class OrderFax < OrderPdf
       end
 
 
-      #ugly fix for things like milk where supplier price is per unit, but unit qty is 6.
-      if ((supplier_price - (price.unit_quantity*price.price)).abs>price.price)
-        units_to_order = units_to_order * price.unit_quantity
-      end
+      # #ugly fix for things like milk where supplier price is per unit, but unit qty is 6.
+      # if ((supplier_price - (price.unit_quantity*price.price)).abs>price.price)
+      #   units_to_order = units_to_order * price.unit_quantity
+      # end
       subtotal = units_to_order * supplier_price
       total += subtotal
 
