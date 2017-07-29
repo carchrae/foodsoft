@@ -123,11 +123,6 @@ class OrderFax < OrderPdf
         total_quantity = units_to_order * oa.price.unit_quantity
       end
 
-
-      # #ugly fix for things like milk where supplier price is per unit, but unit qty is 6.
-      # if ((supplier_price - (price.unit_quantity*price.price)).abs>price.price)
-      #   units_to_order = units_to_order * price.unit_quantity
-      # end
       subtotal = units_to_order * supplier_price
       total += subtotal
 
