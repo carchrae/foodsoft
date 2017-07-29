@@ -148,15 +148,13 @@ class Article < ActiveRecord::Base
       new_unit = new_article.unit
     end
 
-    #if the coop changed the unit_quantity, don't try and update it if this is the only difference
-    # maybe do this if the price is changed, but otherwise allow the coop to override this
-    # (eg, supplier catalog lists items by price per KG but certain items have a minimum of 2KG )
-    new_unit_quantity = self.unit_quantity
 
-    # TC: not sure about this yet.  idea is that supplier price should be adjust, eg, if the coop knows there is a min quantity of 6, then if supplier price given for 1 unit, supplier prrice should be 6X that
-    # if (new_unit_quantity != self.unit_quantity)
-    #   new_article.supplier_price = (new_article.supplier_price/new_unit_quantity)* self.unit_quantity
-    # end
+    # TC: supplier price should be adjusted if the supplier sets a minimum order quantity higher than the price per unit listed by the supplier
+    # eg, if the coop knows there is a min quantity of 6, but supplier price is for 1 unit, supplier price is 6X that.
+    if (new_unit_quantity != self.unit_quantity)
+      new_article.supplier_price = (new_article.supplier_price/new_unit_quantity) * self.unit_quantity
+      new_unit_quantity = self.unit_quantity
+    end
 
     return Article.compare_attributes(
         {
