@@ -37,6 +37,7 @@
     %p
       Order created by #{show_user_link(@order.created_by)}.
       Please order before #{format_datetime_timespec(@order.ends,'%k:%M %P on %A, %d %B')}.
+    %p= @order.note if @order.note
 
 .row-fluid
   .accordion{id: 'accordion_help'}
