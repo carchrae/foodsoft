@@ -7,7 +7,7 @@ class RenderCSV
     @object = object
     @options = options
     # defaults to please Microsoft Excel ...
-    @options[:col_sep] ||= FoodsoftConfig[:csv_col_sep] || ';'
+    @options[:col_sep] ||= FoodsoftConfig[:csv_col_sep] || ','
     @options[:row_sep] ||= FoodsoftConfig[:csv_row_sep] if FoodsoftConfig[:csv_row_sep]
     @options[:encoding] ||= FoodsoftConfig[:csv_encoding] || 'ISO-8859-15'
   end
