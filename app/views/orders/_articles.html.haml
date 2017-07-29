@@ -31,7 +31,9 @@
         %tr{:class => cycle('even', 'odd', :name => 'articles') + ' ' + order_article_class(order_article)}
           %td.name=h order_article.article.name
           %td= order_article.article.unit
-          %td= "#{number_to_currency(net_price)} / #{number_to_currency(gross_price)} / #{number_to_currency order_article.price.supplier_price}"
+          %td
+            = "#{number_to_currency(net_price)} / #{number_to_currency(gross_price)} / #{number_to_currency order_article.price.supplier_price}"
+            = "!= #{number_to_currency(net_price * unit_quantity)}" if (((net_price * unit_quantity) - order_article.price.supplier_price).abs > (unit_quantity/100))
           - if order.stockit?
             %td= units
           - else
