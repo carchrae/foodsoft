@@ -11,6 +11,10 @@ module GroupOrderArticlesHelper
     end
   end
 
+  def group_order_article_show_result(goa)
+    goa.result
+  end
+
   def group_order_article_edit_amount(goa)
     unit = goa.order_article.article.unit
     fc_unit = (::Unit.new(unit) rescue nil) || (::Unit.new(unit.downcase) rescue nil)
