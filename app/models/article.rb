@@ -90,6 +90,15 @@ class Article < ActiveRecord::Base
     (gross_price  * (FoodsoftConfig[:price_markup] / 100 + 1)).round(2)
   end
 
+  def supplier_price
+    unless self[:supplier_price]
+      unit_quantity*price
+    else
+      self[:supplier_price]
+    end
+  end
+
+
   # Returns true if article has been updated at least 2 days ago
   def recently_updated
     updated_at > 2.days.ago

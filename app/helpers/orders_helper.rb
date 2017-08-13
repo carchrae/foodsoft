@@ -2,7 +2,7 @@
 module OrdersHelper
 
   def update_articles_link(order, text, view, options={})
-    options = {remote: true, id: "view_#{view}_btn", class: ''}.merge(options)
+    options = {remote: false, id: "view_#{view}_btn", class: ''}.merge(options)
     options[:class] += ' active' if view.to_s == @view.to_s
     link_to text, order_path(order, view: view), options
   end

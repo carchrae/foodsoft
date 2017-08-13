@@ -941,7 +941,7 @@ en:
         show_tasks: Show all tasks
   group_order_articles:
     form:
-      amount_change_for: Change amount for %{article}
+      amount_change_for: Add Member to Order for %{article}
       result_hint: 'Unit: %{unit}'
   group_orders:
     archive:
