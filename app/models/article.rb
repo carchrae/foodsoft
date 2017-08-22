@@ -198,9 +198,11 @@ class Article < ActiveRecord::Base
   def shared_article(supplier = self.supplier)
     # self.order_number.blank? and return nil
     # @shared_article ||= supplier.shared_supplier.shared_articles.find_by_number(self.order_number) rescue nil
-    @shared_article ||= supplier.shared_supplier.find_article_by_number(self.order_number) rescue nil
-    @shared_article ||= supplier.shared_supplier.find_article_by_name_origin_manufacture(self.name, self.origin, self.manufacturer)
-    @shared_article ||= supplier.shared_supplier.find_article_by_name_manufacture(self.name, self.manufacturer)
+    unless supplier.shared_supplier.nil?
+      @shared_article ||= supplier.shared_supplier.find_article_by_number(self.order_number)
+      @shared_article ||= supplier.shared_supplier.find_article_by_name_origin_manufacture(self.name, self.origin, self.manufacturer)
+      @shared_article ||= supplier.shared_supplier.find_article_by_name_manufacture(self.name, self.manufacturer)
+    end
     if @shared_article
       unless @shared_article.linked_to
         @shared_article.linked_to=self
