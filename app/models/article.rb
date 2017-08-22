@@ -92,7 +92,7 @@ class Article < ActiveRecord::Base
 
   def supplier_price
     unless self[:supplier_price]
-      unit_quantity*price
+      unit_quantity*price unless unit_quantity.nil? || price.nil?
     else
       self[:supplier_price]
     end
