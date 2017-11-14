@@ -169,11 +169,13 @@ class ArticlesController < ApplicationController
   end
 
   def article_by_id(id)
-    articles_by_id[id]
+    @articles_by_id ||= {}
+    @articles_by_id[id] ||= Article.includes(:article_category, :supplier).find(id)
   end
 
   def articles_by_id
-    @articles_by_id ||= Article.all.map{ |a| [a.id, a]}.to_h
+    puts 'SHOULD NOT BE USING articles_controller:articles_by_id - MAY USE TOO MUCH MEMORY'
+    @articles_by_id ||= Article.includes(:article_category, :supplier).all.map{ |a| [a.id, a]}.to_h
   end
 
   # Updates, deletes articles when upload or sync form is submitted
