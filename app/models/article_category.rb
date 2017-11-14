@@ -15,12 +15,24 @@ class ArticleCategory < ActiveRecord::Base
   validates :name, :presence => true, :uniqueness => true, :length => { :minimum => 2 }
 
   before_destroy :check_for_associated_articles
+  after_save :clear_cache
+
+  def clear_cache
+    @@cache = {}
+  end
 
   # Find a category that matches a category name; may return nil.
   # TODO more intelligence like remembering earlier associations (global and/or per-supplier)
+  @@cache = {}
   def self.find_match(category)
     return if category.blank? || category.length < 3
     c = nil
+
+    if @@cache[category]
+      puts "cache match #{category}"
+      return @@cache[category]
+    end
+    puts "no cache match, so looking up category #{category}"
     ## exact match - not needed, will be returned by next query as well
     #c ||= ArticleCategory.where(name: category).first
     # case-insensitive substring match (take the closest match = shortest)
@@ -29,6 +41,7 @@ class ArticleCategory < ActiveRecord::Base
     c = ArticleCategory.where('description LIKE ?', "%#{category}%").select {|s| s.description.match /(^|,)\s*#{category}\s*(,|$)/i} unless c && c.any?
     # return closest match if there are multiple
     c = c.sort_by {|s| s.name.length}.first if c.respond_to? :sort_by
+    @@cache[category] = c || ArticleCategory.first
     c
   end
 
