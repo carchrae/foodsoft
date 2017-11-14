@@ -152,9 +152,9 @@ class Article < ActiveRecord::Base
       #use the current unit as we've converted to that
       new_unit = self.unit
     else
-      new_price = new_article.price
-      new_unit_quantity = new_article.unit_quantity
-      new_unit = new_article.unit
+      new_price = new_article.price  || self.price
+      new_unit_quantity = new_article.unit_quantity || self.unit_quantity
+      new_unit = new_article.unit  || self.unit
     end
 
 

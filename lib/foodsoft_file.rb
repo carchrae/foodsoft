@@ -10,7 +10,7 @@ class FoodsoftFile
     filepath = file.is_a?(String) ? file : file.to_path
     filename = options.delete(:filename) || filepath
     fileext = File.extname(filename)
-    options[:csv_options] = {col_sep: ';', encoding: 'utf-8'}.merge(options[:csv_options]||{})
+    options[:csv_options] = {col_sep: FoodsoftConfig[:col_sep], encoding: 'utf-8'}.merge(options[:csv_options]||{})
     s = Roo::Spreadsheet.open(filepath, options.merge({extension: fileext}))
 
     row_index = 1

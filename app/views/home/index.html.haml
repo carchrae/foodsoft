@@ -13,42 +13,41 @@
   = render :partial => 'pages/body', :locals => {  }
 
 
-%div
-  -if current_user.ordergroup.get_available_funds < 200
-    .alert.alert-danger
-      Your available credit is
-      = number_to_currency(current_user.ordergroup.get_available_funds)
-      which is less than $200.  Please deposit funds ASAP or you may not be able to place an order.
+-if current_user.ordergroup
+  %div
+    -if current_user.ordergroup.get_available_funds < 200
+      .alert.alert-danger
+        Your available credit is
+        = number_to_currency(current_user.ordergroup.get_available_funds)
+        which is less than $200.  Please deposit funds ASAP or you may not be able to place an order.
 
-  -else
-    .alert.alert-success
-      Your available credit is
-      = number_to_currency(current_user.ordergroup.get_available_funds)
-      which is above $200.  Thanks for keeping your account up to date.
+    -else
+      .alert.alert-success
+        Your available credit is
+        = number_to_currency(current_user.ordergroup.get_available_funds)
+        which is above $200.  Thanks for keeping your account up to date.
 
-
-- if current_user.ordergroup
   = render :partial => 'shared/open_orders', :locals => {:ordergroup => current_user.ordergroup}
 
-// finished orders
-- unless Order.finished_not_closed.empty?
-  - @ordergroup ||= current_user.ordergroup
-  %section
-    %h2= t 'Closed Orders (in process)'
-    = render :partial => 'group_orders/orders', :locals => {:orders => Order.finished_not_closed, :pagination => false}
-    - if current_user.ordergroup.value_of_finished_orders > 0
-      %p
-        = t('.finished_orders.total_sum') + ':'
-        %b= number_to_currency(current_user.ordergroup.value_of_finished_orders)
+  // finished orders
+  - unless Order.finished_not_closed.empty?
+    - @ordergroup ||= current_user.ordergroup
+    %section
+      %h2= t 'Closed Orders (in process)'
+      = render :partial => 'group_orders/orders', :locals => {:orders => Order.finished_not_closed, :pagination => false}
+      - if current_user.ordergroup.value_of_finished_orders > 0
+        %p
+          = t('.finished_orders.total_sum') + ':'
+          %b= number_to_currency(current_user.ordergroup.value_of_finished_orders)
 
-// closed orders
-- unless Order.closed.empty?
-  - @ordergroup ||= current_user.ordergroup
-  %section
-    %h2= t 'Finished Orders (final)'
-    = render :partial => 'group_orders/orders', :locals => {:orders => Order.closed.limit(5), :pagination => false}
-    %br/
-    = link_to t('.closed_orders.more'), archive_group_orders_path
+  // closed orders
+  - unless Order.closed.empty?
+    - @ordergroup ||= current_user.ordergroup
+    %section
+      %h2= t 'Finished Orders (final)'
+      = render :partial => 'group_orders/orders', :locals => {:orders => Order.closed.limit(5), :pagination => false}
+      %br/
+      = link_to t('.closed_orders.more'), archive_group_orders_path
 
 
 - unless @unaccepted_tasks.empty? && @next_tasks.empty?

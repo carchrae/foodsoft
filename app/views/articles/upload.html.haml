@@ -1,6 +1,6 @@
 - title t('.title', supplier: @supplier.name)
 
-%p= t '.text_1', supplier: @supplier.name
+%p= t '.text_1', supplier: @supplier.name, col_sep: FoodsoftConfig[:col_sep]
 
 %table.table.table-bordered
   %thead

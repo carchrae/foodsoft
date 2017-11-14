@@ -247,7 +247,8 @@ class FoodsoftConfig
           database: true
         },
         max_shared_articles_for_sync_all_methods: 200,
-        default_per_page: 20
+        default_per_page: 20,
+        col_sep: ','
       }
       # allow engines to easily add to this
       engines = Rails::Engine.subclasses.map(&:instance).select { |e| e.respond_to?(:default_foodsoft_config) }

@@ -2,31 +2,31 @@
 class Supplier < ActiveRecord::Base
   include MarkAsDeletedWithName
 
-  has_many :articles, -> { where(:type => nil).includes(:article_category).order('article_categories.name', 'articles.name') }
-  has_many :stock_articles, -> { includes(:article_category).order('article_categories.name', 'articles.name') }
+  has_many :articles, -> {where(:type => nil).includes(:article_category).order('article_categories.name', 'articles.name')}
+  has_many :stock_articles, -> {includes(:article_category).order('article_categories.name', 'articles.name')}
   has_many :orders
   has_many :deliveries
   has_many :invoices
-  belongs_to :shared_supplier  # for the sharedLists-App
+  belongs_to :shared_supplier # for the sharedLists-App
 
   include ActiveModel::MassAssignmentSecurity
   attr_accessible :name, :address, :phone, :phone2, :fax, :email, :url, :contact_person, :customer_number, :iban,
                   :delivery_days, :order_howto, :note, :shared_supplier_id, :min_order_quantity, :shared_sync_method
 
-  validates :name, :presence => true, :length => { :in => 4..30 }
-  validates :phone, :presence => true, :length => { :in => 8..25 }
-  validates :address, :presence => true, :length => { :in => 8..50 }
+  validates :name, :presence => true, :length => {:in => 4..30}
+  validates :phone, :presence => true, :length => {:in => 8..25}
+  validates :address, :presence => true, :length => {:in => 8..50}
   validates_format_of :iban, :with => /\A[A-Z]{2}[0-9]{2}[0-9A-Z]{,30}\z/, :allow_blank => true
   validates_uniqueness_of :iban, :case_sensitive => false, :allow_blank => true
   validates_length_of :order_howto, :note, maximum: 250
   validate :valid_shared_sync_method
   validate :uniqueness_of_name
 
-  scope :undeleted, -> { where(deleted_at: nil) }
-  scope :having_articles, -> { where(id: Article.undeleted.select(:supplier_id).distinct) }
+  scope :undeleted, -> {where(deleted_at: nil)}
+  scope :having_articles, -> {where(id: Article.undeleted.select(:supplier_id).distinct)}
 
   def get_articles
-    @undeleted||=articles.undeleted.all.map{|a| [a.order_number, a]}.to_h
+    @undeleted||=articles.undeleted.all.map {|a| [a.order_number, a]}.to_h
   end
 
   def get_article(id)
@@ -54,8 +54,8 @@ class Supplier < ActiveRecord::Base
           # ugly, cache update in case where order_number has changed
           get_articles[shared_article.number]=article unless shared_article.number == article.order_number
         end
-      # Articles with no order number can be used to put non-shared articles
-      # in a shared supplier, with sync keeping them.
+        # Articles with no order number can be used to put non-shared articles
+        # in a shared supplier, with sync keeping them.
       elsif not article.order_number.blank?
         # article isn't in external database anymore
         outlisted_articles << article
@@ -82,9 +82,12 @@ class Supplier < ActiveRecord::Base
   def sync_from_file(file, options={})
     all_order_numbers = []
     updated_article_pairs, outlisted_articles, new_articles = [], [], []
+    categories = ArticleCategory.all
+    categoryMap = categories.map {|a| [a.name.downcase, a]}.to_h
     FoodsoftFile::parse file, options do |status, new_attrs, line|
       article = articles.undeleted.where(order_number: new_attrs[:order_number]).first
-      new_attrs[:article_category] = ArticleCategory.find_match(new_attrs[:article_category])
+      # new_attrs[:article_category] = ArticleCategory.find_match(new_attrs[:article_category])
+      new_attrs[:article_category] = categoryMap[new_attrs[:article_category].downcase] || categories[0] rescue categories[0]
       new_attrs[:tax] ||= FoodsoftConfig[:tax_default]
       new_article = articles.build(new_attrs)
 
@@ -101,7 +104,7 @@ class Supplier < ActiveRecord::Base
       elsif status == :outlisted && article.present?
         outlisted_articles << article
 
-      # stop when there is a parsing error
+        # stop when there is a parsing error
       elsif status.is_a? String
         # @todo move I18n key to model
         raise I18n.t('articles.model.error_parse', :msg => status, :line => line.to_s)
