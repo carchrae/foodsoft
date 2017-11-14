@@ -14,7 +14,8 @@
       %th= heading_helper Article, :article_category
 
   %tbody
-    - if articles.length > 200
+    - hide_buttons = articles.length > 200 ? 'hide' : ''
+    - unless hide_buttons.blank?
       %tr.hide
         %td
           %button.btn.btn-info{onclick:"$('tbody>tr:not(.has_error)').toggle(); return false;"}
@@ -32,7 +33,7 @@
         -unless skip
           - unless changed_article.new_record?
             - article = article_by_id(changed_article.id)
-            %tr{:style => 'color:grey', :class => changed_article.errors.any? ? 'has_error' : 'hide'}
+            %tr{:style => 'color:grey', :class => changed_article.errors.any? ? 'has_error' : hide_buttons}
               %td{data:{toggle:'tooltip', placement:'top'}, title: article.order_number}= article.name
               %td= article.note
               %td= article.manufacturer
@@ -44,7 +45,7 @@
               %td= number_to_currency article.deposit
               %td= number_to_currency article.supplier_price
               %td= article.article_category.name if article.article_category
-          %tr{:class => changed_article.errors.any? ? 'has_error' : 'hide'}
+          %tr{:class => changed_article.errors.any? ? 'has_error' : hide_buttons}
             = fields_for "#{field}[]", changed_article do |form|
               %td{:style => highlight_new(attrs, :name)}
                 = form.text_field 'name', :size => 0
@@ -74,5 +75,5 @@
               %td= form.select :article_category_id, categories.map {|a| [ a.name, a.id ] },
                 {include_blank: true}, class: 'input-small'
           - unless changed_article.errors.empty?
-            %tr.alert{:class => changed_article.errors.any? ? 'has_error' : 'hide'}
+            %tr.alert{:class => changed_article.errors.any? ? 'has_error' : hide_buttons}
               %td(colspan=11)= changed_article.errors.full_messages.join(', ')
