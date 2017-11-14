@@ -12,51 +12,67 @@
       %th= heading_helper Article, :deposit
       %th= heading_helper Article, :supplier_price
       %th= heading_helper Article, :article_category
+
   %tbody
-    - articles.each do |changed_article, attrs|
-      - unless changed_article.new_record?
-        - article = article_by_id(changed_article.id)
-        %tr{:style => 'color:grey'}
-          %td{data:{toggle:'tooltip', placement:'top'}, title: article.order_number}= article.name
-          %td= article.note
-          %td= article.manufacturer
-          %td= article.origin
-          %td= article.unit
-          %td= article.unit_quantity
-          %td= number_to_currency article.price
-          %td= number_to_percentage article.tax
-          %td= number_to_currency article.deposit
-          %td= number_to_currency article.supplier_price
-          %td= article.article_category.name if article.article_category
-      %tr
-        = fields_for "#{field}[]", changed_article do |form|
-          %td{:style => highlight_new(attrs, :name)}
-            = form.text_field 'name', :size => 0
-            - hidden_fields.each do |field|
-              = form.hidden_field field
-          %td{:style => highlight_new(attrs, :note)}= form.text_field 'note', class: 'input-small'
-          %td{:style => highlight_new(attrs, :manufacturer)}= form.text_field 'manufacturer', class: 'input-small'
-          %td{:style => highlight_new(attrs, :origin)}= form.text_field 'origin', class: 'input-mini'
-          %td{:style => highlight_new(attrs, :unit)}= form.text_field 'unit', class: 'input-mini'
-          %td{:style => highlight_new(attrs, :unit_quantity)}= form.text_field 'unit_quantity', class: 'input-mini'
-          %td{:style => highlight_new(attrs, :price)}
-            .input-prepend
-              %span.add-on= t 'number.currency.format.unit'
-              = form.text_field 'price', class: 'input-mini', style: 'width: 45px'
-          %td{:style => highlight_new(attrs, :tax)}
-            .input-append
-              = form.text_field 'tax', class: 'input-mini', style: 'width: 45px'
-              %span.add-on %
-          %td{:style => highlight_new(attrs, :deposit)}
-            .input-prepend
-              %span.add-on= t 'number.currency.format.unit'
-              = form.text_field 'deposit', class: 'input-mini', style: 'width: 45px'
-          %td{:style => highlight_new(attrs, :supplier_price)}
-            .input-prepend
-              %span.add-on= t 'number.currency.format.unit'
-              = form.text_field 'supplier_price', class: 'input-mini', style: 'width: 45px'
-          %td= form.select :article_category_id, ArticleCategory.all.map {|a| [ a.name, a.id ] },
-            {include_blank: true}, class: 'input-small'
-      - unless changed_article.errors.empty?
-        %tr.alert
-          %td(colspan=11)= changed_article.errors.full_messages.join(', ')
+    - if articles.length > 200
+      %tr.hide
+        %td
+          %button.btn.btn-info{onclick:"$('tbody>tr:not(.has_error)').toggle(); return false;"}
+            %span only show errors
+      %tr.has-error
+        %td
+          %button.btn.btn-info{onclick:"$('tbody>tr:not(.has_error)').toggle(); return false;"}
+            %span show all
+    - categories = ArticleCategory.all
+    - 2.times do |i|
+      - articles.each do |changed_article, attrs|
+        - skip = i==0 ? changed_article.errors.empty? : changed_article.errors.any?
+        -#%tr
+        -#  %td "i=#{i} skip=#{skip} - changed_article.errors"
+        -unless skip
+          - unless changed_article.new_record?
+            - article = article_by_id(changed_article.id)
+            %tr{:style => 'color:grey', :class => changed_article.errors.any? ? 'has_error' : 'hide'}
+              %td{data:{toggle:'tooltip', placement:'top'}, title: article.order_number}= article.name
+              %td= article.note
+              %td= article.manufacturer
+              %td= article.origin
+              %td= article.unit
+              %td= article.unit_quantity
+              %td= number_to_currency article.price
+              %td= number_to_percentage article.tax
+              %td= number_to_currency article.deposit
+              %td= number_to_currency article.supplier_price
+              %td= article.article_category.name if article.article_category
+          %tr{:class => changed_article.errors.any? ? 'has_error' : 'hide'}
+            = fields_for "#{field}[]", changed_article do |form|
+              %td{:style => highlight_new(attrs, :name)}
+                = form.text_field 'name', :size => 0
+                - hidden_fields.each do |field|
+                  = form.hidden_field field
+              %td{:style => highlight_new(attrs, :note)}= form.text_field 'note', class: 'input-small'
+              %td{:style => highlight_new(attrs, :manufacturer)}= form.text_field 'manufacturer', class: 'input-small'
+              %td{:style => highlight_new(attrs, :origin)}= form.text_field 'origin', class: 'input-mini'
+              %td{:style => highlight_new(attrs, :unit)}= form.text_field 'unit', class: 'input-mini'
+              %td{:style => highlight_new(attrs, :unit_quantity)}= form.text_field 'unit_quantity', class: 'input-mini'
+              %td{:style => highlight_new(attrs, :price)}
+                .input-prepend
+                  %span.add-on= t 'number.currency.format.unit'
+                  = form.text_field 'price', class: 'input-mini', style: 'width: 45px'
+              %td{:style => highlight_new(attrs, :tax)}
+                .input-append
+                  = form.text_field 'tax', class: 'input-mini', style: 'width: 45px'
+                  %span.add-on %
+              %td{:style => highlight_new(attrs, :deposit)}
+                .input-prepend
+                  %span.add-on= t 'number.currency.format.unit'
+                  = form.text_field 'deposit', class: 'input-mini', style: 'width: 45px'
+              %td{:style => highlight_new(attrs, :supplier_price)}
+                .input-prepend
+                  %span.add-on= t 'number.currency.format.unit'
+                  = form.text_field 'supplier_price', class: 'input-mini', style: 'width: 45px'
+              %td= form.select :article_category_id, categories.map {|a| [ a.name, a.id ] },
+                {include_blank: true}, class: 'input-small'
+          - unless changed_article.errors.empty?
+            %tr.alert{:class => changed_article.errors.any? ? 'has_error' : 'hide'}
+              %td(colspan=11)= changed_article.errors.full_messages.join(', ')
