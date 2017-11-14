@@ -9,6 +9,7 @@ class ArticlesController < ApplicationController
     if params['sort']
       sort = case params['sort']
                when "name"  then "articles.name"
+               when "order_number"  then "articles.order_number"
                when "unit"   then "articles.unit"
                when "article_category" then "article_categories.name"
                when "note"   then "articles.note"
@@ -24,7 +25,7 @@ class ArticlesController < ApplicationController
     end
 
     @articles = Article.undeleted.where(supplier_id: @supplier, :type => nil).includes(:article_category).order(sort)
-    @articles = @articles.where('lower(articles.name) LIKE ?', "%#{params[:query].downcase}%") unless params[:query].nil?
+    @articles = @articles.where('lower(articles.name) LIKE ? or lower(articles.order_number) LIKE ?', "%#{params[:query].downcase}%", "%#{params[:query].downcase}%") unless params[:query].nil?
 
     @count = @articles.count
     @articles = @articles.page(params[:page]).per(@per_page)
