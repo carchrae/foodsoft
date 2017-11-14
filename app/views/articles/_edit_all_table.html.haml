@@ -13,6 +13,7 @@
       %th= heading_helper Article, :deposit
       %th= heading_helper Article, :supplier_price
   %tbody
+    - categories = ArticleCategory.all
     - @articles.each_with_index do |article, index|
       = fields_for "articles[#{article.id || index}]", article do |form|
         %tr
@@ -25,7 +26,7 @@
           %td= form.text_field 'unit_quantity', class: 'input-mini'
           %td= form.text_field 'order_number', class: 'input-mini'
           %td= form.text_field 'note', class: 'input-medium'
-          %td= form.collection_select 'article_category_id', ArticleCategory.all,
+          %td= form.collection_select 'article_category_id', categories,
             :id, :name, { :include_blank => true }, class: 'input-small'
           %td.input-append
             = form.text_field 'tax', class: 'input-mini'
