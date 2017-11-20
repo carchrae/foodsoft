@@ -1,3 +1,34 @@
+
+- content_for :javascript do
+  :javascript
+    var search = debounce(250, function(index,query) {
+        // Declare variables
+        console.log('search on ',index, query);
+        var input, filter, table, tr, td, i, allchecked = true;
+        input = query || document.getElementById("query").value;
+        filter = String(input).toUpperCase();
+        table = document.getElementById("articleList");
+        tr = table.getElementsByTagName("tr");
+        console.log('searching for '+filter);
+        // Loop through all table rows, and hide those who don't match the search query
+        for (i = 0; i < tr.length; i++) {
+          td = tr[i].getElementsByTagName("td")[index];
+          if (td) {
+            if (String(td.innerHTML).toUpperCase().indexOf(filter) > -1) {
+              tr[i].style.display = "";
+              var checkbox = $('input[type="checkbox"]', tr[i].getElementsByTagName("td")[0])[0];
+              if (checkbox && checkbox.checked === false){
+                allchecked=false;
+              }
+            } else {
+              tr[i].style.display = "none";
+            }
+          }
+        }
+        $('#checkall')[0].checked = allchecked;
+      }
+    );
+
 = simple_form_for @order do |f|
   = f.hidden_field :supplier_id
 
@@ -90,32 +121,3 @@
       = t '.ignore_warnings'
 
 
-  - content_for :javascript do
-    :javascript
-      var search = debounce(250, function(index,query) {
-          // Declare variables
-          console.log('search on ',index, query);
-          var input, filter, table, tr, td, i, allchecked = true;
-          input = query || document.getElementById("query").value;
-          filter = String(input).toUpperCase();
-          table = document.getElementById("articleList");
-          tr = table.getElementsByTagName("tr");
-          console.log('searching for '+filter);
-          // Loop through all table rows, and hide those who don't match the search query
-          for (i = 0; i < tr.length; i++) {
-            td = tr[i].getElementsByTagName("td")[index];
-            if (td) {
-              if (String(td.innerHTML).toUpperCase().indexOf(filter) > -1) {
-                tr[i].style.display = "";
-                var checkbox = $('input[type="checkbox"]', tr[i].getElementsByTagName("td")[0])[0];
-                if (checkbox && checkbox.checked === false){
-                  allchecked=false;
-                }
-              } else {
-                tr[i].style.display = "none";
-              }
-            }
-          }
-          $('#checkall')[0].checked = allchecked;
-        }
-      );

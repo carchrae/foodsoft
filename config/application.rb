@@ -7,6 +7,7 @@ require 'rails/all'
 Bundler.require(:default, Rails.env)
 
 # if using dotenv, load env vars
+#require 'dotenv-rails'
 Dotenv::Railtie.load if Object.const_defined?('Dotenv::Railtie')
 
 module Foodsoft
@@ -64,6 +65,24 @@ module Foodsoft
 
     # Load legacy scripts from vendor
     config.assets.precompile += [ 'vendor/assets/javascripts/*.js' ]
+
+    if ENV['SMTP_DOMAIN'].blank?
+      puts 'No email configuration found, using test method.  Set SMTP_DOMAIN (eg, gmail.com), SMTP_USER_NAME, SMTP_PASSWORD'
+      config.action_mailer.delivery_method = :test
+    else
+      config.action_mailer.delivery_method = :smtp
+      settings = {
+          address: ENV['SMTP_SERVER'],
+          port: (ENV['SMTP_PORT'] || 587).to_i,
+          domain: ENV['SMTP_DOMAIN'],
+          user_name: ENV['SMTP_USER_NAME'],
+          password: ENV['SMTP_PASSWORD'],
+          authentication: :login,
+          enable_starttls_auto: true
+      }
+      config.action_mailer.smtp_settings = settings
+      puts "using email settings: #{settings.as_json}"
+    end
 
   end
 
