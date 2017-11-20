@@ -1156,7 +1156,7 @@ en:
       logout: Logout
       ordergroup: My ordergroup
       profile: Edit profile
-    logo: "<span>Food Co-op</span>"
+    logo: "Food Co-op"
   lib:
     order_pdf:
       page: Page %{number} of %{count}
