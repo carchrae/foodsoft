@@ -8,7 +8,7 @@
 
 %div.pull-right
   %a{ :href => '/f/wiki/Main_Page'}
-    %span Edit header
+    %span.i.icon-edit
 - if @page = Page.find_by_permalink('Main_Page')
   = render :partial => 'pages/body', :locals => {  }
 
