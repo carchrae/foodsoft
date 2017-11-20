@@ -66,7 +66,7 @@ module Foodsoft
     # Load legacy scripts from vendor
     config.assets.precompile += [ 'vendor/assets/javascripts/*.js' ]
 
-    if ENV['SMTP_DOMAIN'].blank?
+    if ENV['SMTP_SERVER'].blank?
       puts 'No email configuration found, using test method.  Set SMTP_DOMAIN (eg, gmail.com), SMTP_USER_NAME, SMTP_PASSWORD'
       config.action_mailer.delivery_method = :test
     else
