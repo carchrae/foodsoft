@@ -74,7 +74,7 @@ module Foodsoft
       settings = {
           address: ENV['SMTP_SERVER'],
           port: (ENV['SMTP_PORT'] || 587).to_i,
-          domain: ENV['SMTP_DOMAIN'],
+          # domain: ENV['SMTP_DOMAIN'],
           user_name: ENV['SMTP_USER_NAME'],
           password: ENV['SMTP_PASSWORD'],
           authentication: :login,
