@@ -5,7 +5,7 @@ ruby '2.3.4'
 
 gem 'rails', '~> 4.2'
 
-gem 'dotenv-rails', :groups => [:development, :test]
+gem 'dotenv-rails', :groups => [:development, :test, :production]
 
 gem 'sass-rails'
 gem 'less-rails'
