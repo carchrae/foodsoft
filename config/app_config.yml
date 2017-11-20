@@ -9,7 +9,7 @@ default: &defaults
   default_scope: 'f'
 
   # name of this foodcoop
-  name: TEST SITE
+  name: Food Coop
   # foodcoop contact information (used for FAX messages)
   contact:
     street: Grüne Straße 103
@@ -127,8 +127,8 @@ default: &defaults
   notification:
     error_recipients:
       - <%= ENV['ADMIN_EMAIL'] %>
-    sender_address: "\"Foodsoft Error\" <tom@carchrae.net>"
-    email_prefix: "[Foodsoft]"
+    sender_address: <%= ENV['ADMIN_EMAIL'] %>
+    email_prefix: "[Foodsoft Error]"
 
   # http config for this host to generate links in emails (uses environment config when not set)
   #protocol: http
