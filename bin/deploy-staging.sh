@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 REMOTE="staging"
 REMOTE_BRANCH="master"

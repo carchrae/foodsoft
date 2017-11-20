@@ -20,10 +20,10 @@ default: &defaults
     phone: "030 323 23249"
 
   # Homepage
-  homepage: https://bowen-food-coop.herokuapp.com
+  homepage: https://<%= ENV['HOSTNAME'] %>
 
   # foodsoft documentation URL
-  help_url: https://bowen-food-coop.herokuapp.com/f/wiki
+  help_url: https:////<%= ENV['HOSTNAME'] %>/f/wiki
 
   # documentation URL for the apples&pears work system
   applepear_url: https://github.com/foodcoops/foodsoft/wiki/%C3%84pfel-u.-Birnen

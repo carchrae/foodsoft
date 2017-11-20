@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 REMOTE="heroku"
 REMOTE_BRANCH="master"
