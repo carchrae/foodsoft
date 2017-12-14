@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+cd `dirname $0`
+cd ..
 export FILENAME="db-backups/db.production.`date "+%Y-%m-%d-%H:%M:%S"`.sql"
 echo saving to $FILENAME
 pg_dump -h awa.intellecti.ca -d food-coop-production -U food-coop --clean > $FILENAME

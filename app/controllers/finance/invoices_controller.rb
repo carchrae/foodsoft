@@ -29,7 +29,8 @@ class Finance::InvoicesController < ApplicationController
 
   def fill_deliveries_and_orders_collection(invoice_id, supplier_id)
     @deliveries_collection = Delivery.where('invoice_id = ? OR (invoice_id IS NULL AND supplier_id = ?)', invoice_id, supplier_id).order(:delivered_on)
-    @orders_collection = Order.where('invoice_id = ? OR (invoice_id IS NULL AND supplier_id = ?)', invoice_id, supplier_id).order(:ends)
+    # @orders_collection = Order.where('invoice_id = ? OR (invoice_id IS NULL AND supplier_id = ?)', invoice_id, supplier_id).order(:ends)
+    @orders_collection = Order.where('invoice_id = ? OR (supplier_id = ?)', invoice_id, supplier_id).order('ends DESC')
   end
 
   def create
