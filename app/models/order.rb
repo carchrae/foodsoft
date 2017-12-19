@@ -153,7 +153,10 @@ class Order < ActiveRecord::Base
   def profit(options = {})
     markup = options[:without_markup] || false
     if invoice
-      groups_sum = markup ? sum(:groups_without_markup) : sum(:groups)
+      groups_sum = 0
+      invoice.orders.each do |o|
+        groups_sum += markup ? o.sum(:groups_without_markup) : o.sum(:groups)
+      end
       groups_sum - invoice.net_amount
     end
   end
