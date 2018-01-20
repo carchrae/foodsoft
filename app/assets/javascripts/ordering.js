@@ -105,7 +105,7 @@ function update(item, quantity, tolerance) {
     if (oldQuantity == 0 && quantity > 0 && tolerance == 0) {
         tolerance = minTolerance;
     }
-    if (quantity == 0 && tolerance == minTolerance) {
+    if (oldQuantity != 0 && quantity == 0 && tolerance == minTolerance) {
         tolerance = 0;
     }
 

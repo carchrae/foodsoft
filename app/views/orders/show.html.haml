@@ -71,7 +71,7 @@
           %span.caret
         %ul.dropdown-menu
           %li= order_pdf(@order, :groups, t('.download.group_pdf'))
-          %li= order_pdf(@order, :articles, t('.download.article_pdf'))
+          -#%li= order_pdf(@order, :articles, t('.download.article_pdf'))
           %li= order_pdf(@order, :matrix, t('.download.matrix_pdf'))
           %li= order_pdf(@order, :fax, t('.download.fax_pdf'))
           - unless @order.stockit?
