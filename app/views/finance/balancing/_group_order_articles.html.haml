@@ -34,12 +34,16 @@
         - totals[:result] += group_order_article.result
     %tfoot
       %tr
+        - rounding_error = totals[:result] * (order_article.price.price-(order_article.price.supplier_price/order_article.price.unit_quantity.to_f))
+        - member_total = order_article.group_orders_sum[:price]
         %td
         %td{:style => "width:8em"}= t('.total_fc')
         %td.center= totals[:result]
         %td.center= group_order_article_total_amount(totals[:result], order_article)
-        %td.numeric= number_to_currency(order_article.group_orders_sum[:price])
+        %td.numeric= number_to_currency(member_total)
         %td{:colspan => "3"}
+          %abbr{title: "difference from rounding-up to cent"}
+            = "- #{number_to_currency(rounding_error)} = #{number_to_currency(member_total-rounding_error)}"
       %tr
         %td
         %td{:style => "width:8em"}= t('.total_supplier')
