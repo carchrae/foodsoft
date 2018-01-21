@@ -168,7 +168,7 @@ class Order < ActiveRecord::Base
   # :fc, guess what...
   def sum(type = :gross)
     total = 0
-    if type == :net || type == :gross || type == :fc || type == :gross_price_supplier
+    if type == :net || type == :gross || type == :fc || type == :gross_price_supplier || type == :rounding_error
       for oa in order_articles.ordered.includes(:article, :article_price)
         quantity = oa.units * oa.price.unit_quantity
         case type
@@ -180,6 +180,8 @@ class Order < ActiveRecord::Base
             total += quantity * oa.price.fc_price
           when :gross_price_supplier
             total += quantity * oa.price.gross_price_supplier
+          when :rounding_error
+            total += quantity * (oa.price.price-(oa.price.supplier_price/oa.price.unit_quantity.to_f))
         end
       end
     elsif type == :groups || type == :groups_without_markup
