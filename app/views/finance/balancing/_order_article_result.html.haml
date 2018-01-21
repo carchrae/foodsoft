@@ -1,5 +1,5 @@
-%tr[order_article]
+%tr[order_article]{data: { units: order_article.units }, :style => (order_article.units==0 ? "display:none" : "")}
   = render :partial => 'finance/balancing/order_article', :locals => {:order_article => order_article}
-  
+
 %tr{:id => "group_order_articles_#{order_article.id}", :class => "results", :style => "display:none"}
   = render :partial => 'finance/balancing/group_order_articles', :locals => {:order_article => order_article}

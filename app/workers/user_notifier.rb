@@ -33,7 +33,7 @@ class UserNotifier
     Ordergroup.find(ordergroup_id).users.each do |user|
       begin
         I18n.with_locale(user.settings['profile']['language']) do
-          Mailer.negative_balance(user, transaction).deliver if user.settings.notify["negative_balance"]
+          Mailer.negative_balance(user, transaction).deliver #if user.settings.notify["negative_balance"]
         end
       rescue
         Rails.logger.warn "Can't deliver mail to #{user.email}"
