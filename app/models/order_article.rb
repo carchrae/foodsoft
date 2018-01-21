@@ -88,6 +88,11 @@ class OrderArticle < ActiveRecord::Base
     units * price.unit_quantity * price.price
   end
 
+  # Calculate price for ordered quantity.
+  def total_deposit
+    units * price.unit_quantity * price.deposit
+  end
+
   # Calculate gross price for ordered qunatity.
   def total_gross_price
     if price.supplier_price
