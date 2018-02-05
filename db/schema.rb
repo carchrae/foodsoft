@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170611234006) do
+ActiveRecord::Schema.define(version: 20180205054525) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -101,13 +101,13 @@ ActiveRecord::Schema.define(version: 20170611234006) do
   add_index "group_order_article_quantities", ["group_order_article_id"], name: "index_group_order_article_quantities_on_group_order_article_id", using: :btree
 
   create_table "group_order_articles", force: :cascade do |t|
-    t.integer  "group_order_id",                           default: 0, null: false
-    t.integer  "order_article_id",                         default: 0, null: false
-    t.integer  "quantity",                                 default: 0, null: false
-    t.integer  "tolerance",                                default: 0, null: false
-    t.datetime "updated_on",                                           null: false
-    t.decimal  "result",           precision: 8, scale: 3
-    t.decimal  "result_computed",  precision: 8, scale: 3
+    t.integer  "group_order_id",                            default: 0, null: false
+    t.integer  "order_article_id",                          default: 0, null: false
+    t.integer  "quantity",                                  default: 0, null: false
+    t.integer  "tolerance",                                 default: 0, null: false
+    t.datetime "updated_on",                                            null: false
+    t.decimal  "result",           precision: 12, scale: 5
+    t.decimal  "result_computed",  precision: 12, scale: 5
   end
 
   add_index "group_order_articles", ["group_order_id", "order_article_id"], name: "goa_index", unique: true, using: :btree
@@ -202,15 +202,15 @@ ActiveRecord::Schema.define(version: 20170611234006) do
   end
 
   create_table "order_articles", force: :cascade do |t|
-    t.integer "order_id",                                 default: 0, null: false
-    t.integer "article_id",                               default: 0, null: false
-    t.integer "quantity",                                 default: 0, null: false
-    t.integer "tolerance",                                default: 0, null: false
-    t.decimal "units_to_order",   precision: 8, scale: 3, default: 0, null: false
-    t.integer "lock_version",                             default: 0, null: false
+    t.integer "order_id",                                  default: 0, null: false
+    t.integer "article_id",                                default: 0, null: false
+    t.integer "quantity",                                  default: 0, null: false
+    t.integer "tolerance",                                 default: 0, null: false
+    t.decimal "units_to_order",   precision: 12, scale: 5, default: 0, null: false
+    t.integer "lock_version",                              default: 0, null: false
     t.integer "article_price_id"
-    t.decimal "units_billed",     precision: 8, scale: 3
-    t.decimal "units_received",   precision: 8, scale: 3
+    t.decimal "units_billed",     precision: 12, scale: 5
+    t.decimal "units_received",   precision: 12, scale: 5
   end
 
   add_index "order_articles", ["order_id", "article_id"], name: "index_order_articles_on_order_id_and_article_id", unique: true, using: :btree
@@ -285,27 +285,6 @@ ActiveRecord::Schema.define(version: 20170611234006) do
   end
 
   add_index "settings", ["thing_type", "thing_id", "var"], name: "index_settings_on_thing_type_and_thing_id_and_var", unique: true, using: :btree
-
-  create_table "shared_articles", force: :cascade do |t|
-    t.string   "name",                                               null: false
-    t.integer  "supplier_id",                                        null: false
-    t.string   "number"
-    t.string   "note"
-    t.string   "manufacturer"
-    t.string   "origin"
-    t.string   "unit"
-    t.decimal  "price",          precision: 8, scale: 2, default: 0, null: false
-    t.decimal  "tax",            precision: 3, scale: 1, default: 7, null: false
-    t.decimal  "deposit",        precision: 8, scale: 2, default: 0, null: false
-    t.decimal  "unit_quantity",  precision: 4, scale: 1, default: 1, null: false
-    t.decimal  "scale_quantity", precision: 4, scale: 2
-    t.decimal  "scale_price",    precision: 8, scale: 2
-    t.datetime "created_on"
-    t.datetime "updated_on"
-    t.string   "category"
-  end
-
-  add_index "shared_articles", ["name"], name: "index_articles_on_name", using: :btree
 
   create_table "stock_changes", force: :cascade do |t|
     t.integer  "delivery_id"
