@@ -26,7 +26,7 @@ class Supplier < ActiveRecord::Base
   scope :having_articles, -> {where(id: Article.undeleted.select(:supplier_id).distinct)}
 
   def get_articles
-    @undeleted||=articles.undeleted.all.map {|a| [a.order_number, a]}.to_h
+    @undeleted ||= articles.undeleted.all.map {|a| [a.order_number, a]}.to_h
   end
 
   def get_article(id)
@@ -44,7 +44,7 @@ class Supplier < ActiveRecord::Base
       # try to find the associated shared_article
       shared_article = article.shared_article(self)
 
-      existing_articles[shared_article.id]=true unless shared_article.nil?
+      existing_articles[shared_article.id] = true unless shared_article.nil?
 
       if shared_article && shared_article.available # article will be updated
         unequal_attributes = article.shared_article_changed?(self)
@@ -52,7 +52,7 @@ class Supplier < ActiveRecord::Base
           article.attributes = unequal_attributes
           updated_article_pairs << [article, unequal_attributes]
           # ugly, cache update in case where order_number has changed
-          get_articles[shared_article.number]=article unless shared_article.number == article.order_number
+          get_articles[shared_article.number] = article unless shared_article.number == article.order_number
         end
         # Articles with no order number can be used to put non-shared articles
         # in a shared supplier, with sync keeping them.
@@ -79,41 +79,51 @@ class Supplier < ActiveRecord::Base
   # @param options [Hash] Options passed to {FoodsoftFile#parse} except when listed here.
   # @option options [Boolean] :outlist_absent Set to +true+ to remove articles not in spreadsheet.
   # @option options [Boolean] :convert_units Omit or set to +true+ to keep current units, recomputing unit quantity and price.
-  def sync_from_file(file, options={})
+  def sync_from_file(file, options = {})
     all_order_numbers = []
     updated_article_pairs, outlisted_articles, new_articles = [], [], []
     categories = ArticleCategory.all
     categoryMap = categories.map {|a| [a.name.downcase, a]}.to_h
+    new_article_map = {}
     FoodsoftFile::parse file, options do |status, new_attrs, line|
-      article = articles.undeleted.where(order_number: new_attrs[:order_number]).first
-      # new_attrs[:article_category] = ArticleCategory.find_match(new_attrs[:article_category])
-      new_attrs[:article_category] = categoryMap[new_attrs[:article_category].downcase] || categories[0] rescue categories[0]
-      new_attrs[:tax] ||= FoodsoftConfig[:tax_default]
-      new_article = articles.build(new_attrs)
 
-      if status.nil?
-        if article.nil?
-          new_articles << new_article
-        else
-          unequal_attributes = article.unequal_attributes(new_article, options.slice(:convert_units))
-          unless unequal_attributes.empty?
-            article.attributes = unequal_attributes
-            updated_article_pairs << [article, unequal_attributes]
+      # article = articles.undeleted.where(order_number: new_attrs[:order_number]).first
+      new_order_number = new_attrs[:order_number]
+
+      if (new_article_map[new_order_number].nil?)
+        article = get_article(new_order_number)
+
+        # new_attrs[:article_category] = ArticleCategory.find_match(new_attrs[:article_category])
+        new_attrs[:article_category] = categoryMap[new_attrs[:article_category].downcase] || categories[0] rescue categories[0]
+        new_attrs[:tax] ||= FoodsoftConfig[:tax_default]
+        new_article = articles.build(new_attrs)
+        new_article_map[new_order_number] = new_article
+
+        if status.nil?
+          if article.nil?
+            new_articles << new_article
+          else
+            unequal_attributes = article.unequal_attributes(new_article, options.slice(:convert_units))
+            unless unequal_attributes.empty?
+              article.attributes = unequal_attributes
+              updated_article_pairs << [article, unequal_attributes]
+            end
           end
-        end
-      elsif status == :outlisted && article.present?
-        outlisted_articles << article
+        elsif status == :outlisted && article.present?
+          outlisted_articles << article
 
-        # stop when there is a parsing error
-      elsif status.is_a? String
-        # @todo move I18n key to model
-        raise I18n.t('articles.model.error_parse', :msg => status, :line => line.to_s)
+          # stop when there is a parsing error
+        elsif status.is_a? String
+          # @todo move I18n key to model
+          raise I18n.t('articles.model.error_parse', :msg => status, :line => line.to_s)
+        end
+
+        all_order_numbers << article.order_number if article
       end
 
-      all_order_numbers << article.order_number if article
     end
     if options[:outlist_absent]
-      outlisted_articles += articles.undeleted.where.not(id: all_order_numbers+[nil])
+      outlisted_articles += articles.undeleted.where.not(id: all_order_numbers + [nil])
     end
     return [updated_article_pairs, outlisted_articles, new_articles]
   end
