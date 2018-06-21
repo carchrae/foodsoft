@@ -126,7 +126,7 @@ class OrderFax < OrderPdf
       subtotal = units_to_order * supplier_price
       total += subtotal
 
-      data << [((oa.article.order_number.include? 'PRO-') ? oa.article.order_number.sub('PRO-', '') : ''),
+      data << [(oa.article.order_number.length < 10 ? oa.article.order_number.sub('PRO-', '') : ''),
                units_to_order,
                "#{total_quantity} #{unit}",
                oa.article.origin,
