@@ -99,6 +99,23 @@ class OrdersController < ApplicationController
     end
   end
 
+  def swap
+    @order = Order.includes(:articles).find(params[:id])
+  end
+  def swap_update
+    puts "updating! #{params}"
+    @order = Order.includes(:articles).find(params[:id])
+    @order.order_articles.each do |oa|
+      oa.update_attributes params[:order_articles][oa.id.to_s] if params[:order_articles][oa.id.to_s]
+    end
+    if @order.finished?
+      @order.state = "swapping"
+      # @order.finish!(@current_user)
+    end
+    finish
+    # redirect_to :action => 'show', :id => @order
+  end
+
   # Delete an order.
   def destroy
     Order.find(params[:id]).destroy
@@ -157,7 +174,7 @@ class OrdersController < ApplicationController
         # update attributes; don't use update_attribute because it calls save
         # which makes received_changed? not work anymore
         oa.attributes = oa_params
-        if oa.units_received_changed?
+        if true #oa.units_received_changed?
           counts[0] += 1
           unless oa.units_received.blank?
             cunits[0] += oa.units_received * oa.article.unit_quantity

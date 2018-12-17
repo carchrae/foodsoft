@@ -160,10 +160,10 @@ class Article < ActiveRecord::Base
 
     # TC: supplier price should be adjusted if the supplier sets a minimum order quantity higher than the price per unit listed by the supplier
     # eg, if the coop knows there is a min quantity of 6, but supplier price is for 1 unit, supplier price is 6X that.
-    if (new_unit_quantity != self.unit_quantity)
-      new_article.supplier_price = (new_article.supplier_price/new_unit_quantity) * self.unit_quantity
-      new_unit_quantity = self.unit_quantity
-    end
+    # if (new_unit_quantity != self.unit_quantity)
+    #   new_article.supplier_price = (new_article.supplier_price/new_unit_quantity) * self.unit_quantity
+    #   new_unit_quantity = self.unit_quantity
+    # end
 
     return Article.compare_attributes(
         {
@@ -258,6 +258,10 @@ class Article < ActiveRecord::Base
     update_column :deleted_at, Time.now
   end
 
+  def description
+    "#{name} #{manufacturer} #{origin} #{note} #{unit_quantity} #{unit} #{price}"
+  end
+
   protected
 
   # Checks if the article is in use before it will deleted
@@ -295,5 +299,6 @@ class Article < ActiveRecord::Base
       errors.add :name, :taken_with_unit if matches.where(unit: unit, unit_quantity: unit_quantity).any?
     end
   end
+
 
 end

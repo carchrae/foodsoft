@@ -214,6 +214,7 @@ class Order < ActiveRecord::Base
           oa.update_attribute(:article_price, oa.article.article_prices.first)
           oa.group_order_articles.each do |goa|
             goa.save_results!
+
             # Delete no longer required order-history (group_order_article_quantities) and
             # TODO: Do we need articles, which aren't ordered? (units_to_order == 0 ?)
             #    A: Yes, we do - for redistributing articles when the number of articles
@@ -230,7 +231,7 @@ class Order < ActiveRecord::Base
         ordergroups.each(&:update_stats!)
 
         # Notifications
-        Resque.enqueue(UserNotifier, FoodsoftConfig.scope, 'finished_order', self.id)
+        # Resque.enqueue(UserNotifier, FoodsoftConfig.scope, 'finished_order', self.id)
       end
     end
   end
@@ -328,7 +329,8 @@ class Order < ActiveRecord::Base
     (articles_list - articles).each { |article| order_articles.create(:article => article) }
     # delete old order_articles
     articles.reject { |article| articles_list.include?(article) }.each do |article|
-      order_articles.detect { |order_article| order_article.article_id == article.id }.destroy
+      old_order_article = order_articles.detect {|order_article| order_article.article_id == article.id}
+      old_order_article.destroy unless old_order_article.nil?
     end
   end
 

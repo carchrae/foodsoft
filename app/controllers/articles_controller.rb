@@ -193,7 +193,16 @@ class ArticlesController < ApplicationController
     Article.transaction do
       # delete articles
       begin
-        @outlisted_articles.each(&:mark_as_deleted)
+        @outlisted_articles.each do |a|
+          if a.in_open_order
+            puts "outlisting used in order #{a.name}"
+            a.name = a.name + ' UNAVAILABLE!'
+            a.save
+          else
+            # puts "outlisting not used #{a.name}"
+            a.mark_as_deleted
+          end
+        end
       rescue
         # raises an exception when used in current order
         has_error = true

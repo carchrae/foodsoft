@@ -84,6 +84,8 @@ module Foodsoft
       puts "using email settings: #{settings.as_json}"
     end
 
+
+    puts "shared DB #{ENV['SHARED_DATABASE_URL']}"
   end
 
   # Foodsoft version

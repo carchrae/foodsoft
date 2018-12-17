@@ -9,6 +9,7 @@
           = "#{article.name} (#{article.origin}) - #{article.manufacturer}"
           - if article.in_open_order
             .alert= t '.outlist.alert_used', article: article.name
+
   %hr/
 
 - if @updated_article_pairs.any?

@@ -29,10 +29,10 @@ class ArticleCategory < ActiveRecord::Base
     c = nil
 
     if @@cache[category]
-      puts "cache match #{category}"
+      # puts "cache match #{category}"
       return @@cache[category]
     end
-    puts "no cache match, so looking up category #{category}"
+    # puts "no cache match, so looking up category #{category}"
     ## exact match - not needed, will be returned by next query as well
     #c ||= ArticleCategory.where(name: category).first
     # case-insensitive substring match (take the closest match = shortest)
