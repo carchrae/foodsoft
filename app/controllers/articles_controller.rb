@@ -1,6 +1,7 @@
 # encoding: utf-8
 class ArticlesController < ApplicationController
-  before_filter :authenticate_article_meta, :find_supplier
+  before_filter :find_supplier
+  before_filter :authenticate_article_meta, :except => [:index]
 
   def index
     if params['sort']
@@ -21,8 +22,8 @@ class ArticlesController < ApplicationController
     end
 
     @articles = Article.undeleted.where(supplier_id: @supplier, :type => nil).includes(:article_category).order(sort)
-    @articles = @articles.where('articles.name LIKE ?', "%#{params[:query]}%") unless params[:query].nil?
-
+    # @articles = @articles.where('articles.name LIKE ?', "%#{params[:query]}%") unless params[:query].nil?
+    @articles = @articles.where('lower(articles.name) LIKE ? or lower(articles.order_number) LIKE ?', "%#{params[:query].downcase}%", "%#{params[:query].downcase}%") unless params[:query].nil?
     @articles = @articles.page(params[:page]).per(@per_page)
 
     respond_to do |format|
@@ -174,11 +175,21 @@ class ArticlesController < ApplicationController
     has_error = false
     Article.transaction do
       # delete articles
-      begin
-        @outlisted_articles.each(&:mark_as_deleted)
-      rescue
-        # raises an exception when used in current order
-        has_error = true
+      @outlisted_articles.each do |a|
+        begin
+          # @outlisted_articles.each(&:mark_as_deleted)
+          if a.in_open_order
+            puts "outlisting used in order #{a.name}"
+            a.name = a.name + ' UNAVAILABLE!'
+            a.save
+          else
+            # puts "outlisting not used #{a.name}"
+            a.mark_as_deleted
+          end
+        rescue
+          # raises an exception when used in current order
+          has_error = true
+        end
       end
       # Update articles
       @updated_articles.each {|a| a.save or has_error=true }

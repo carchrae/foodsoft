@@ -115,3 +115,9 @@ group :test do
   gem 'apivore', require: false
   gem 'hashie', '~> 3.4.6', require: false # https://github.com/westfieldlabs/apivore/issues/114
 end
+
+gem "dotenv-rails"
+
+gem "pg", "~> 0.19.0"
+gem 'postmark-rails'
+
