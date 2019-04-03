@@ -20,9 +20,6 @@ class ArticlePrice < ApplicationRecord
   # @!attribute order_articles
   #   @return [Array<OrderArticle>] Order articles this price is associated with.
   has_many :order_articles
-  # @!attribute supplier_price
-  #   @return [Number] Supplier's case price
-  #   @see Article#supplier_price
 
   localize_input_of :price, :tax, :deposit
 
@@ -31,12 +28,4 @@ class ArticlePrice < ApplicationRecord
   validates_numericality_of :unit_quantity, :greater_than => 0
   validates_numericality_of :deposit, :tax
 
-  def supplier_price
-    unless self[:supplier_price]
-      unit_quantity*price
-    else
-      self[:supplier_price]
-    end
-  end
 end
-

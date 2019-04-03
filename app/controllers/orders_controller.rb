@@ -95,25 +95,6 @@ class OrdersController < ApplicationController
     end
   end
 
-  # allow swapping articles in an order for alternatives
-  def swap
-    @order = Order.includes(:articles).find(params[:id])
-  end
-  def swap_update
-    # puts "updating! #{params}"
-    @order = Order.includes(:articles).find(params[:id])
-    @order.order_articles.each do |oa|
-      oa.update_attributes params[:order_articles][oa.id.to_s] if params[:order_articles][oa.id.to_s]
-    end
-    if @order.finished?
-      @order.state = "swapping"
-      finish
-    else
-      redirect_to :action => 'show', :id => @order
-    end
-  end
-
-
   # Delete an order.
   def destroy
     Order.find(params[:id]).destroy
@@ -141,7 +122,7 @@ class OrdersController < ApplicationController
   def receive
     @order = Order.find(params[:id])
     unless request.post?
-      @order_articles = @order.order_articles.ordered_or_member.includes(:article)
+      @order_articles = @order.order_articles.ordered_or_member.includes(:article).order('articles.order_number, articles.name')
     else
       s = update_order_amounts
       flash[:notice] = (s ? I18n.t('orders.receive.notice', :msg => s) : I18n.t('orders.receive.notice_none'))

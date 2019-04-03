@@ -7,8 +7,6 @@ class SharedArticle < ApplicationRecord
 
   belongs_to :shared_supplier, :foreign_key => :supplier_id
 
-  attr_accessor :linked_to
-
   def build_new_article(supplier)
     supplier.articles.build(
         :name => name,
@@ -26,9 +24,4 @@ class SharedArticle < ApplicationRecord
         :shared_updated_on => updated_on.to_formatted_s(:db)
     )
   end
-
-  # def order_number
-  #   self.number
-  # end
-
 end

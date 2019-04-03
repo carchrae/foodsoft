@@ -16,7 +16,6 @@ class OrderArticle < ApplicationRecord
   _ordered_sql = "order_articles.units_to_order > 0 OR order_articles.units_billed > 0 OR order_articles.units_received > 0"
   scope :ordered, -> { where(_ordered_sql) }
   scope :ordered_or_member, -> { includes(:group_order_articles).where("#{_ordered_sql} OR order_articles.quantity > 0 OR group_order_articles.result > 0") }
-  default_scope { includes(:article).order('articles.name') }
 
   before_create :init_from_balancing
   after_destroy :update_ordergroup_prices
@@ -240,14 +239,9 @@ class OrderArticle < ApplicationRecord
   end
 
   def _missing_units(unit_quantity, quantity, tolerance)
-    begin
-      units = unit_quantity - ((quantity  % unit_quantity) + tolerance)
-      units = 0 if units < 0
-      units = 0 if units == unit_quantity
-      units
-    rescue => e
-      logger.error("order_article=#{id} : failed to compute missing_units for #{article.name} #{article.id} : #{e}")
-      0
-    end
+    units = unit_quantity - ((quantity  % unit_quantity) + tolerance)
+    units = 0 if units < 0
+    units = 0 if units == unit_quantity
+    units
   end
 end

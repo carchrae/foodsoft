@@ -48,9 +48,6 @@ Foodsoft::Application.routes.draw do
 
         get :receive_on_order_article_create
         get :receive_on_order_article_update
-
-        get :swap
-        patch :swap_update
       end
 
       resources :order_articles
