@@ -126,7 +126,7 @@ class Order < ApplicationRecord
   # sets up first guess of dates when initializing a new object
   # I guess `def initialize` would work, but it's tricky http://stackoverflow.com/questions/1186400
   def init_dates
-    self.starts ||= Time.now
+    self.starts ||= Time.zone.now
     if FoodsoftConfig[:order_schedule]
       # try to be smart when picking a reference day
       last = (DateTime.parse(FoodsoftConfig[:order_schedule][:initial]) rescue nil)
