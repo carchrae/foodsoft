@@ -118,6 +118,6 @@ end
 
 gem "dotenv-rails"
 
-gem "pg", '0.19'
+gem "pg", '0.21'
 gem 'postmark-rails'
 
