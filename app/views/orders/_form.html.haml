@@ -118,3 +118,20 @@
       &nbsp;
       = check_box_tag 'order[ignore_warnings]'
       = t '.ignore_warnings'
+
+  .timezone-diagnostic{ style: "border: 1px solid #ccc; padding: 10px; margin: 10px 0; background: #f9f9f9;" }
+    %h3 Timezone Debugging
+    %ul
+      %li
+        %strong Configured Time.zone:
+        = Time.zone.name
+      %li
+        %strong Time.zone.now (Rails):
+        = Time.zone.now
+      %li
+        %strong Time.now (System):
+        = Time.now
+      %li
+        %strong Current UTC Offset:
+        = Time.zone.utc_offset / 3600
+        hours
