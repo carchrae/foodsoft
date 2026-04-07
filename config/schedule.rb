@@ -19,6 +19,11 @@ every :sunday, :at => '7:14 am' do
   rake "multicoops:run TASK=foodsoft:create_upcoming_periodic_tasks"
 end
 
+# Day-after-pickup delivery notification at 1pm
+every :day, :at => '1:00 pm' do
+  rake "multicoops:run TASK=foodsoft:send_delivery_notifications"
+end
+
 # Finish ended orders
 every 1.minute do
   rake "multicoops:run TASK=foodsoft:finish_ended_orders"

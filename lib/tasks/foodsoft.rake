@@ -6,6 +6,17 @@ namespace :foodsoft do
     Order.finish_ended!
   end
 
+  desc "Send day-after-pickup notification emails for orders delivered yesterday"
+  task :send_delivery_notifications => :environment do
+    yesterday = Date.today - 1
+    orders = Order.where(pickup: yesterday)
+    rake_say "Sending delivery notifications for #{orders.count} orders with pickup on #{yesterday}"
+    orders.each do |order|
+      rake_say "Queueing delivery notification for order ##{order.id}"
+      UserNotifier.enqueue_in(10.seconds, 'delivery_day_after_notification', order.id)
+    end
+  end
+
   desc "Reminder to settle orders"
   task :remind_settle => :environment do
     Order.email_reminder_to_settle

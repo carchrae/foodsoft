@@ -46,6 +46,11 @@ class UserNotifier
     UserNotifier.email_updated_orders(args.push('Here are your final order charges.'))
   end
 
+  # day after pickup delivery notification
+  def self.delivery_day_after_notification(args)
+    UserNotifier.email_updated_orders(args.push('The order is not yet finalized but here are your final charges. If anything does not look correct, please email the ordering person by replying to this email.'))
+  end
+
   # when the order has been updated
   def self.updated_order(args)
     # just delegate, one email template for all
