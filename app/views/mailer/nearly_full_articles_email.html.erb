@@ -4,6 +4,16 @@
   <%= @order.name %> - <%= @order.note %>
   (closes at <%= l @order.ends.in_time_zone("Pacific Time (US & Canada)"), locale: 'en', format: :long  %>)
 </p>
+<% min_order_value = @order.supplier.min_order_quantity.sub('$','').to_f %>
+<% if min_order_value > 0 %>
+  <% supplier_order_sum = @order.supplier.sum_on_pickup_date(@order.pickup, :gross) %>
+  <% if supplier_order_sum.to_f >= min_order_value %>
+    <p><strong>Minimum order of <%= number_to_currency(min_order_value) %> has been met.</strong></p>
+  <% else %>
+    <% order_value_needed = min_order_value - supplier_order_sum %>
+    <p><strong><%= number_to_currency(order_value_needed) %> more required to meet the minimum order of <%= number_to_currency(min_order_value) %>.</strong></p>
+  <% end %>
+<% end %>
 <p>Here is a list of cases that are nearly full.
   Please consider adding another to your order (or adding extra tolerance)
   if you are able to take more without it going to waste.
