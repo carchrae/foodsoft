@@ -4,6 +4,7 @@
   <%= @order.name %> - <%= @order.note %>
   (closes at <%= l @order.ends.in_time_zone("Pacific Time (US & Canada)"), locale: 'en', format: :long  %>)
 </p>
+<% group_order = @order.group_order(@user.ordergroup) %>
 <% min_order_value = @order.supplier.min_order_quantity.sub('$','').to_f %>
 <% if min_order_value > 0 %>
   <% supplier_order_sum = @order.supplier.sum_on_pickup_date(@order.pickup, :gross) %>
@@ -13,6 +14,9 @@
     <% order_value_needed = min_order_value - supplier_order_sum %>
     <p><strong><%= number_to_currency(order_value_needed) %> more required to meet the minimum order of <%= number_to_currency(min_order_value) %>.</strong></p>
   <% end %>
+<% end %>
+<% if group_order.nil? || group_order.group_order_articles.sum(:quantity) == 0 %>
+  <p><strong>You have not ordered anything in this order.</strong></p>
 <% end %>
 <p>Here is a list of cases that are nearly full.
   Please consider adding another to your order (or adding extra tolerance)
@@ -28,6 +32,10 @@
 <ul>
   <% @order.nearly_full_order_articles.each do |order_article| %>
     <li><strong>need <%= order_article.quantity_left_to_fill_case %> x <%= order_article.article.unit %></strong> (<%= number_to_currency(order_article.article.price) %>) — <%= order_article.article.name %> [<%= order_article.quantity %>..<%= order_article.quantity + order_article.tolerance %>]</li>
+    <% goa = group_order&.group_order_articles&.find_by(order_article_id: order_article.id) %>
+    <% if goa && goa.quantity > 0 %>
+      <li style="list-style:none; margin-left:1em; color:#555;">↳ you ordered [<%= goa.quantity %>..<%= goa.quantity + goa.tolerance %>]</li>
+    <% end %>
   <% end %>
 </ul>
 
