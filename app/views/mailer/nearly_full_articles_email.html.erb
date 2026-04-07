@@ -17,22 +17,7 @@
   <%= link_to 'Current Case Report', nearly_full_url(@order) %>
 <ul>
   <% @order.nearly_full_order_articles.each do |order_article| %>
-    <li>
-      <%= order_article.article.name %>
-      <strong><%= order_article.percent_of_full_case %>%</strong> full
-      <br/>
-      <strong>How many to fill:
-        <%= order_article.quantity_left_to_fill_case %> x
-      </strong>
-      <%= order_article.article.unit %> (<%= number_to_currency(order_article.article.price) %>)
-      <br/>
-      How many in a case: <%= order_article.article.unit_quantity %>,
-      Quantity: <%= order_article.quantity %>,
-      Tolerance: <%= order_article.tolerance %>
-
-      <%#=  order_article.as_json %>
-      <%= order_article.article.note.include?('splittable') ? '(case splittable)' :'' %>
-    </li>
+    <li><strong>need <%= order_article.quantity_left_to_fill_case %> x <%= order_article.article.unit %></strong> (<%= number_to_currency(order_article.article.price) %>) — <%= order_article.article.name %> [<%= order_article.quantity %>..<%= order_article.quantity + order_article.tolerance %>]</li>
   <% end %>
 </ul>
 
@@ -40,23 +25,7 @@
 <p>These cases have been filled by people taking more than they want.  Please take some if you need it.</p>
 <ul>
   <% @order.full_order_articles.each do |order_article| %>
-    <li>
-      <%= order_article.article.name %>
-      <strong><%= order_article.percent_of_full_case %>%</strong> full
-      <br/>
-      <strong>How many are extra:
-        <%= order_article.extra_amount %> x
-      </strong>
-      <%= order_article.article.unit %> (<%= number_to_currency(order_article.article.price) %>)
-      <br/>
-      How many in a case: <%= order_article.article.unit_quantity %>,
-      Quantity: <%= order_article.quantity %>,
-      Tolerance: <%= order_article.tolerance %>
-
-
-      <%#=  order_article.as_json %>
-      <%= order_article.article.note.include?('splittable') ? '(case splittable)' :'' %>
-    </li>
+    <li><strong>extra <%= order_article.extra_amount %> x <%= order_article.article.unit %></strong> (<%= number_to_currency(order_article.article.price) %>) — <%= order_article.article.name %> [<%= order_article.quantity %>..<%= order_article.quantity + order_article.tolerance %>]</li>
   <% end %>
 </ul>
 <p><%= link_to_ordering(@order, class: 'btn btn-primary btn-large', host: 'food.bowenlift.com', port: false, user: @user) do %>Edit Your Order<% end %></p>
