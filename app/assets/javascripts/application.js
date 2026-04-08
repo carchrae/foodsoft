@@ -94,7 +94,7 @@ $(function() {
         // trigger timeout to submit form when value was changed
         clearTimeout(input.data('submit-timeout-id'));
         input.data('submit-timeout-id', setTimeout(function() {
-          if (input.val() != input.data('old-value')) input.parents('form').submit();
+          if (input.val() != input.data('old-value')) input.parents('form').trigger('submit');
           input.removeData('submit-timeout-id');
           input.removeData('old-value');
         }, 500));

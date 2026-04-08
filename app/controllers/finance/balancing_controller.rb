@@ -103,6 +103,49 @@ class Finance::BalancingController < Finance::BaseController
     redirect_to finance_order_index_url, alert: t('finance.balancing.close_direct.alert', message: error.message)
   end
 
+  def reduce_price_to_supplier
+    @order = Order.find(params[:id])
+    @order_article = OrderArticle.find(params[:order_article_id])
+
+    member_total = @order_article.group_orders_sum
+    actual_price_per = @order_article.price.price_rounded_up(
+      price: @order_article.total_supplier_charge,
+      quantity: member_total[:quantity]
+    )
+
+    @order_article.article_price.update_attribute(:price, actual_price_per)
+    @order_article.order.group_orders.each(&:update_price!)
+
+    @group_order_article = @order_article.group_order_articles.first
+    render 'group_order_articles/update'
+  end
+
+  def write_off_to_group_expenses
+    @order = Order.find(params[:id])
+    @order_article = OrderArticle.find(params[:order_article_id])
+
+    expenses_group = Ordergroup.where("name LIKE ?", "Z - Group%").first
+    raise "Z - Group Expenses ordergroup not found" unless expenses_group
+
+    group_order = GroupOrder.where(order_id: @order.id, ordergroup_id: expenses_group.id).first_or_initialize
+    unless group_order.persisted?
+      group_order.price = 0
+      group_order.save!
+    end
+
+    total_units_ordered = @order_article.units * @order_article.article_price.unit_quantity
+    member_total = @order_article.group_orders_sum
+    missing_units = total_units_ordered - member_total[:quantity]
+
+    goa = GroupOrderArticle.where(group_order_id: group_order.id, order_article_id: @order_article.id).first_or_initialize
+    goa.result = (goa.result || 0) + missing_units
+    goa.save!
+    group_order.update_price!
+
+    @group_order_article = goa
+    render 'group_order_articles/create'
+  end
+
   # Balances the Order, Update of the Ordergroup.account_balances
   def reopen
     @order = Order.find(params[:id])

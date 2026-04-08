@@ -64,5 +64,20 @@
           %td.center{:colspan => "6", :style => price_style}
             .span.info
               .p
+                = "#{actual_price_per.to_s} == #{order_article.price.price.to_s}"
                 = "if the supplier sent a refund/adjustment then change received amount to #{units_received} otherwise"
                 = "adjust the price to #{number_to_currency(actual_price_per)} to match supplier charges"
+            - unless order_article.order.closed?
+              - write_off_amount = order_article.total_supplier_charge - (member_total[:net_price] - rounding_error)
+              - if write_off_amount > 0
+                = link_to "Write off #{number_to_currency(write_off_amount)} to Z - Group Expenses",
+                  write_off_to_group_expenses_finance_order_path(order_article.order, order_article_id: order_article.id),
+                  data: {method: :post}, remote: true, class: 'btn btn-warning btn-mini'
+                = link_to "Increase price to #{number_to_currency(actual_price_per)} (charge members)",
+                  reduce_price_to_supplier_finance_order_path(order_article.order, order_article_id: order_article.id),
+                  data: {method: :post, confirm: "Warning: shortages and waste are usually written off to group expenses rather than charged to members. Are you sure you want to increase the price charged to members?"},
+                  remote: true, class: 'btn btn-danger btn-mini'
+              - else
+                = link_to "Reduce price to #{number_to_currency(actual_price_per)} to match supplier",
+                  reduce_price_to_supplier_finance_order_path(order_article.order, order_article_id: order_article.id),
+                  data: {method: :post}, remote: true, class: 'btn btn-info btn-mini'

@@ -168,6 +168,9 @@ Foodsoft::Application.routes.draw do
 
           get :new_on_order_article_create
           get :new_on_order_article_update
+
+          post :write_off_to_group_expenses
+          post :reduce_price_to_supplier
         end
       end
 
