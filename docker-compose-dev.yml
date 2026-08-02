@@ -1,41 +1,45 @@
-version: '2'
+# Development compose file.
+#
+# Assumes postgres (localhost:5432) and redis (localhost:6379) already run as
+# separate containers on this machine (see ../bin/docker-db.sh). The app
+# container uses host networking so the localhost connection strings from
+# local-settings.sh work unchanged.
+#
+# Launch with ./start-docker-dev.sh — it sources local-settings.sh and passes
+# DATABASE_URL / SHARED_DATABASE_URL through to the container.
+#
+# The resque worker is optional; start it with:
+#   ./start-docker-dev.sh --profile worker
+
 services:
 
   foodsoft:
-    extends: foodsoft_worker
-    command: ./proc-start web
-    ports:
-      - "3000:3000"
-
-  foodsoft_worker:
-    build:
+    build: &build
       context: .
       dockerfile: Dockerfile-dev
-    command: ./proc-start worker
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+    command: ./proc-start web
+    network_mode: host
+    environment: &env
+      - DATABASE_URL=${DATABASE_URL:-postgres://food-coop:food-coop@localhost:5432/food-coop}
+      - SHARED_DATABASE_URL=${SHARED_DATABASE_URL:-postgres://food-coop:food-coop@localhost:5432/food-prices}
+      - REDIS_URL=redis://localhost:6379
+      - PORT=3000
     volumes:
       - bundle:/home/app/bundle
       - .:/home/app/src
-    environment:
-      - DATABASE_URL=mysql2://root:secret@mariadb/development?encoding=utf8
-      - REDIS_URL=redis://redis:6379
-      - QUEUE=foodsoft_notifier
-      - TEST_DATABASE_URL=mysql2://root:secret@mariadb/test?encoding=utf8
 
-  mailcatcher:
-    image: tophfr/mailcatcher
-    ports:
-      - "1080:80"
-
-  mariadb:
-    image: mariadb:10.1
-    environment:
-      - MYSQL_ROOT_PASSWORD=secret
+  foodsoft_worker:
+    profiles: [worker]
+    build: *build
+    command: ./proc-start worker
+    network_mode: host
+    environment: *env
     volumes:
-      - mariadb:/var/lib/mysql
-
-  redis:
-    image: redis:3.2-alpine
+      - bundle:/home/app/bundle
+      - .:/home/app/src
 
 volumes:
   bundle:
-  mariadb:

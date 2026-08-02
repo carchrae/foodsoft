@@ -1,10 +1,43 @@
-FROM ruby:2.3
+# Development image for foodsoft (legacy Rails 4.2).
+#
+# The app doesn't build on modern distros, so this is pinned to Ubuntu 18.04
+# with Ruby 2.6.6 built from source — the same environment as the schroot
+# setup in ../setup-schroot.sh, which is known to work.
+FROM ubuntu:18.04
 
-# Install dependencies
-RUN deps='libmagic-dev xvfb qt5-default libqt5webkit5-dev gstreamer1.0-plugins-base gstreamer1.0-tools gstreamer1.0-x' && \
-    apt-get update && \
-    apt-get install --no-install-recommends -y $deps && \
-    rm -Rf /var/lib/apt/lists/* /var/cache/apt/*
+ENV DEBIAN_FRONTEND=noninteractive
+
+# bionic is EOL; if archive.ubuntu.com stops serving it, fall back to
+# old-releases.ubuntu.com (same trick as setup-schroot.sh)
+RUN apt-get update || \
+    (sed -i 's|http://[a-z.]*archive.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g; \
+             s|http://security.ubuntu.com/ubuntu|http://old-releases.ubuntu.com/ubuntu|g' \
+        /etc/apt/sources.list && apt-get update)
+
+# Package set from setup-schroot.sh: toolchain + ruby build deps + pg/mysql
+# client libs + qt5-webkit/gstreamer (capybara-webkit) + libmagic (ruby-filemagic)
+RUN apt-get install -y --no-install-recommends \
+        build-essential g++ autoconf automake libc6-dev \
+        git curl ca-certificates \
+        openssl libssl-dev libreadline-dev zlib1g-dev libyaml-dev libffi-dev \
+        libsqlite3-dev libxml2-dev libxslt-dev \
+        libpq-dev postgresql-client \
+        libmysqlclient-dev \
+        libmagic-dev \
+        qt5-default libqt5webkit5-dev \
+        gstreamer1.0-plugins-base gstreamer1.0-tools gstreamer1.0-x \
+        nodejs tzdata \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+
+# Ruby 2.6.6 from source (bionic packages only ruby 2.5)
+RUN curl -fsSL https://cache.ruby-lang.org/pub/ruby/2.6/ruby-2.6.6.tar.gz | tar -xz -C /tmp \
+    && cd /tmp/ruby-2.6.6 \
+    && ./configure --disable-install-doc \
+    && make -j"$(nproc)" \
+    && make install \
+    && rm -rf /tmp/ruby-2.6.6
+
+RUN gem install bundler -v 1.17.3 --no-document
 
 ENV PORT=3000 \
     SMTP_SERVER_PORT=2525 \
@@ -15,22 +48,27 @@ ENV PORT=3000 \
     BUNDLE_PATH=/home/app/bundle \
     BUNDLE_APP_CONFIG=/home/app/bundle/config
 
-# Run app and all commands as user 'app'. This avoids changing permissions
-# for files in mounted volume. Symlink for similarity with production image.
-RUN adduser --gecos GECOS --disabled-password --shell /bin/bash app && \
-    ln -s /home/app/src /usr/src/app
+# Run app and all commands as user 'app', created with the host uid/gid so
+# files written into the mounted source tree stay owned by you.
+# Symlink for similarity with production image.
+ARG HOST_UID=1000
+ARG HOST_GID=1000
+RUN groupadd -g "$HOST_GID" app \
+    && useradd -m -u "$HOST_UID" -g "$HOST_GID" -s /bin/bash app \
+    && ln -s /home/app/src /usr/src/app
 USER app
 
 WORKDIR /home/app/src
 
 # Copy files needed for installing gem dependencies, and install them.
-COPY Gemfile Gemfile.lock ./
-COPY plugins ./plugins
+# (plugins are path gems referenced from the Gemfile)
+COPY --chown=app:app Gemfile Gemfile.lock ./
+COPY --chown=app:app plugins ./plugins
 RUN bundle config build.nokogiri "--use-system-libraries" && \
-    bundle install -j 4
+    bundle install -j "$(nproc)"
 
 # Copy the application code
-COPY . ./
+COPY --chown=app:app . ./
 
 EXPOSE 3000
 
