@@ -110,6 +110,45 @@ class OrdersController < ApplicationController
     end
   end
 
+  # allow swapping articles in an order for alternatives (same category/unit)
+  def swap
+    @order = Order.includes(:articles).find(params[:id])
+    return if @order.open?
+
+    flash[:warn] = I18n.t('orders.swap.order_closed',
+                          url: (view_context.link_to 'the balancing page', new_finance_order_path(order_id: @order.id))).html_safe
+    redirect_to action: 'show', id: @order
+  end
+
+  # swap page with every article swappable for any other
+  def swap_all
+    @order = Order.includes(:articles).find(params[:id])
+    @swap_all = true
+    unless @order.open?
+      flash[:warn] = I18n.t('orders.swap.order_closed',
+                            url: (view_context.link_to 'the balancing page', new_finance_order_path(order_id: @order.id))).html_safe
+      redirect_to action: 'show', id: @order
+      return
+    end
+    render 'swap'
+  end
+
+  def swap_update
+    @order = Order.includes(:articles).find(params[:id])
+    if @order.open?
+      @order.order_articles.each do |oa|
+        oa.update(params[:order_articles][oa.id.to_s]) if params[:order_articles][oa.id.to_s]
+        oa.update_results!
+      end
+      @order.notify_modified
+      flash[:notice] = I18n.t('orders.swap.updated_order')
+    else
+      flash[:warn] = I18n.t('orders.swap.order_closed',
+                            url: (view_context.link_to 'the balancing page', new_finance_order_path(order_id: @order.id))).html_safe
+    end
+    redirect_to action: 'show', id: @order
+  end
+
   # Delete an order.
   def destroy
     Order.find(params[:id]).destroy

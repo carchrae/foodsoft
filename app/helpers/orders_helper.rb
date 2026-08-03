@@ -128,6 +128,19 @@ module OrdersHelper
 
   # @param order_article [OrderArticle]
   # @return [String] CSS class for +OrderArticle+ in table for admins (+used+, +partused+, +unused+ or +unavailable+).
+  # short-or-over description for the swap page
+  def order_article_match_text(order_article)
+    if order_article.units > 0
+      if order_article.missing_units == 0
+        'perfect'
+      else
+        "#{order_article.missing_units} short of another case"
+      end
+    else
+      "#{order_article.missing_units} short of a case"
+    end
+  end
+
   def order_article_class(order_article)
     if order_article.units > 0
       if order_article.missing_units == 0

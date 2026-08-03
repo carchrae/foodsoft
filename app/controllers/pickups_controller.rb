@@ -1,5 +1,6 @@
 class PickupsController < ApplicationController
-  before_action :authenticate_pickups
+  # all co-op members may see pickup days and download the sheets;
+  # receiving stays limited to the orders role (see the view)
 
   def index
     @orders = Order.finished_not_closed.order('pickup DESC').group_by { |o| o.pickup }

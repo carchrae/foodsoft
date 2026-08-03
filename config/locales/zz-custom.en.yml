@@ -44,6 +44,12 @@ en:
     model:
       error_not_closed: Order isn't already settled
       notice_reopen: 'Order: %{name} - %{ends} (reopened)'
+    show:
+      swap-articles: Swap articles
+    swap:
+      title: 'Swap articles: %{name}'
+      updated_order: The order has been updated with any substitutions
+      order_closed: You cannot change an order after it is closed.  Make any changes by editing the article on %{url}
     form:
       note_placeholder: add any notes to be shown for co-op members
       supplier_note_placeholder: add any instructions to be emailed to the supplier
@@ -83,3 +89,26 @@ en:
     shared:
       article_fields_price:
         price_already_correct: This button lets you quickly recalculate the price = (supplier price/unit), however the price is already correct.
+  login:
+    join:
+      title: Join our food-coop
+      body: |
+        <p>
+        Would you like to join our food-coop?
+        </p>
+        <p>
+        Please read our new members guide to understand more about how our co-op operates.
+        <br/> <a class="btn btn-info" target="_blank" href="https://docs.google.com/document/d/e/2PACX-1vSZ_XkP-7bNZ6S5tfMFKRClYpmaNRJABV992MMjO3FuR8VxXxyZCGw1BANVd8lNwvjDjbHBxYrgHhWa/pub">Learn</a>
+        </p>
+        <p>
+        If it sounds like the co-op is a good fit for you and your family, then please apply by filling out this form
+        <br/>
+        <a href="https://forms.gle/AaNWmUacArMY6moH6" class="btn btn-success">Apply</a>
+        </p>
+        <p>
+        We would like you to understand that the co-op does not always take on new members as we want to keep the size managable.
+        That said, if you do not hear back from us (sometimes we are busy or miss emails) please email mlbg-membership@googlegroups.com
+        </p>
+  sessions:
+    new:
+      join: Join our coop

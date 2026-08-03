@@ -81,6 +81,19 @@ class Order < ApplicationRecord
     end
   end
 
+  def articles_for_ordering_ungrouped
+    if stockit?
+      # make sure to include those articles which are no longer available
+      # but which have already been ordered in this stock order
+      StockArticle.available.includes(:article_category)
+                  .order('article_categories.name', 'articles.name').reject do |a|
+        a.quantity_available <= 0 && !a.ordered_in_order?(self)
+      end
+    else
+      supplier.articles.available
+    end
+  end
+
   def supplier_articles
     if stockit?
       StockArticle.undeleted.reorder('articles.name')

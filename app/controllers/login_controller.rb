@@ -21,6 +21,9 @@ class LoginController < ApplicationController
   # Called with params :id => User.id and :token => User.reset_password_token to specify a new password.
   def new_password; end
 
+  # Public page telling prospective members how to join the co-op.
+  def join; end
+
   # Sets a new password.
   # Called with params :id => User.id and :token => User.reset_password_token to specify a new password.
   def update_password
