@@ -82,6 +82,39 @@ class Order < ApplicationRecord
     end
   end
 
+  # Remind order owners to settle orders picked up more than 2 days ago.
+  # Users whose email is listed in app_config reminder_optout_emails are
+  # skipped (some people are diligent and find the nag annoying).
+  def self.email_reminder_to_settle
+    optout = Array(FoodsoftConfig[:reminder_optout_emails])
+    users = {}
+    Order.finished_not_closed.each do |order|
+      if order.pickup && ((DateTime.now - order.pickup) > 2)
+        users[order.created_by] ||= []
+        users[order.created_by] << order
+      end
+    end
+    users.each do |user, late_orders|
+      next if optout.include?(user.email)
+
+      Mailer.deliver_now_with_user_locale user do
+        Mailer.remind_order_not_settled(user, late_orders)
+      end
+    end
+  end
+
+  def nearly_full_order_articles
+    order_articles
+      .select { |oa| oa.quantity_left_to_fill_case > 0 }
+      .sort_by { |oa| -oa.percent_of_full_case }
+  end
+
+  def full_order_articles
+    order_articles
+      .select { |oa| oa.extra_amount > 0 }
+      .sort_by { |oa| -oa.percent_of_full_case }
+  end
+
   # how many member-order splits this order requires (a workload indicator)
   def split_effort
     @split_effort ||= order_articles.map { |oa| oa.group_order_articles.where.not(quantity: 0).count }.sum
@@ -340,13 +373,14 @@ class Order < ApplicationRecord
 
       update!(state: 'closed', updated_by: user, foodcoop_result: profit)
     end
+
+    UserNotifier.enqueue_in(10.seconds, 'closed_order', id)
   end
 
-  # Queue an order-updated notification to everyone who ordered.
-  # NOTE: placeholder until the notifications theme lands; sync and swap call
-  # this already.
+  # Queue an order-updated notification to everyone who ordered. The delay
+  # coalesces bursts of edits; unchanged group orders are skipped at send time.
   def notify_modified
-    # TODO(theme-8): UserNotifier.enqueue_in(30.minutes, 'updated_order', id)
+    UserNotifier.enqueue_in(30.minutes, 'updated_order', id)
   end
 
   # Reopens the order for ordering after it was mistakenly closed for orders
@@ -400,6 +434,7 @@ class Order < ApplicationRecord
     Mailer.deliver_now_with_default_locale do
       Mailer.order_result_supplier(user, self)
     end
+    UserNotifier.enqueue_in(3.seconds, 'finished_order', id)
     update!(last_sent_mail: Time.now)
   end
 

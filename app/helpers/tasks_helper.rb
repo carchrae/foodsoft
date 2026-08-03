@@ -5,12 +5,20 @@ module TasksHelper
     end.join(', ').html_safe
   end
 
+  # generate colored number of assigned-but-unconfirmed users
+  def highlighted_unconfirmed_users(task)
+    return if task.enough_users_accepted?
+
+    content_tag :span, task.still_required_users, class: 'badge badge-important',
+                                                  title: I18n.t('helpers.tasks.required_users_unconfirmed', count: task.still_required_users)
+  end
+
   # generate colored number of still required users
   def highlighted_required_users(task)
     return if task.enough_users_assigned?
 
-    content_tag :span, task.still_required_users, class: 'badge badge-important',
-                                                  title: I18n.t('helpers.tasks.required_users', count: task.still_required_users)
+    content_tag :span, task.unconfirmed_user_count, class: 'badge badge-important',
+                                                    title: I18n.t('helpers.tasks.required_users', count: task.unconfirmed_user_count)
   end
 
   def task_title(task)

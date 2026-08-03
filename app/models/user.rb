@@ -54,7 +54,13 @@ class User < ApplicationRecord
       end
     end
     settings.defaults['messages'] = { 'send_as_email' => true } unless settings.messages
-    settings.defaults['notify']   = { 'upcoming_tasks' => true } unless settings.notify
+    unless settings.notify
+      settings.defaults['notify'] = {
+        'upcoming_tasks' => true,
+        'order_finished' => true,
+        'negative_balance' => true
+      }
+    end
   end
 
   before_save do

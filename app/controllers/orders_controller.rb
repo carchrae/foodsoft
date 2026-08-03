@@ -4,9 +4,10 @@
 class OrdersController < ApplicationController
   include Concerns::SendOrderPdf
 
-  before_action :authenticate_pickups_or_orders
+  before_action :authenticate_pickups_or_orders, except: [:nearly_full_articles]
   before_action :authenticate_orders,
-                except: %i[receive receive_on_order_article_create receive_on_order_article_update show]
+                except: %i[receive receive_on_order_article_create receive_on_order_article_update show
+                           nearly_full_articles]
   before_action :remove_empty_article, only: %i[create update]
 
   # List orders
@@ -109,6 +110,11 @@ class OrdersController < ApplicationController
     else
       render action: 'edit'
     end
+  end
+
+  # any member may see which cases are nearly full
+  def nearly_full_articles
+    @order = Order.find(params[:id])
   end
 
   # allow swapping articles in an order for alternatives (same category/unit)

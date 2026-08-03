@@ -95,6 +95,36 @@ class OrderArticle < ApplicationRecord
     units += ((remainder > 0) && (remainder + tolerance >= unit_size) ? 1 : 0)
   end
 
+  # units still needed before another whole case could be ordered (0 when
+  # nothing is missing or nothing was asked for)
+  def quantity_left_to_fill_case
+    unit_size = price.unit_quantity
+    units_to_order = calculate_units_to_order(quantity, tolerance)
+    quantity_ordered = units_to_order * unit_size
+    quantity_short = quantity - quantity_ordered
+    if quantity_short > 0
+      [unit_size - (quantity_short + tolerance), 0].max
+    else
+      0
+    end
+  end
+
+  # units beyond what members asked for (filled from tolerance)
+  def extra_amount
+    unit_size = price.unit_quantity
+    units_to_order = calculate_units_to_order(quantity, tolerance)
+    if units_to_order > 0
+      quantity_extra = (units_to_order * unit_size) - quantity
+      return quantity_extra if quantity_extra > 0
+    end
+    0
+  end
+
+  def percent_of_full_case
+    unit_size = price.unit_quantity
+    ((1 - (quantity_left_to_fill_case.to_f / unit_size)) * 100).round if quantity_left_to_fill_case
+  end
+
   # Calculate price for ordered quantity.
   def total_price
     units * price.unit_quantity * price.price
@@ -183,8 +213,12 @@ class OrderArticle < ApplicationRecord
       counts[surplus.index(:tolerance)] = [0, qty_for_members - self.quantity].max
     end
 
-    # Recompute
-    group_order_articles.each { |goa| goa.save_results! qty_for_members }
+    # Recompute, remembering which groups' results changed
+    notify_changed_set = Set.new
+    group_order_articles.each do |goa|
+      changed = goa.save_results! qty_for_members
+      notify_changed_set.add(goa.group_order_id) if changed
+    end
     qty_left -= qty_for_members
 
     # if there's anything left, move to stock if wanted
@@ -203,7 +237,14 @@ class OrderArticle < ApplicationRecord
       order.ordergroups.each(&:update_stats!)
     end
 
-    # TODO: notifications
+    # notify groups whose received amounts changed
+    notify_changed_set.each do |group_order_id|
+      UserNotifier.queue_order_updated_email(
+        delay: 30.seconds,
+        group_order_id: group_order_id,
+        message: 'The amounts you will receive have been updated'
+      )
+    end
 
     counts
   end

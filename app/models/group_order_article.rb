@@ -192,10 +192,13 @@ class GroupOrderArticle < ApplicationRecord
   end
 
   # This is used for automatic distribution, e.g., in order.finish! or when receiving orders
+  # Returns whether the result changed, so callers can notify affected groups.
   def save_results!(article_total = nil)
     new_result = calculate_result(article_total)[:total]
+    changed = new_result != result
     update_attribute(:result_computed, new_result)
     update_attribute(:result, new_result)
+    changed
   end
 
   # Returns total price for this individual article

@@ -40,6 +40,8 @@ Rails.application.routes.draw do
 
     ############ Orders, ordering
 
+    get 'orders/:id/nearly_full_articles', to: 'orders#nearly_full_articles', as: :nearly_full
+
     resources :orders do
       member do
         post :finish

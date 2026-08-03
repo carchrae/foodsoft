@@ -6,6 +6,82 @@ namespace :foodsoft do # rubocop:disable Metrics/BlockLength
     Order.finish_ended!
   end
 
+  desc 'Send day-after-pickup notification emails for orders delivered yesterday'
+  task send_delivery_notifications: :environment do
+    yesterday = Date.today - 1
+    orders = Order.where(pickup: yesterday)
+    rake_say "Sending delivery notifications for #{orders.count} orders with pickup on #{yesterday}"
+    orders.each do |order|
+      rake_say "Queueing delivery notification for order ##{order.id}"
+      UserNotifier.enqueue_in(10.seconds, 'delivery_day_after_notification', order.id)
+    end
+  end
+
+  desc 'Reminder to settle orders'
+  task remind_settle: :environment do
+    Order.email_reminder_to_settle
+  end
+
+  desc 'Report on fees paid'
+  task report_fees: :environment do
+    total_fees = 0
+    Ordergroup.order(:name).each do |ordergroup|
+      user_emails = ordergroup.users.map(&:email).join(', ')
+      sum = ordergroup.financial_transactions.where('note not like ? and (note LIKE ? or note like ?)', '%Order:%', '%dues%', '%fees%').sum(:amount)
+      next unless sum <= -100
+
+      puts "#{ordergroup.id},#{ordergroup.name},#{sum}, #{user_emails}"
+      total_fees += sum
+    end
+    puts "total fees #{total_fees}"
+  end
+
+  namespace :ordergroup do
+    # NOTE: kept but DISABLED in schedule.rb — the old cron pointed at a
+    # nonexistent task name so this never actually ran; review before enabling.
+    desc 'Charges each Ordergroup $5 at the start of each month, excluding certain groups'
+    task dues: :environment do
+      excludes = ['ZZZ', 'Leaving', 'Z - Group']
+      Ordergroup.undeleted.find_each do |ordergroup|
+        next if excludes.any? { |ex| ordergroup.name.start_with?(ex) }
+
+        due_note = "Monthly dues for #{Date.today.strftime('%B %Y')}"
+        puts "adding -5 charge for #{ordergroup.name} : #{due_note}"
+        ordergroup.financial_transactions.create(amount: -5, note: due_note)
+      end
+    end
+
+    desc 'Sends an email on partially full cases'
+    task nearly_full_email: :environment do
+      orders1 = Order.where(ends: (Time.now...(Time.now + 18.hours)))
+                     .reject { |o| FoodsoftCache.get("nearly_full-18-hour-#{o.id}") }
+      orders2 = Order.where(ends: (Time.now...(Time.now + 2.hours)))
+                     .reject { |o| FoodsoftCache.get("nearly_full-2-hour-#{o.id}") }
+
+      # mark them so we don't resend the message
+      orders1.each { |o| FoodsoftCache.set("nearly_full-18-hour-#{o.id}", true) }
+      orders2.each { |o| FoodsoftCache.set("nearly_full-2-hour-#{o.id}", true) }
+
+      orders = orders1 + orders2
+      puts "checking #{orders.count} orders for nearly full articles"
+      excludes = ['ZZZ', 'Leaving', 'Z - Group']
+      orders.each do |order|
+        if order.nearly_full_order_articles.count > 0
+          Ordergroup.undeleted.find_each do |ordergroup|
+            next if excludes.any? { |ex| ordergroup.name.start_with?(ex) }
+
+            ordergroup.users.each do |user|
+              puts "mailing #{user.email} about #{order.supplier.name} #{order.note}"
+              Mailer.nearly_full_articles_email(order, user).deliver_now
+            end
+          end
+        else
+          puts 'no nearly full articles'
+        end
+      end
+    end
+  end
+
   desc 'Notify users of upcoming tasks'
   task notify_upcoming_tasks: :environment do
     tasks = Task.where(done: false, due_date: 1.day.from_now.to_date)

@@ -98,6 +98,10 @@ class GroupOrder < ApplicationRecord
       save!
       save_group_order_articles
       update_price!
+      UserNotifier.queue_order_updated_email(
+        delay: 30.seconds, group_order_id: id,
+        message: 'Your order has been saved.  Here is a copy for your records.'
+      )
     end
   end
 

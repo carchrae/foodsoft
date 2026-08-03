@@ -33,6 +33,8 @@ gem 'mysql2'
 gem 'net-ftp'
 gem 'dotenv-rails'
 gem 'pg'
+gem 'postmark-rails'
+gem 'resque-scheduler' # delayed ActiveJob (order-update emails)
 gem 'net-http'
 gem 'prawn'
 gem 'prawn-table'

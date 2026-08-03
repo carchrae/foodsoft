@@ -76,7 +76,23 @@ en:
         notice: Order was reopened succesfully, the balances of members account have been refunded.
       new:
         confirm_reopen_order: Reopen Order
+  helpers:
+    tasks:
+      required_users_unconfirmed: "%{count} members have not confirmed"
   mailer:
+    order_result:
+      subject: 'Order %{name} %{pickup}'
+      html0: |
+        Dear %{user},
+        <br/>
+        <p>%{message}</p>
+        <p>%{orderuser}</p>
+      html1: |-
+        o Total sum: %{sum}
+
+        You can view the order online: %{order_url}
+
+        Kind regards from %{foodcoop}.
     order_result_supplier:
       text: |
         Hello,

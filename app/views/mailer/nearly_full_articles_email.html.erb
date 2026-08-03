@@ -1,0 +1,49 @@
+
+<h1>Nearly Full Cases</h1>
+<p>
+  <%= @order.name %> - <%= @order.note %>
+  (closes at <%= l @order.ends.in_time_zone("Pacific Time (US & Canada)"), locale: 'en', format: :long  %>)
+</p>
+<% group_order = @order.group_order(@user.ordergroup) %>
+<% min_order_value = @order.supplier.min_order_quantity.sub('$','').to_f %>
+<% if min_order_value > 0 %>
+  <% supplier_order_sum = @order.supplier.sum_on_pickup_date(@order.pickup, :gross) %>
+  <% if supplier_order_sum.to_f >= min_order_value %>
+    <p><strong>Minimum order of <%= number_to_currency(min_order_value) %> has been met.</strong></p>
+  <% else %>
+    <% order_value_needed = min_order_value - supplier_order_sum %>
+    <p><strong><%= number_to_currency(order_value_needed) %> more required to meet the minimum order of <%= number_to_currency(min_order_value) %>.</strong></p>
+  <% end %>
+<% end %>
+<% if group_order.nil? || group_order.group_order_articles.sum(:quantity) == 0 %>
+  <p><strong>You have not ordered anything in this order.</strong></p>
+<% end %>
+<p>Here is a list of cases that are nearly full.
+  Please consider adding another to your order (or adding extra tolerance)
+  if you are able to take more without it going to waste.
+</p>
+<p>
+  Note that anything with 'case splittable' may already be full.  The rules for splittable cases are <i>usually</i> as follows:
+  24 ct to 12 ct / 25# to 10# /  30 ct to 10 ct  (some exceptions apply)
+</p>
+<p><%= link_to_ordering(@order, class: 'btn btn-primary btn-large', host: 'food.bowenlift.com', port: false, user: @user) do %>Edit Your Order<% end %></p>
+<p>Check the most up to date report here:
+  <%= link_to 'Current Case Report', nearly_full_url(@order) %>
+<ul>
+  <% @order.nearly_full_order_articles.each do |order_article| %>
+    <li><strong>need <%= order_article.quantity_left_to_fill_case %> x <%= order_article.article.unit %></strong> (<%= number_to_currency(order_article.article.price) %>) — <%= order_article.article.name %> [<%= order_article.quantity %>..<%= order_article.quantity + order_article.tolerance %>]</li>
+    <% goa = group_order&.group_order_articles&.find_by(order_article_id: order_article.id) %>
+    <% if goa && goa.quantity > 0 %>
+      <li style="list-style:none; margin-left:1em; color:#555;">↳ you ordered [<%= goa.quantity %>..<%= goa.quantity + goa.tolerance %>]</li>
+    <% end %>
+  <% end %>
+</ul>
+
+<h1>Filled Cases With Extras</h1>
+<p>These cases have been filled by people taking more than they want.  Please take some if you need it.</p>
+<ul>
+  <% @order.full_order_articles.each do |order_article| %>
+    <li><strong>extra <%= order_article.extra_amount %> x <%= order_article.article.unit %></strong> (<%= number_to_currency(order_article.article.price) %>) — <%= order_article.article.name %> [<%= order_article.quantity %>..<%= order_article.quantity + order_article.tolerance %>]</li>
+  <% end %>
+</ul>
+<p><%= link_to_ordering(@order, class: 'btn btn-primary btn-large', host: 'food.bowenlift.com', port: false, user: @user) do %>Edit Your Order<% end %></p>
