@@ -5,10 +5,15 @@
       %b= heading_helper FinancialTransaction, :financial_transaction_type
       = select_tag :type, options_for_select(FinancialTransactionType.order(:name).map { |t| [ t.name, t.id ] })
   %table.table.table-striped{:style => "width:35em"}
-    - for group_order in @order.group_orders
+    - total = 0
+    - for group_order in @order.group_orders.sort_by { |go| go.ordergroup_name }
       %tr{:class => cycle('even', 'odd')}
         %td= group_order.ordergroup_name
         %td.numeric= number_to_currency(group_order.total)
+        - total += group_order.total
+    %tr
+      %td Total
+      %td.numeric= number_to_currency(total)
   - if FoodsoftConfig[:use_financial_links]
     %p
       %label
@@ -17,6 +22,8 @@
       %label
         = check_box_tag :create_foodcoop_transaction, true, params.fetch(:create_foodcoop_transaction, true)
         = t('.create_foodcoop_transaction', sum: number_to_currency(@order.sum(:groups)))
+  - unless @order.invoice
+    .alert.alert-error You must add a supplier invoice to this order before settling it.
   .form-actions
-    = submit_tag t('.clear'), class: 'btn btn-primary'
+    = submit_tag t('.clear'), class: 'btn btn-primary', disabled: !@order.invoice
     = link_to t('.or_cancel'), new_finance_order_path(order_id: @order.id)

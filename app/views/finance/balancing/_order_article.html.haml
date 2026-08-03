@@ -6,17 +6,12 @@
   = pkg_helper order_article.article_price
   - if s=order_article.ordered_quantities_different_from_group_orders?
     %span{:style => "color:red;font-weight: bold"}= s
-%td #{order_article.article.unit}
-%td
-  = number_to_currency(order_article.price.price, :unit => "")
-  :plain
-    /
-  = number_to_currency(order_article.total_price, :unit => "")
-%td
-  = number_to_currency(order_article.price.gross_price, :unit => "")
-  :plain
-    /
-  = number_to_currency(order_article.total_gross_price, :unit => "")
+%td #{order_article.units * order_article.article.unit_quantity} x #{order_article.article.unit}
+%td{style: "text-align:right;"}
+  = number_to_currency(order_article.total_charges_to_members - order_article.total_price_rounding_error, :unit => "")
+- style = order_article.supplier_price_different_than_charged? ? "color:red;text-align:right;font-weight: bold" : "text-align:right;"
+%td{style: style}
+  = number_to_currency(order_article.total_supplier_charge, :unit => "")
 %td= number_to_percentage(order_article.price.tax) unless order_article.price.tax.zero?
 %td= number_to_currency(order_article.price.deposit, :unit => "") unless order_article.price.deposit.zero?
 %td

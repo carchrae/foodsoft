@@ -7,6 +7,7 @@
         -#%td.center= t('.units')
         %td.center
           %acronym{:title => t('shared.articles.received_desc')}= t 'shared.articles.received'
+        %td= "(in units)"
         %td= t('.total')
         %td{:colspan => "3",:style => "width:14em"}
           - unless order_article.order.closed?
@@ -14,23 +15,67 @@
               remote: true, class: 'btn btn-mini'
     %tbody
       - totals = {result: 0}
-      - for group_order_article in order_article.group_order_articles.select { |goa| goa.result > 0 }
+      - group_order_articles = order_article.group_order_articles.select { |goa| goa.result != 0 }
+      - for group_order_article in group_order_articles.sort_by { |goa| goa.group_order.ordergroup_name }
         %tr[group_order_article]
           %td
           %td{:style=>"width:50%"}
             = group_order_article.group_order.ordergroup_name
           %td.center= group_order_article_edit_result(group_order_article)
-          %td.numeric= number_to_currency(group_order_article.order_article.price.fc_price * group_order_article.result)
+          %td.center= group_order_article_show_amount(group_order_article)
+          %td.numeric= number_to_currency(group_order_article.order_article.price.price * group_order_article.result)
           %td.actions{:style=>"width:1em"}
-            - unless order_article.order.closed?
-              = link_to t('ui.delete'), group_order_article_path(group_order_article),
-                method: :delete, remote: true, class: 'btn btn-mini btn-danger'
           %td
         - totals[:result] += group_order_article.result
     %tfoot
+      - member_total = order_article.group_orders_sum
+      - total_unit_quantity_ordered = order_article.article_price.unit_quantity * order_article.units
+      - units_received = (member_total[:quantity] / order_article.article_price.unit_quantity).round(5)
+      - rounding_error = order_article.calculate_rounding_error(order_article.total_supplier_charge, member_total[:quantity]) * member_total[:quantity]
+      - actual_price_per = order_article.price.price_rounded_up(price: order_article.total_supplier_charge, quantity: member_total[:quantity])
+      - price_balanced = actual_price_per.to_s == order_article.price.price.to_s
+      - price_style = price_balanced ? "color:green" : "color:red;font-weight: bold"
       %tr
         %td
         %td{:style => "width:8em"}= t('.total_fc')
-        %td.center= number_with_precision totals[:result], strip_insignificant_zeros: true
-        %td.numeric= number_to_currency(order_article.group_orders_sum[:price])
-        %td{:colspan => "3"}
+        %td.center{style: price_style}
+          = units_received
+          = pkg_helper order_article.article_price
+          = " = #{totals[:result]}" unless order_article.article_price.unit_quantity == 1
+        %td.center= group_order_article_total_amount(totals[:result], order_article)
+        %td.numeric= number_to_currency(member_total[:net_price] - rounding_error)
+        - if rounding_error >= 0.0001 || rounding_error <= -0.0001
+          %td{:colspan => "3"}
+            %abbr{title: "plus this amount from rounding-up to cent"}
+              = "(+ #{number_to_currency(rounding_error)})"
+      %tr
+        %td
+        %td{:style => "width:8em"}= t('.total_supplier')
+        %td.center
+          = order_article.units
+          = pkg_helper order_article.article_price
+          = " = #{total_unit_quantity_ordered}" unless order_article.article_price.unit_quantity == 1
+        %td.center= group_order_article_total_amount(total_unit_quantity_ordered, order_article)
+        %td.numeric= number_to_currency(order_article.total_supplier_charge)
+      - unless price_balanced
+        %tr
+          %td.center{:colspan => "6", :style => price_style}
+            .span.info
+              .p
+                = "#{actual_price_per.to_s} == #{order_article.price.price.to_s}"
+                = "if the supplier sent a refund/adjustment then change received amount to #{units_received} otherwise"
+                = "adjust the price to #{number_to_currency(actual_price_per)} to match supplier charges"
+            - unless order_article.order.closed?
+              - write_off_amount = order_article.total_supplier_charge - (member_total[:net_price] - rounding_error)
+              - if write_off_amount > 0
+                = link_to "Write off #{number_to_currency(write_off_amount)} to Z - Group Expenses",
+                  write_off_to_group_expenses_finance_order_path(order_article.order, order_article_id: order_article.id),
+                  data: {method: :post}, remote: true, class: 'btn btn-warning btn-mini'
+                = link_to "Increase price to #{number_to_currency(actual_price_per)} (charge members)",
+                  reduce_price_to_supplier_finance_order_path(order_article.order, order_article_id: order_article.id),
+                  data: {method: :post, confirm: "Warning: shortages and waste are usually written off to group expenses rather than charged to members. Are you sure you want to increase the price charged to members?"},
+                  remote: true, class: 'btn btn-danger btn-mini'
+              - else
+                = link_to "Reduce price to #{number_to_currency(actual_price_per)} to match supplier",
+                  reduce_price_to_supplier_finance_order_path(order_article.order, order_article_id: order_article.id),
+                  data: {method: :post}, remote: true, class: 'btn btn-info btn-mini'

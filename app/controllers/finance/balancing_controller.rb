@@ -5,6 +5,13 @@ class Finance::BalancingController < Finance::BaseController
 
   def new
     @order = Order.find(params[:order_id])
+
+    # not pretty, but recovers orders whose invoice was deleted from under them
+    if @order.invoice.nil? && !@order.invoice_id.nil?
+      @order.invoice_id = nil
+      @order.save
+    end
+
     flash.now.alert = t('.alert') if @order.closed?
     @comments = @order.comments
 
@@ -107,5 +114,62 @@ class Finance::BalancingController < Finance::BaseController
     redirect_to finance_order_index_url, notice: t('.notice', count: count)
   rescue StandardError => e
     redirect_to finance_order_index_url, alert: t('errors.general_msg', msg: e.message)
+  end
+
+  # When the price charged to members overshoots the supplier charge because of
+  # case-split rounding, lower the member price to the exact rounded-up split.
+  def reduce_price_to_supplier
+    @order = Order.find(params[:id])
+    @order_article = OrderArticle.find(params[:order_article_id])
+
+    member_total = @order_article.group_orders_sum
+    actual_price_per = @order_article.price.price_rounded_up(
+      price: @order_article.total_supplier_charge,
+      quantity: member_total[:quantity]
+    )
+
+    @order_article.article_price.update_attribute(:price, actual_price_per)
+    @order_article.order.group_orders.each(&:update_price!)
+
+    @group_order_article = @order_article.group_order_articles.first
+    render 'group_order_articles/update'
+  end
+
+  # Assign the unaccounted remainder of an article (shortage/waste) to the
+  # designated group-expenses ordergroup instead of charging members.
+  def write_off_to_group_expenses
+    @order = Order.find(params[:id])
+    @order_article = OrderArticle.find(params[:order_article_id])
+
+    expenses_group = Ordergroup.where('name LIKE ?', 'Z - Group%').first
+    raise 'Z - Group Expenses ordergroup not found' unless expenses_group
+
+    group_order = GroupOrder.where(order_id: @order.id, ordergroup_id: expenses_group.id).first_or_initialize
+    unless group_order.persisted?
+      group_order.price = 0
+      group_order.save!
+    end
+
+    total_units_ordered = @order_article.units * @order_article.article_price.unit_quantity
+    member_total = @order_article.group_orders_sum
+    missing_units = total_units_ordered - member_total[:quantity]
+
+    goa = GroupOrderArticle.where(group_order_id: group_order.id, order_article_id: @order_article.id).first_or_initialize
+    goa.result = (goa.result || 0) + missing_units
+    goa.save!
+    group_order.update_price!
+
+    @group_order_article = goa
+    render 'group_order_articles/create'
+  end
+
+  # Reverts the settle: credits the ordergroups and puts the order back to
+  # 'finished' so accounting mistakes can be fixed.
+  def reopen
+    @order = Order.find(params[:id])
+    @order.reopen!(@current_user)
+    redirect_to finance_order_index_url, notice: t('.notice')
+  rescue StandardError => e
+    redirect_to new_finance_order_url(order_id: @order.id), alert: t('.alert', message: e.message)
   end
 end

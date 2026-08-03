@@ -10,4 +10,25 @@ module GroupOrderArticlesHelper
       result
     end
   end
+
+  # show result quantity with its physical unit where the unit is parseable
+  def group_order_article_show_amount(goa)
+    unit = goa.order_article.article.unit
+    fc_unit = (::Unit.new(unit) rescue nil) || (::Unit.new(unit.downcase) rescue nil)
+    if fc_unit.nil?
+      goa.result
+    else
+      goa.result * fc_unit
+    end
+  end
+
+  def group_order_article_total_amount(total, order_article)
+    unit = order_article.article.unit
+    fc_unit = (::Unit.new(unit) rescue nil) || (::Unit.new(unit.downcase) rescue nil)
+    if fc_unit.nil?
+      total
+    else
+      total * fc_unit
+    end
+  end
 end

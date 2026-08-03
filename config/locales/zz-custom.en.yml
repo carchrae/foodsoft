@@ -30,6 +30,18 @@ en:
     attributes:
       order:
         supplier_note: Supplier note
+      ordergroup:
+        available_funds: Available funds
+  finance:
+    balancing:
+      group_order_articles:
+        total_fc: Charged to members
+        total_supplier: Total paid to supplier
+      reopen:
+        alert: 'An error occured while reopening: %{message}'
+        notice: Order was reopened succesfully, the balances of members account have been refunded.
+      new:
+        confirm_reopen_order: Reopen Order
   mailer:
     order_result_supplier:
       text: |

@@ -161,6 +161,9 @@ Rails.application.routes.draw do
           get :confirm
           post :close
           patch :close_direct
+          patch :reopen
+          post :reduce_price_to_supplier
+          post :write_off_to_group_expenses
 
           get :new_on_order_article_create
           get :new_on_order_article_update
