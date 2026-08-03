@@ -1,115 +1,157 @@
+# The old-style split sheets: a portrait delivery-checklist page per order
+# followed by landscape grid pages (8 articles wide) with one row per
+# ordergroup, used to divide a delivery on the floor.
 class OrderMatrix < OrderPdf
-  HEADER_ROTATE = -30
-  PLACEHOLDER_CHAR = 'X'
+  MAX_ARTICLES_PER_PAGE = 8 # How many order_articles on each page
+
+  def initialize(order, options = {})
+    super(order, options)
+    @order = Order.find(order[0]) if order.is_a? Array
+  end
 
   def filename
     I18n.t('documents.order_matrix.filename', name: @order.name, date: @order.ends.to_date) + '.pdf'
   end
 
   def title
+    @order = Order.find(order[0]) if @order.is_a? Array
     I18n.t('documents.order_matrix.title', name: @order.name,
-                                           date: @order.ends.strftime(I18n.t('date.formats.default')))
+                                           date: @order.ends.strftime(I18n.t('date.formats.default')),
+                                           user_name: @order.created_by.name)
   end
 
   def body
-    order_articles_data = [[
-      OrderArticle.human_attribute_name(:article),
-      Article.human_attribute_name(:supplier),
-      ArticlePrice.human_attribute_name(:unit_quantity),
-      OrderArticle.human_attribute_name(:units_received),
-      Article.human_attribute_name(:fc_price_short)
-    ]]
+    @orders = [@order] unless @orders.is_a? Array
 
-    each_order_article do |a|
-      order_articles_data << [a.article.name,
-                              a.article.supplier.name,
-                              a.price.unit_quantity,
-                              a.units,
-                              order_article_price_per_unit(a)]
-    end
+    @orders.each do |order|
+      @order = order.is_a?(Integer) ? Order.find(order) : order
 
-    order_articles_data.each { |row| row.delete_at 1 } unless @options[:show_supplier]
+      text @order.supplier.name + ' ordered by ' + @order.created_by.name
+      move_down 10
 
-    name = I18n.t('documents.order_matrix.heading', count: order_articles_data.size - 1)
-    nice_table name, order_articles_data do |table|
-      if @options[:show_supplier]
-        table.column(0).width = bounds.width / 3
-        table.column(1).width = bounds.width / 4
-      else
-        table.column(0).width = bounds.width / 2
+      unless @order.note.blank?
+        text 'note: ' + @order.note, size: fontsize(9)
+        move_down 5
       end
 
-      table.columns(-3..-1).align = :right
-      table.column(-2).font_style = :bold
-    end
-
-    font_size 8
-
-    row_height_1 = height_of(PLACEHOLDER_CHAR) + 3
-    col_width_0 = width_of(PLACEHOLDER_CHAR * 20)
-    col_width_1 = width_of("#{number_to_currency(888.88)} / #{PLACEHOLDER_CHAR * 4}") + 3
-    col_width_2 = width_of(PLACEHOLDER_CHAR * 3) + 5
-
-    first_page = true
-    start_new_page(layout: :landscape)
-    batch_size = (bounds.width - col_width_0 - col_width_1) / col_width_2
-    batch_size = batch_size.floor
-
-    each_ordergroup_batch batch_size do |batch_groups, batch_results|
-      start_new_page unless first_page
-
-      header = batch_groups.map do |name, total|
-        text = "#{name.try(:truncate, 20)} <b>#{number_to_currency(total)}</b>"
-        RotatedCell.new(self, text, inline_format: true, rotate: HEADER_ROTATE)
-      end
-
-      rows = [[nil, nil] + header]
-
-      last_supplier_id = -1
-
-      each_order_article do |order_article|
-        supplier = order_article.article.supplier
-        if @options[:show_supplier] && last_supplier_id != supplier.id
-          row = [make_cell(supplier.name, colspan: 2, font_style: :bold)]
-          batch_groups.each { row << nil }
-          rows << row
-          last_supplier_id = supplier.id
+      @order.comments.each_with_index do |comment, i|
+        if i == 0
+          text 'Comments', size: fontsize(9)
+          move_down 5
         end
-
-        row = [order_article.article.name, order_article_price_per_unit(order_article)]
-        row += batch_results[order_article.id] if batch_results[order_article.id]
-        rows << row
+        text comment.user.name + ' wrote: ' + comment.text, size: fontsize(9)
+        move_down 5
       end
 
-      table rows, header: true, cell_style: { overflow: :shrink_to_fit } do |table|
-        table.cells.padding = [0, 0, 2, 0]
-        table.cells.borders = [:left]
-        table.cells.border_width = 0.5
+      move_down 10
+    end
+
+    @orders.each do |order|
+      @order = order.is_a?(Integer) ? Order.find(order) : order
+
+      order_articles = @order.order_articles.ordered.sort_by { |o| o.article.name }
+
+      total_num_order_articles = order_articles.size
+      page_number = 0
+
+      start_new_page(layout: :portrait)
+
+      text I18n.t('documents.order_matrix.heading'), style: :bold
+      move_down 5
+      text I18n.t('documents.order_matrix.note', user_name: @order.created_by.name,
+                                                 user_email: @order.created_by.email), { size: fontsize(8), style: :bold }
+
+      order_articles_data = [I18n.t('documents.order_matrix.rows')]
+
+      order_articles.each do |a|
+        order_articles_data << [a.article.name.gsub(/\s+/, ' '),
+                                a.article.unit,
+                                a.price.unit_quantity * a.units,
+                                number_with_precision(article_price(a), precision: 2),
+                                number_with_precision(a.price.unit_quantity * article_price(a), precision: 2),
+                                a.units,
+                                '', '']
+      end
+
+      table order_articles_data, cell_style: { size: fontsize(8), overflow: :shrink_to_fit } do |table|
+        table.cells.border_width = 1
         table.cells.border_color = '666666'
-
-        table.row(0).borders = %i[bottom left]
-        table.row(0).padding = [2, 0, 2, 0]
-        table.row(1..-1).height = row_height_1
-        table.column(0..1).borders = []
-        table.column(1).align = :right
-        table.column(1).padding = [0, 3, 2, 0]
-        table.column(2..-1).align = :center
-        table.cells[0, 0].borders = []
-        table.cells[0, 1].borders = []
-
-        table.column(0).overflow = :truncate
-        table.column(0).width = col_width_0
-        table.column(1).width = col_width_1
-        table.column(2..-1).width = col_width_2
-
-        (0..batch_size).step(5).each do |idx|
-          table.column(2 + idx).border_width = 2
-        end
-
-        table.row_colors = %w[dddddd ffffff]
       end
 
-      first_page = false
+      while page_number * MAX_ARTICLES_PER_PAGE < total_num_order_articles # Start page generating
+        page_number += 1
+        start_new_page(layout: :landscape)
+
+        # Collect order_articles for this page
+        current_order_articles = order_articles.select do |a|
+          order_articles.index(a) >= (page_number - 1) * MAX_ARTICLES_PER_PAGE &&
+            order_articles.index(a) < page_number * MAX_ARTICLES_PER_PAGE
+        end
+
+        # Make order_articles header
+        header = ['']
+        for header_article in current_order_articles
+          name = header_article.article.name.gsub(%r{[-/]}, ' ').gsub('.', '. ').gsub(/\s+/, ' ')
+          name = name.split.collect { |w| w.truncate(5, omission: '.') }.join(' ')
+          limit = 25
+          trail = 6
+          name = name.truncate(limit - trail) + name[-trail..-1] if name.length > limit
+          header << name
+        end
+
+        # Collect group results
+        groups_data = [header]
+
+        @order.group_orders.includes(:ordergroup).sort_by(&:ordergroup_name).each do |group_order|
+          group_result = [group_order.ordergroup_name.truncate(20)]
+
+          for order_article in current_order_articles
+            # get the Ordergroup result for this order_article
+            goa = order_article.group_order_articles.where(group_order_id: group_order.id).first
+            result = if goa.nil?
+                       ''
+                     else
+                       was_ordered = goa.quantity != 0 || goa.tolerance != 0 || goa.result != 0
+                       was_ordered ? "(#{goa.quantity}..#{goa.quantity + goa.tolerance})   #{goa.result.to_i}" : ''
+                     end
+            group_result << result
+          end
+          groups_data << group_result
+        end
+
+        group_result = ['Cases = Total Units']
+        for order_article in current_order_articles
+          group_result << [
+            "#{order_article.units} = #{order_article.units * order_article.price.unit_quantity}",
+            order_article.article.unit.to_s.first =~ /^[1-9].*/ ? ' X ' : ' ',
+            order_article.article.unit.to_s
+          ].join('')
+        end
+        groups_data << group_result
+
+        # Make table
+        column_widths = [85]
+        (MAX_ARTICLES_PER_PAGE + 1).times { |i| column_widths << (656 / (MAX_ARTICLES_PER_PAGE + 1)).floor unless i == 0 }
+        table groups_data, column_widths: column_widths, cell_style: { size: fontsize(8), overflow: :shrink_to_fit } do |table|
+          table.cells.border_width = 1
+          table.cells.border_color = '666666'
+          table.row_colors = %w[ffffff ececec]
+          table.row(groups_data.length - 1).style(bold: true)
+        end
+      end
     end
+  end
+
+  private
+
+  # Return price for article.
+  #
+  # This is a separate method so that plugins can override it.
+  #
+  # @param article [Article]
+  # @return [Number] Price to show
+  # @see https://github.com/foodcoops/foodsoft/issues/445
+  def article_price(article)
+    article.price.fc_price
   end
 end

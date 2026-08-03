@@ -8,6 +8,27 @@ en:
     form:
       recalculate_price: Recalculate Price
   documents:
+    order_by_articles:
+      filename: Order %{name}-%{date} - by articles
+      title: 'Order sorted by articles: %{name}, closed at %{date}'
+    order_by_groups:
+      filename: Bin Sheets %{name} - %{date}
+      sum: Estimated Total (may be adjusted depending on actual received and spoilage)
+      title: '%{name} Order - %{date} - ordering by %{user_name}'
+    order_matrix:
+      filename: Splitsheets %{name}-%{date}
+      heading: Delivery Checklist Page
+      rows:
+        - Article
+        - Unit
+        - Unit quantity
+        - Unit Price
+        - Case Price
+        - Cases
+        - Count/Weight
+        - Spoilage (%)
+      title: 'Split sheets: %{name} - %{date} - Ordered by %{user_name}'
+      note: ''
     order_fax:
       rows:
         - SKU

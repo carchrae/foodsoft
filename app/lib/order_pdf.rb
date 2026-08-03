@@ -7,9 +7,11 @@ class OrderPdf < RenderPdf
     super(options)
   end
 
-  def nice_table(name, data, dimrows = [])
-    name_options = { size: 10, style: :bold }
+  def nice_table(name, data, dimrows = [], phone = '')
+    # big name + phone so bin sheets are findable/contactable at a glance
+    name_options = { size: 48, style: :bold }
     name_height = height_of name, name_options
+    name_height += height_of(phone, size: 12) if phone.present?
     made_table = make_table data, width: bounds.width, cell_style: { size: 8, overflow: :shrink_to_fit } do |table|
       # borders
       table.cells.borders = [:bottom]
@@ -34,6 +36,7 @@ class OrderPdf < RenderPdf
     end
 
     text name, name_options
+    text phone, size: 12 if phone.present?
     made_table.draw
   end
 
@@ -52,6 +55,10 @@ class OrderPdf < RenderPdf
 
   def order_article_price_per_unit(order_article)
     "#{number_to_currency(order_article_price(order_article))} / #{order_article.article.unit}"
+  end
+
+  def order_article_unit_per_price(order_article)
+    "#{order_article.article.unit} @ #{number_to_currency(order_article_price(order_article))}"
   end
 
   def group_order_article_quantity_with_tolerance(goa)
@@ -82,7 +89,7 @@ class OrderPdf < RenderPdf
     result = GroupOrder
              .ordered
              .where(order: @orders)
-             .group('groups.id')
+             .group('groups.id, group_orders.ordergroup_id') # ordergroup_id needed in GROUP BY on postgres
              .offset(offset)
              .limit(limit)
              .pluck('groups.name', 'SUM(group_orders.price)', 'ordergroup_id', 'SUM(group_orders.transport)')
@@ -133,11 +140,13 @@ class OrderPdf < RenderPdf
   end
 
   def each_group_order_article_for_ordergroup(ordergroup, &block)
-    group_order_articles(ordergroup)
-      .includes(order_article: { article: [:supplier] })
-      .order('suppliers.name, articles.name')
-      .preload(order_article: %i[article_price order])
-      .each(&block)
+    records = group_order_articles(ordergroup)
+              .includes(order_article: { article: [:supplier] })
+              .order('suppliers.name, articles.name')
+              .preload(order_article: %i[article_price order])
+    # sort ignoring the numeric SKU prefix some suppliers put in names
+    records.sort_by { |a| a.order_article.article.name.gsub(/^\d\d\d\d:\s*/, '') }
+           .each(&block)
   end
 
   def stock_ordergroup_name

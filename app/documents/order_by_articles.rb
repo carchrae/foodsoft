@@ -1,4 +1,15 @@
+# The custom split sheet: one compact half-width table per article, grouped by
+# supplier (with per-supplier page headers), used at receiving to divide cases.
 class OrderByArticles < OrderPdf
+  def initialize(order, options = {})
+    options[:no_header] = true
+    options[:no_footer] = true
+    super(order, options)
+    @supplier_page = {}
+    @supplier_page[1] = sorted_order_articles.first.order.supplier
+    @title = options[:title]
+  end
+
   def filename
     I18n.t('documents.order_by_articles.filename', name: order.name, date: order.ends.to_date) + '.pdf'
   end
@@ -8,32 +19,94 @@ class OrderByArticles < OrderPdf
                                                 date: order.ends.strftime(I18n.t('date.formats.default')))
   end
 
+  def footer(footer, footer_size)
+    font_size FOOTER_FONT_SIZE do
+      bounding_box [bounds.left, bounds.bottom - FOOTER_SPACE], width: bounds.width / 2, height: footer_size do
+        text footer, align: :left, valign: :bottom if footer
+      end
+      bounding_box [bounds.left, bounds.bottom - FOOTER_SPACE], width: bounds.width / 2, height: footer_size do
+        text I18n.t('lib.render_pdf.page', number: page_number, count: page_count), align: :right, valign: :bottom if footer
+      end
+    end
+  end
+
+  def header(_header, header_size)
+    header = (@supplier_page[page_number] ? @supplier_page[page_number].name : '') + (@title ? " - #{@title}" : '')
+    bounding_box [bounds.left, bounds.top + header_size], width: bounds.width / 2, height: header_size do
+      text header, size: HEADER_FONT_SIZE, align: :center, overflow: :shrink_to_fit if header
+    end
+  end
+
+  def nice_table_by_articles(name, _footer, data, dimrows = [])
+    down_or_page 25
+    t = make_table data, width: bounds.width / 2, cell_style: { size: 10, overflow: :shrink_to_fit } do |table|
+      # borders
+      table.cells.borders = [:bottom]
+      table.cells.padding_top = 2
+      table.cells.padding_bottom = 4
+      table.cells.border_color = 'dddddd'
+      table.rows(0).border_color = '666666'
+
+      # dim rows which were ordered but not received
+      dimrows.each do |ri|
+        table.row(ri).text_color = '999999'
+        table.row(ri).columns(0..-1).font_style = nil
+      end
+      yield table if block_given?
+    end
+    # keep an article's table together on one page
+    start_new_page if (cursor - (t.height + 12)).negative?
+    text name, size: 12, style: :bold
+    t.draw
+  end
+
   def body
-    each_order_article do |order_article|
+    current_supplier = sorted_order_articles.first.order.supplier
+    sorted_order_articles.each do |order_article|
+      start_new_page if current_supplier != order_article.order.supplier
+      current_supplier = order_article.order.supplier
+      @supplier_page[page_number] = order_article.order.supplier
       dimrows = []
       rows = [[
-        GroupOrder.human_attribute_name(:ordergroup),
         GroupOrderArticle.human_attribute_name(:ordered),
-        GroupOrderArticle.human_attribute_name(:received),
-        GroupOrderArticle.human_attribute_name(:total_price)
+        "#{GroupOrderArticle.human_attribute_name(:received)} (#{order_article.price.unit_quantity * order_article.units})",
+        GroupOrder.human_attribute_name(:ordergroup)
       ]]
 
       each_group_order_article_for_order_article(order_article) do |goa|
         dimrows << rows.length if goa.result == 0
-        rows << [goa.group_order.ordergroup_name,
-                 group_order_article_quantity_with_tolerance(goa),
-                 goa.result,
-                 number_to_currency(goa.total_price)]
+        quantity = goa.tolerance > 0 ? "#{goa.quantity}..#{goa.quantity + goa.tolerance}" : goa.quantity
+        rows << [quantity,
+                 "#{goa.result} _______ #{order_article.article.unit}",
+                 goa.group_order.ordergroup_name.truncate(22, omission: '')]
       end
       next unless rows.length > 1
 
-      name = "#{order_article.article.name} (#{order_article.article.unit} | #{order_article.price.unit_quantity} | #{number_to_currency(order_article.price.fc_price)})"
-      name += " #{order_article.order.name}" if @options[:show_supplier]
-      nice_table name, rows, dimrows do |table|
-        table.column(0).width = bounds.width / 2
-        table.columns(1..-1).align = :right
-        table.column(2).font_style = :bold
+      name = order_article.article.name.gsub(/^\d\d\d\d:\s*/, '')
+
+      limit = 100
+      trail = 6
+      name = name.truncate(limit - trail) + name[-trail..-1] if name.length > limit
+
+      name = "#{order_article.units} #{name}" if order_article.units > 1
+
+      nice_table_by_articles name, '', rows, dimrows do |table|
+        table.columns(0..1).align = :right
+        table.column(2).width = (bounds.width / 2) / 2
       end
+      # in case the table overflowed to a new page, tag it with the supplier again
+      @supplier_page[page_number] = order_article.order.supplier
+    end
+  end
+
+  protected
+
+  def sorted_order_articles
+    @sorted_order_articles ||= order_articles
+                               .all
+                               .sort_by do |oa|
+      name = oa.article.name.gsub(/^\d\d\d\d:\s*/, '')
+      [oa.order.id, oa.order.supplier.name, name]
     end
   end
 end

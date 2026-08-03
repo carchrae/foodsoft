@@ -60,7 +60,7 @@ class RenderPdf < Prawn::Document
   BOTTOM_MARGIN = 23
   HEADER_SPACE = 9
   FOOTER_SPACE = 3
-  HEADER_FONT_SIZE = 16
+  HEADER_FONT_SIZE = 8
   FOOTER_FONT_SIZE = 8
   DEFAULT_FONT = 'OpenSans'
 
@@ -95,17 +95,8 @@ class RenderPdf < Prawn::Document
     font DEFAULT_FONT
 
     repeat :all, dynamic: true do
-      bounding_box [bounds.left, bounds.top + header_size], width: bounds.width, height: header_size do
-        text header, size: HEADER_FONT_SIZE, align: :center, overflow: :shrink_to_fit if header
-      end
-      font_size FOOTER_FONT_SIZE do
-        bounding_box [bounds.left, bounds.bottom - FOOTER_SPACE], width: bounds.width, height: footer_size do
-          text footer, align: :left, valign: :bottom
-        end
-        bounding_box [bounds.left, bounds.bottom - FOOTER_SPACE], width: bounds.width, height: footer_size do
-          text I18n.t('lib.render_pdf.page', number: page_number, count: page_count), align: :right, valign: :bottom
-        end
-      end
+      header(header, header_size)
+      footer(footer, footer_size)
     end
   end
 
@@ -142,6 +133,25 @@ class RenderPdf < Prawn::Document
   end
 
   protected
+
+  # header/footer live in their own methods so document subclasses can
+  # override them (e.g. per-supplier headers on split sheets)
+  def footer(footer, footer_size)
+    font_size FOOTER_FONT_SIZE do
+      bounding_box [bounds.left, bounds.bottom - FOOTER_SPACE], width: bounds.width, height: footer_size do
+        text footer, align: :left, valign: :bottom if footer
+      end
+      bounding_box [bounds.left, bounds.bottom - FOOTER_SPACE], width: bounds.width, height: footer_size do
+        text I18n.t('lib.render_pdf.page', number: page_number, count: page_count), align: :right, valign: :bottom if footer
+      end
+    end
+  end
+
+  def header(header, header_size)
+    bounding_box [bounds.left, bounds.top + header_size], width: bounds.width, height: header_size do
+      text header, size: HEADER_FONT_SIZE, align: :center, overflow: :shrink_to_fit if header
+    end
+  end
 
   def fontsize(size)
     size
