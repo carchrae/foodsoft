@@ -12,8 +12,16 @@ class SharedSupplier < ApplicationRecord
     cached_articles.detect { |a| a.number == order_number }
   end
 
+  def find_article_by_name_origin_manufacture(name, origin, manufacturer)
+    cached_articles.detect { |a| a.name == name && a.origin == origin && a.manufacturer == manufacturer }
+  end
+
+  def find_article_by_name_manufacture(name, manufacturer)
+    cached_articles.detect { |a| a.name == name && a.manufacturer == manufacturer }
+  end
+
   def cached_articles
-    @cached_articles ||= shared_articles.all
+    @cached_articles ||= shared_articles.where(available: true)
   end
 
   # These set of attributes are used to autofill attributes of new supplier,

@@ -1,5 +1,7 @@
 class ArticlesController < ApplicationController
-  before_action :authenticate_article_meta, :find_supplier
+  # any user may see the article list; editing still needs the article role
+  before_action :find_supplier
+  before_action :authenticate_article_meta, except: [:index]
 
   def index
     sort = if params['sort']
@@ -26,7 +28,10 @@ class ArticlesController < ApplicationController
       return
     end
 
-    @articles = @articles.where('articles.name LIKE ?', "%#{params[:query]}%") unless params[:query].nil?
+    unless params[:query].nil?
+      @articles = @articles.where('lower(articles.name) LIKE ? or lower(articles.order_number) LIKE ?',
+                                  "%#{params[:query].downcase}%", "%#{params[:query].downcase}%")
+    end
 
     @articles = @articles.page(params[:page]).per(@per_page)
 
@@ -183,9 +188,15 @@ class ArticlesController < ApplicationController
 
     has_error = false
     Article.transaction do
-      # delete articles
-      begin
-        @outlisted_articles.each(&:mark_as_deleted)
+      # delete articles; articles in an open order can't be deleted, so flag
+      # them in the name instead of failing the whole sync
+      @outlisted_articles.each do |a|
+        if a.in_open_order
+          a.name = a.name + ' UNAVAILABLE!' unless a.name.end_with?(' UNAVAILABLE!')
+          a.save
+        else
+          a.mark_as_deleted
+        end
       rescue StandardError
         # raises an exception when used in current order
         has_error = true
@@ -206,6 +217,7 @@ class ArticlesController < ApplicationController
       flash.now.alert = I18n.t('articles.controller.error_invalid')
       render params[:from_action] == 'sync' ? :sync : :parse_upload
     else
+      @supplier.notify_open_orders_updated
       redirect_to supplier_articles_path(@supplier), notice: I18n.t('articles.controller.update_sync.notice')
     end
   end

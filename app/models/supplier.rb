@@ -64,6 +64,7 @@ class Supplier < ApplicationRecord
       # build new articles
       shared_supplier
         .shared_articles
+        .where(available: true)
         .where.not(id: existing_articles.to_a)
         .find_each { |new_shared_article| new_articles << new_shared_article.build_new_article(self) }
       # make them unavailable when desired
@@ -79,6 +80,8 @@ class Supplier < ApplicationRecord
   # @option options [Boolean] :outlist_absent Set to +true+ to remove articles not in spreadsheet.
   # @option options [Boolean] :convert_units Omit or set to +true+ to keep current units, recomputing unit quantity and price.
   def sync_from_file(file, options = {})
+    return sync_from_horizon_file(file, options) if name == 'Horizon'
+
     all_order_numbers = []
     updated_article_pairs = []
     outlisted_articles = []
@@ -112,6 +115,74 @@ class Supplier < ApplicationRecord
     end
     outlisted_articles += articles.undeleted.where.not(order_number: all_order_numbers + [nil]) if options[:outlist_absent]
     [updated_article_pairs, outlisted_articles, new_articles]
+  end
+
+  # Horizon price-list spreadsheets need their own column mapping and contain
+  # duplicate order numbers; prefer the copy that is in an open order and
+  # outlist the extras.
+  def sync_from_horizon_file(file, options = {})
+    all_order_numbers = []
+    updated_article_pairs = []
+    outlisted_articles = []
+    new_articles = []
+    articles_by_order_number = articles.undeleted.group_by(&:order_number)
+    order_numbers_from_file = Set.new
+    FoodsoftFile.parse_horizon file, options do |status, new_attrs, line|
+      # if there are duplicates in the file, we just take the first one
+      if order_numbers_from_file.add?(new_attrs[:order_number]).nil?
+        logger.info("skipping duplicate #{new_attrs[:order_number]}")
+        next
+      end
+
+      begin
+        articles_matching = articles_by_order_number[new_attrs[:order_number]] || []
+        articles_matching_in_open_orders = articles_matching.select(&:in_open_order)
+        in_open_order = articles_matching_in_open_orders.count > 0
+        article = in_open_order ? articles_matching_in_open_orders.first : articles_matching.first
+
+        new_attrs[:article_category] = ArticleCategory.find_match(new_attrs[:article_category])
+        new_attrs[:tax] ||= FoodsoftConfig[:tax_default]
+        new_article = articles.build(new_attrs)
+
+        if status.nil?
+          if article.nil?
+            new_articles << new_article
+          else
+            unequal_attributes = article.unequal_attributes(new_article, options.slice(:convert_units))
+            unless unequal_attributes.empty?
+              article.attributes = unequal_attributes
+              updated_article_pairs << [article, unequal_attributes]
+            end
+          end
+        elsif status == :outlisted && article.present?
+          outlisted_articles << article
+        elsif status.is_a? String
+          raise I18n.t('articles.model.error_parse', msg: status, line: line.to_s)
+        end
+
+        duplicate_articles = articles_matching.reject { |a| a == article || a.in_open_order }
+        if duplicate_articles.count > 0
+          logger.info("found #{duplicate_articles.count} extra copies for #{new_attrs[:order_number]} #{new_attrs[:name]}")
+          outlisted_articles.concat(duplicate_articles)
+        end
+
+        all_order_numbers << article.order_number if article
+      rescue RuntimeError => e
+        logger.error("horizon sync blew up on line #{line}: #{e.inspect}")
+      end
+    end
+    outlisted_articles += articles.undeleted.where.not(order_number: all_order_numbers + [nil]) if options[:outlist_absent]
+    [updated_article_pairs, outlisted_articles, new_articles]
+  end
+
+  # total of all orders on a pickup date, memoized for the pickups listing
+  def sum_on_pickup_date(date, sum_type)
+    @sum_on_pickup_date ||= {}
+    @sum_on_pickup_date[[date, sum_type]] ||= orders.where(pickup: date).map { |o| o.sum(sum_type) }.sum
+  end
+
+  def notify_open_orders_updated
+    orders.where(state: 'open').each(&:notify_modified)
   end
 
   # default value

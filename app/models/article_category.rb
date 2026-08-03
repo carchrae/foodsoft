@@ -31,8 +31,11 @@ class ArticleCategory < ApplicationRecord
 
   # Find a category that matches a category name; may return nil.
   # TODO more intelligence like remembering earlier associations (global and/or per-supplier)
+  # memoized per-process: called once per row during sync
+  @@find_match_cache = {}
   def self.find_match(category)
     return if category.blank? || category.length < 3
+    return @@find_match_cache[category] if @@find_match_cache[category]
 
     c = nil
     ## exact match - not needed, will be returned by next query as well
@@ -47,6 +50,7 @@ class ArticleCategory < ApplicationRecord
     end
     # return closest match if there are multiple
     c = c.sort_by { |s| s.name.length }.first if c.respond_to? :sort_by
+    @@find_match_cache[category] = c
     c
   end
 

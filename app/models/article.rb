@@ -100,9 +100,26 @@ class Article < ApplicationRecord
     end
   end
 
+  # All open Orders this article is used in.
+  def in_open_orders
+    @in_open_orders ||= OrderArticle
+                        .where(order_id: Order.open.collect(&:id))
+                        .where(article_id: id)
+                        .map(&:order)
+  end
+
+  def notify_orders
+    in_open_orders.each(&:notify_modified)
+  end
+
   # Returns true if the article has been ordered in the given order at least once
   def ordered_in_order?(order)
     order.order_articles.where(article_id: id).where('quantity > 0').one?
+  end
+
+  # one-line summary used when listing articles to be outlisted at sync
+  def description
+    "#{ActionController::Base.helpers.number_to_currency(price)} #{name} #{manufacturer} #{origin} #{note} #{unit_quantity} #{unit}"
   end
 
   # this method checks, if the shared_article has been changed
@@ -130,6 +147,7 @@ class Article < ApplicationRecord
   # @return [Hash<Symbol, Object>] Attributes with new values
   def unequal_attributes(new_article, options = {})
     # try to convert different units when desired
+    new_supplier_price = new_article.supplier_price
     if options[:convert_units] == false
       new_price = nil
       new_unit_quantity = nil
@@ -138,6 +156,10 @@ class Article < ApplicationRecord
     end
     if new_price && new_unit_quantity
       new_unit = unit
+      # ensure supplier price is adjusted (eg, if we have UQ of 6 X 1L, but supplier price is UQ 1 x 1L)
+      if new_supplier_price && ((new_price * new_unit_quantity) - new_supplier_price).abs > (new_unit_quantity * 0.1)
+        new_supplier_price = new_price * new_unit_quantity
+      end
     else
       new_price = new_article.price
       new_unit_quantity = new_article.unit_quantity
@@ -151,6 +173,7 @@ class Article < ApplicationRecord
         origin: [origin, new_article.origin],
         unit: [unit, new_unit],
         price: [price.to_f.round(2), new_price.to_f.round(2)],
+        supplier_price: [supplier_price.to_f.round(2), new_supplier_price.to_f.round(2)],
         tax: [tax, new_article.tax],
         deposit: [deposit.to_f.round(2), new_article.deposit.to_f.round(2)],
         # take care of different num-objects.
@@ -172,14 +195,35 @@ class Article < ApplicationRecord
     unequal_attributes.to_a.map { |a| [a[0], a[1].last] }.to_h
   end
 
-  # to get the correspondent shared article
+  # to get the correspondent shared article; matches by order number but falls
+  # back to name+origin+manufacturer since SKUs have pointed at the wrong
+  # product before (nasty data bug), and refuses to link one shared article to
+  # two local articles
   def shared_article(supplier = self.supplier)
-    order_number.blank? and return nil
-    @shared_article ||= begin
-      supplier.shared_supplier.find_article_by_number(order_number)
-    rescue StandardError
-      nil
+    if @shared_article.nil?
+      unless supplier.shared_supplier.nil?
+        @shared_article ||= supplier.shared_supplier.find_article_by_number(order_number)
+
+        # sanity check in case the sku points to the wrong article
+        @shared_article = nil if @shared_article && @shared_article.name != name
+
+        @shared_article ||= supplier.shared_supplier.find_article_by_name_origin_manufacture(name, origin, manufacturer)
+        @shared_article ||= supplier.shared_supplier.find_article_by_name_manufacture(name, manufacturer)
+
+        # if the sanity check cleared it and nothing else matched, fall back to
+        # the order-number match after all
+        @shared_article ||= supplier.shared_supplier.find_article_by_number(order_number)
+      end
+      if @shared_article
+        if @shared_article.linked_to.nil?
+          @shared_article.linked_to = self
+        elsif @shared_article.linked_to != self
+          logger.info("shared article already linked to #{@shared_article.linked_to.id} not #{id}")
+          @shared_article = false
+        end
+      end
     end
+    @shared_article
   end
 
   # convert units in foodcoop-size
@@ -187,39 +231,37 @@ class Article < ApplicationRecord
   # returns new price and unit_quantity in array, when calc is possible => [price, unit_quanity]
   # returns false if units aren't foodsoft-compatible
   # returns nil if units are eqal
+  # Convert to the unit we keep locally, but bail out (returning false) when
+  # the case sizes don't line up — a changed case size must be reviewed by a
+  # human, not silently converted (bad data caused wrong charges before).
   def convert_units(new_article = shared_article)
-    return unless unit != new_article.unit
+    return nil if unit == new_article.unit && unit_quantity == new_article.unit_quantity
     return false if new_article.unit.include?(',')
 
-    # legacy, used by foodcoops in Germany
-    if new_article.unit == 'KI' && unit == 'ST' # 'KI' means a box, with a different amount of items in it
-      # try to match the size out of its name, e.g. "banana 10-12 St" => 10
-      new_unit_quantity = /[0-9\-\s]+(St)/.match(new_article.name).to_s.to_i
-      if new_unit_quantity && new_unit_quantity > 0
-        new_price = (new_article.price / new_unit_quantity.to_f).round(2)
-        [new_price, new_unit_quantity]
-      else
-        false
+    fc_unit = begin
+      ::Unit.new(unit.downcase)
+    rescue StandardError
+      nil
+    end
+    supplier_unit = begin
+      ::Unit.new(new_article.unit.downcase)
+    rescue StandardError
+      nil
+    end
+    fc_uq = unit_quantity
+    supplier_uq = new_article.unit_quantity
+    if fc_unit && supplier_unit && fc_unit =~ supplier_unit
+      if (fc_unit * fc_uq) != (supplier_unit * supplier_uq)
+        logger.info("case size appears different, do not convert #{fc_unit}*#{fc_uq} != #{supplier_unit}*#{supplier_uq} (#{name})")
+        return false
       end
-    else # use ruby-units to convert
-      fc_unit = begin
-        ::Unit.new(unit)
-      rescue StandardError
-        nil
-      end
-      supplier_unit = begin
-        ::Unit.new(new_article.unit)
-      rescue StandardError
-        nil
-      end
-      if fc_unit != 0 && supplier_unit != 0 && fc_unit && supplier_unit && fc_unit =~ supplier_unit
-        conversion_factor = (supplier_unit / fc_unit).to_base.to_f
-        new_price = new_article.price / conversion_factor
-        new_unit_quantity = new_article.unit_quantity * conversion_factor
-        [new_price, new_unit_quantity]
-      else
-        false
-      end
+
+      conversion_factor = (supplier_unit / fc_unit).scalar
+      new_price = new_article.price / conversion_factor
+      new_unit_quantity = fc_uq
+      [new_price, new_unit_quantity]
+    else
+      false
     end
   end
 
@@ -247,12 +289,13 @@ class Article < ApplicationRecord
       price: price,
       tax: tax,
       deposit: deposit,
-      unit_quantity: unit_quantity
+      unit_quantity: unit_quantity,
+      supplier_price: read_attribute(:supplier_price)
     )
   end
 
   def price_changed?
-    changed.detect { |attr| attr == 'price' || 'tax' || 'deposit' || 'unit_quantity' } ? true : false
+    changed.detect { |attr| attr == 'price' || 'tax' || 'deposit' || 'unit_quantity' || 'supplier_price' } ? true : false
   end
 
   # We used have the name unique per supplier+deleted_at+type. With the addition of shared_sync_method all,

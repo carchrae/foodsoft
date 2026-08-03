@@ -312,6 +312,13 @@ class Order < ApplicationRecord
     end
   end
 
+  # Queue an order-updated notification to everyone who ordered.
+  # NOTE: placeholder until the notifications theme lands; sync and swap call
+  # this already.
+  def notify_modified
+    # TODO(theme-8): UserNotifier.enqueue_in(30.minutes, 'updated_order', id)
+  end
+
   # Reopens the order for ordering after it was mistakenly closed for orders
   # (state back to 'open'); recomputes results from scratch.
   def unclose!(user)

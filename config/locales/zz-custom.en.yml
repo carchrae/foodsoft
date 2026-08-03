@@ -49,6 +49,8 @@ en:
       supplier_note_placeholder: add any instructions to be emailed to the supplier
   activerecord:
     attributes:
+      article:
+        supplier_price: Supplier price
       order:
         supplier_note: Supplier note
       ordergroup:

@@ -6,6 +6,10 @@ class SharedArticle < ApplicationRecord
 
   belongs_to :shared_supplier, foreign_key: :supplier_id
 
+  # the local Article this shared article was matched to during sync, so a
+  # shared article never gets linked to two local articles
+  attr_accessor :linked_to
+
   def self.ransackable_attributes(_auth_object = nil)
     %w[category created_on deposit id manufacturer name note number origin price scale_price scale_quantity supplier_id tax unit unit_quantity updated_on]
   end
@@ -18,6 +22,7 @@ class SharedArticle < ApplicationRecord
       manufacturer: manufacturer,
       origin: origin,
       price: price,
+      supplier_price: supplier_price,
       tax: tax,
       deposit: deposit,
       unit_quantity: unit_quantity,

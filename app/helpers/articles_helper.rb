@@ -1,4 +1,13 @@
 module ArticlesHelper
+  # ids of this supplier's articles that are in an open order (used to warn
+  # during sync that changes affect a running order)
+  def article_in_open_order
+    @article_in_open_order ||= begin
+      order_articles = OrderArticle.where(order_id: Order.open.where(supplier_id: @supplier.id).collect(&:id))
+      order_articles.map { |oa| oa.article_id }.to_set
+    end
+  end
+
   # useful for highlighting attributes, when synchronizing articles
   def highlight_new(unequal_attributes, attribute)
     return unless unequal_attributes

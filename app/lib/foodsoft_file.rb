@@ -22,4 +22,44 @@ class FoodsoftFile
       yield status, article, row_index
     end
   end
+
+  # Horizon distributes price lists with their own column layout; map the
+  # lettered spreadsheet columns to article attributes.
+  def self.parse_horizon(file, options = {})
+    SpreadsheetFile.parse file, options do |row, row_index|
+      next if row[2].blank?
+
+      row_to_index = ('a'..'z').zip(0..25).to_h
+      map = lambda do |r|
+        tax = 0
+        tax += 5 if r[row_to_index['n']]
+        tax += 7 if r[row_to_index['m']]
+
+        unit_quantity = r[row_to_index['h']]
+        # annoying import inconsistency, EA means UQ = 1
+        unit_quantity = 1 if unit_quantity == 'EA'
+
+        {
+          order_number: r[row_to_index['b']],
+          name: r[row_to_index['d']],
+          note: r[row_to_index['g']],
+          manufacturer: r[row_to_index['c']],
+          unit: r[row_to_index['i']],
+          unit_quantity: unit_quantity,
+          price: r[row_to_index['j']],
+          tax: tax,
+          article_category: 'Grocery'
+        }
+      end
+      begin
+        article = map.call(row)
+        status = nil
+        next unless article[:order_number].present? && article[:price].to_f != 0
+      rescue StandardError => e
+        Rails.logger.error("horizon parse error on row #{row_index}: #{e}")
+        next
+      end
+      yield status, article, row_index
+    end
+  end
 end
