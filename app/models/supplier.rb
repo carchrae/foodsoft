@@ -37,6 +37,8 @@ class Supplier < ApplicationRecord
   # also returns an array with outlisted_articles, which should be deleted
   # also returns an array with new articles, which should be added (depending on shared_sync_method)
   def sync_all
+    raise 'shared_lists database is not configured (set SHARED_DATABASE_URL)' unless FoodsoftConfig[:shared_lists].present?
+
     updated_article_pairs = []
     outlisted_articles = []
     new_articles = []

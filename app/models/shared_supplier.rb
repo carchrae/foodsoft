@@ -21,6 +21,13 @@ class SharedSupplier < ApplicationRecord
   end
 
   def cached_articles
+    # without a configured shared DB, ActiveRecord silently falls back to the
+    # MAIN database's articles table — syncing against that would outlist
+    # everything, so fail loudly instead
+    unless FoodsoftConfig[:shared_lists].present?
+      raise 'shared_lists database is not configured (set SHARED_DATABASE_URL)'
+    end
+
     @cached_articles ||= shared_articles.where(available: true)
   end
 
