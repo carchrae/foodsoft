@@ -3,8 +3,7 @@
   - if ordergroup.not_enough_apples?
     .alert
       = t '.not_enough_apples'
-  - orders = Order.open_reverse
-  - unless orders.empty?
+  - unless Order.finished_not_closed.empty?
     %table.table
       %thead
         %tr
@@ -15,10 +14,10 @@
           %th.numeric= heading_helper GroupOrder, :price
       %tbody
         - total = 0
-        - orders.each do |order|
+        - Order.finished_not_closed.each do |order|
           %tr
             %td
-              = link_to_ordering(order)
+              = link_to_ordering(order, show: true)
             %td= format_date(order.pickup) unless order.pickup.nil?
             %td= format_time(order.ends) unless order.ends.nil?
             - if group_order = order.group_order(ordergroup)
@@ -68,4 +67,4 @@
             %th= t('.total_sum') + ':'
             %th.numeric= number_to_currency(total)
   - else
-    %i= t '.no_open_orders'
+    %i= t '.no_closed_orders'

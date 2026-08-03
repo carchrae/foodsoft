@@ -24,9 +24,8 @@ SimpleNavigation::Configuration.run do |navigation|
       subnav.item :ordering, I18n.t('navigation.orders.ordering'), group_orders_path
       subnav.item :ordering_archive, I18n.t('navigation.orders.archive'), archive_group_orders_path
       subnav.item :orders, I18n.t('navigation.orders.manage'), orders_path, if: proc { current_user.role_orders? }
-      subnav.item :pickups, I18n.t('navigation.orders.pickups'), pickups_path, if: proc {
-                                                                                     current_user.role_pickups?
-                                                                                   }
+      # pickup days are visible to every member
+      subnav.item :pickups, I18n.t('navigation.orders.pickups'), pickups_path
     end
 
     primary.item :articles, I18n.t('navigation.articles.title'), '#',

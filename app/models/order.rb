@@ -41,6 +41,7 @@ class Order < ApplicationRecord
   # 1. ...only transition in one direction (e.g. an order that has been `finished` currently cannot be reopened)
   # 2. ...be set to `closed` when having the `finished` state. (`received` is optional)
   scope :open, -> { where(state: 'open').order(ends: :desc) }
+  scope :open_reverse, -> { where(state: 'open').where('starts <= ?', Time.now).order(:ends) }
   # open but not yet started — shown separately so members aren't confused by
   # orders they cannot order from yet
   scope :upcoming, -> { where(state: 'open').where('starts >= ?', Time.now).order(ends: :desc) }
@@ -79,6 +80,11 @@ class Order < ApplicationRecord
     else
       supplier.articles.available.group_by { |a| a.article_category.name }
     end
+  end
+
+  # how many member-order splits this order requires (a workload indicator)
+  def split_effort
+    @split_effort ||= order_articles.map { |oa| oa.group_order_articles.where.not(quantity: 0).count }.sum
   end
 
   def articles_for_ordering_ungrouped

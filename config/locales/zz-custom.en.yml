@@ -44,6 +44,10 @@ en:
     model:
       error_not_closed: Order isn't already settled
       notice_reopen: 'Order: %{name} - %{ends} (reopened)'
+    index:
+      upcoming_orders: Upcoming
+    articles:
+      prices: Net/gross/supplier price
     show:
       swap-articles: Swap articles
     swap:
@@ -59,6 +63,7 @@ en:
         supplier_price: Supplier price
       order:
         supplier_note: Supplier note
+        split_effort: Splits
       ordergroup:
         available_funds: Available funds
   finance:
@@ -85,6 +90,15 @@ en:
   shared:
     article_fields_price:
       price_warning: Supplier price does not equal Price * Unit.  You can use the 'Recalculate Price' button to update the price.
+    upcoming_orders:
+      title: Upcoming orders
+      no_upcoming_orders: There are no upcoming orders
+    closed_orders:
+      title: Closed
+      no_closed_orders: There are no orders to show
+      who_ordered: Who ordered?
+      total_sum: Total cost
+      not_enough_apples: Attention your ordergroup has too few apple points to place an order!
   js:
     shared:
       article_fields_price:

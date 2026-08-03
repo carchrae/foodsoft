@@ -11,7 +11,8 @@ class OrdersController < ApplicationController
 
   # List orders
   def index
-    @open_orders = Order.open.includes(:supplier)
+    @open_orders = Order.open.started.includes(:supplier)
+    @upcoming_orders = Order.upcoming.includes(:supplier)
     @finished_orders = Order.finished_not_closed.includes(:supplier)
     @per_page = 15
     sort = if params['sort']

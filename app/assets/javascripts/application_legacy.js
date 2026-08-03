@@ -181,3 +181,65 @@ function highlightRow(checkbox) {
 function setHiddenId(text, li) {
   $('hidden_id').value = li.id;
 }
+
+// ---- custom helpers (patch series) ----
+
+function debounce(wait, func) {
+    var timeout;
+    return function() {
+        var context = this, args = arguments;
+        if (wait) {
+            clearTimeout(timeout);
+            timeout = setTimeout(function () {
+                timeout = null;
+                func.apply(context, args);
+            }, wait);
+        } else {
+            func.apply(context, args);
+        }
+    };
+}
+
+// balancing: set received amount from a case-count input and submit
+var updateReceived = debounce(1000,
+    function (id, multiplier) {
+        var amount = $('#a_' + id);
+        var received = $('#r_' + id);
+        received.val(amount.val() / multiplier);
+        received.submit();
+    }
+);
+
+function changed(changed) {
+    if (changed === true) {
+        this._changed = true;
+    } else if (changed === false) {
+        this._changed = false;
+    }
+    return this._changed || false;
+}
+
+// Quick and simple export of table#table_id into a csv download
+function download_table_as_csv(table_id) {
+    var rows = document.querySelectorAll('table#' + table_id + ' tr');
+    var csv = [];
+    for (var i = 0; i < rows.length; i++) {
+        var row = [], cols = rows[i].querySelectorAll('td, th');
+        for (var j = 0; j < cols.length; j++) {
+            var data = cols[j].innerText.replace(/(\r\n|\n|\r)/gm, '').replace(/(\s\s)/gm, ' ')
+            data = data.replace(/"/g, '""');
+            row.push('"' + data + '"');
+        }
+        csv.push(row.join(';'));
+    }
+    var csv_string = csv.join('\n');
+    var filename = 'export_' + table_id + '_' + new Date().toLocaleDateString() + '.csv';
+    var link = document.createElement('a');
+    link.style.display = 'none';
+    link.setAttribute('target', '_blank');
+    link.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv_string));
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
