@@ -4,7 +4,7 @@
       $('tr.ignored').hide();
     });
 
-- title t('.title', order: @order.name)
+- title t('.title', order: @order.name, ordergroup: @ordergroup.name)
 
 .row-fluid
   .well.pull-left
@@ -81,7 +81,7 @@
                   = r[:quantity]
                   = "+ #{r[:tolerance]}" if oa.price.unit_quantity > 1
                 %td= r[:result] > 0 ? r[:result] : "0"
-                %td= number_to_currency(r[:sub_total])
+                %td= number_to_currency(r[:result] * oa.price.fc_price)
               - unless oa.article.note.blank?
                 %tr{id: "note_#{oa.id}", class: "note even", style: "display:none"}
                   %td{colspan: "6"}=h oa.article.note

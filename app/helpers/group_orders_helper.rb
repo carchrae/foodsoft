@@ -10,16 +10,26 @@ module GroupOrdersHelper
 
   # Returns a link to the page where a group_order can be edited.
   # If the option :show is true, the link is for showing the group_order.
+  # Pass :user (and :host/:protocol for full URLs) to use from mailer contexts.
   def link_to_ordering(order, options = {}, &block)
-    group_order = order.group_order(current_user.ordergroup)
+    user = options.delete(:user) || (respond_to?(:current_user) ? current_user : nil)
+    return order.name unless user && user.ordergroup
+
+    group_order = order.group_order(user.ordergroup)
+
+    use_url = options.has_key?(:host) || options.has_key?(:protocol)
+
     path = if options[:show] && group_order
-             group_order_path(group_order)
+             use_url ? group_order_url(group_order, options.slice(:host, :port, :protocol, :subdomain)) : group_order_path(group_order)
            elsif group_order
-             edit_group_order_path(group_order, order_id: order.id)
+             url_params = options.slice(:host, :port, :protocol, :subdomain).merge(order_id: order.id)
+             use_url ? edit_group_order_url(group_order, url_params) : edit_group_order_path(group_order, order_id: order.id)
            else
-             new_group_order_path(order_id: order.id)
+             url_params = options.slice(:host, :port, :protocol, :subdomain).merge(order_id: order.id)
+             use_url ? new_group_order_url(url_params) : new_group_order_path(order_id: order.id)
            end
-    options.delete(:show)
+
+    options.except!(:show, :host, :port, :protocol, :subdomain)
     name = block_given? ? capture(&block) : order.name
     path ? link_to(name, path, options) : name
   end
@@ -27,7 +37,7 @@ module GroupOrdersHelper
   # Return css class names for order result table
 
   def order_article_class_name(quantity, tolerance, result)
-    if quantity + tolerance > 0
+    if quantity + tolerance > 0 || result != 0
       result > 0 ? 'success' : 'failed'
     else
       'ignored'

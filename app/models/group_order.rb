@@ -37,15 +37,20 @@ class GroupOrder < ApplicationRecord
 
     # load prices and other stuff....
     data[:order_articles] = {}
+    data[:total_tolerance_cost] = 0
     order.articles_grouped_by_category.each do |_article_category, order_articles|
       order_articles.each do |order_article|
         # Get the result of last time ordering, if possible
         goa = group_order_articles.detect { |goa| goa.order_article_id == order_article.id }
 
+        unit_quantity = order_article.article.unit_quantity
+        extra_available = [0, (order_article.units * unit_quantity) - order_article.quantity].max
         # Build hash with relevant data
         data[:order_articles][order_article.id] = {
           price: order_article.article.fc_price,
-          unit: order_article.article.unit_quantity,
+          deposit: order_article.article.deposit || 0,
+          extra_available: extra_available,
+          unit: unit_quantity,
           quantity: (goa ? goa.quantity : 0),
           others_quantity: order_article.quantity - (goa ? goa.quantity : 0),
           used_quantity: (goa ? goa.result(:quantity) : 0),

@@ -11,6 +11,28 @@ module GroupOrderArticlesHelper
     end
   end
 
+  def group_order_article_show_result(goa)
+    goa.result
+  end
+
+  # editable amount in physical units (kg etc.), synced back to result via
+  # updateReceived in application_legacy.js
+  def group_order_article_edit_amount(goa)
+    unit = goa.order_article.article.unit
+    fc_unit = (::Unit.new(unit) rescue nil) || (::Unit.new(unit.downcase) rescue nil)
+    if fc_unit.nil?
+      goa.result
+    else
+      content_tag(:div, class: 'input-append') do
+        concat text_field_tag("a_#{goa.id}", (goa.result * fc_unit.scalar),
+                              class: 'input-nano',
+                              onkeyup: "updateReceived('#{goa.id}', #{fc_unit.scalar});",
+                              style: 'text-align:right;')
+        concat content_tag(:span, fc_unit.units, class: 'add-on')
+      end
+    end
+  end
+
   # show result quantity with its physical unit where the unit is parseable
   def group_order_article_show_amount(goa)
     unit = goa.order_article.article.unit

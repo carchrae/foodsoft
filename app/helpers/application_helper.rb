@@ -19,6 +19,10 @@ module ApplicationHelper
     I18n.l(time, format: format) unless time.nil? || format.nil?
   end
 
+  def format_datetime_timespec(time, format)
+    I18n.l(time, format: format) unless time.nil? || format.nil?
+  end
+
   def format_currency(amount)
     return nil if amount.nil?
 
