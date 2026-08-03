@@ -166,6 +166,16 @@ class Article < ApplicationRecord
       new_unit = new_article.unit
     end
 
+    # sometimes the supplier deposit is not known, so only update it if a nonzero value is given
+    new_deposit = new_article.deposit.to_f != 0 ? new_article.deposit : deposit
+
+    # new_article is an Article for file syncs but a SharedArticle for shared-db syncs
+    new_category = if new_article.is_a?(Article)
+                     new_article.article_category
+                   elsif new_article.respond_to?(:category)
+                     ArticleCategory.find_match(new_article.category)
+                   end
+
     Article.compare_attributes(
       {
         name: [name, new_article.name],
@@ -175,10 +185,11 @@ class Article < ApplicationRecord
         price: [price.to_f.round(2), new_price.to_f.round(2)],
         supplier_price: [supplier_price.to_f.round(2), new_supplier_price.to_f.round(2)],
         tax: [tax, new_article.tax],
-        deposit: [deposit.to_f.round(2), new_article.deposit.to_f.round(2)],
+        deposit: [deposit.to_f.round(2), new_deposit.to_f.round(2)],
         # take care of different num-objects.
         unit_quantity: [unit_quantity.to_s.to_f, new_unit_quantity.to_s.to_f],
-        note: [note.to_s, new_article.note.to_s]
+        note: [note.to_s, new_article.note.to_s],
+        article_category: [article_category, new_category]
       }
     )
   end
