@@ -62,7 +62,14 @@ class OrdersController < ApplicationController
   def new
     if params[:order_id]
       old_order = Order.find(params[:order_id])
-      @order = Order.new(supplier_id: old_order.supplier_id).init_dates
+      # copy more than just the articles, so people don't forget to set the
+      # correct end time-of-day and notes carry over
+      @order = Order.new(supplier_id: old_order.supplier_id,
+                         note: old_order.note,
+                         supplier_note: old_order.supplier_note,
+                         end_action: old_order.end_action,
+                         ends: old_order.ends,
+                         boxfill: old_order.boxfill).init_dates
       @order.article_ids = old_order.article_ids
     else
       @order = Order.new(supplier_id: params[:supplier_id]).init_dates

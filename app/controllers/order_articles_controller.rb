@@ -40,8 +40,14 @@ class OrderArticlesController < ApplicationController
     # quantities to zero.
     if @order_article.group_order_articles.count == 0
       @order_article.destroy
+    elsif @order_article.group_order_articles.sum(:quantity) + @order_article.group_order_articles.sum(:tolerance) == 0
+      # if nobody actually ordered it, we can safely destroy it
+      @order_article.destroy
     else
       @order_article.group_order_articles.each { |goa| goa.update_attribute(:result, 0) }
+      @order_article.update_attribute(:units_received, 0)
+      # yuck! but needed to update the cached 'price' (aka cost) of every group_order
+      @order_article.send(:update_ordergroup_prices)
       @order_article.update_results!
     end
   end

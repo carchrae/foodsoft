@@ -13,11 +13,15 @@ class OrderArticle < ApplicationRecord
   validate :article_and_price_exist
   validates :article_id, uniqueness: { scope: :order_id }
 
-  _ordered_sql = 'order_articles.units_to_order > 0 OR order_articles.units_billed > 0 OR order_articles.units_received > 0'
+  # != 0 (not > 0) so corrections and negative adjustments still show up
+  _ordered_sql = 'order_articles.units_to_order > 0 OR order_articles.units_billed > 0 OR order_articles.units_received != 0'
   scope :ordered, -> { where(_ordered_sql) }
   scope :ordered_or_member, lambda {
-                              includes(:group_order_articles).where("#{_ordered_sql} OR order_articles.quantity > 0 OR group_order_articles.result > 0")
+                              includes(:group_order_articles).where("#{_ordered_sql} OR order_articles.quantity != 0 OR group_order_articles.result != 0")
                             }
+  # use for user-facing listings; deliberately NOT a default_scope (the
+  # implicit join/order breaks aliased eager-load queries on Rails 7)
+  scope :sorted, -> { joins(:article).order('articles.name') }
 
   before_create :init_from_balancing
   after_destroy :update_ordergroup_prices
@@ -47,8 +51,10 @@ class OrderArticle < ApplicationRecord
   # Count quantities of belonging group_orders.
   # In balancing this can differ from ordered (by supplier) quantity for this article.
   def group_orders_sum
-    quantity = group_order_articles.collect(&:result).sum
-    { quantity: quantity, price: quantity * price.fc_price }
+    @group_orders_sum ||= begin
+      quantity = group_order_articles.collect(&:result).sum
+      { quantity: quantity, price: quantity * price.fc_price, net_price: quantity * price.price }
+    end
   end
 
   # Update quantity/tolerance/units_to_order from group_order_articles
@@ -97,6 +103,55 @@ class OrderArticle < ApplicationRecord
   # Calculate gross price for ordered qunatity.
   def total_gross_price
     units * price.unit_quantity * price.gross_price
+  end
+
+  # Calculate supplier charge for ordered quantity (case price basis).
+  def total_supplier_charge
+    units * price.supplier_price
+  end
+
+  def total_charges_to_members
+    group_orders_sum[:net_price]
+  end
+
+  # Rounding error per unit when splitting a case price to a per-unit price
+  # rounded up to the nearest cent.
+  def calculate_rounding_error(supplier_price, unit_quantity)
+    if unit_quantity != 0
+      cost_per = supplier_price / unit_quantity
+      cost_per_in_cent = cost_per * 100
+      cost_per_in_cent_rounded = cost_per_in_cent.ceil
+      (cost_per_in_cent_rounded - cost_per_in_cent) / 100
+    else
+      0
+    end
+  end
+
+  def price_rounding_error
+    cost_per = price.supplier_price / price.unit_quantity
+    cost_per_in_cent = cost_per * 100
+    cost_per_in_cent_rounded = cost_per_in_cent.ceil
+    (cost_per_in_cent_rounded - cost_per_in_cent) / 100
+  end
+
+  def total_price_rounding_error
+    units * price.unit_quantity * price_rounding_error
+  end
+
+  # true if the supplier price differs from the amount charged to members,
+  # allowing for rounding errors
+  def supplier_price_different_than_charged?
+    if units == 0
+      false
+    else
+      !price_balanced
+    end
+  end
+
+  def price_balanced
+    member_total = group_orders_sum
+    actual_price_per = price.price_rounded_up(price: total_supplier_charge, quantity: member_total[:quantity])
+    actual_price_per.to_f == price.price.to_f
   end
 
   def ordered_quantities_different_from_group_orders?(ordered_mark = '!', billed_mark = '?', received_mark = '?')
@@ -252,5 +307,9 @@ class OrderArticle < ApplicationRecord
     units = 0 if units < 0
     units = 0 if units == unit_quantity
     units
+  rescue StandardError => e
+    # bad data (e.g. unit_quantity 0) must not take down whole listings
+    logger.error("order_article=#{id} : failed to compute missing_units for #{article.name} #{article.id} : #{e}")
+    0
   end
 end

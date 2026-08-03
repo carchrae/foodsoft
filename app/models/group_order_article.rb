@@ -13,7 +13,13 @@ class GroupOrderArticle < ApplicationRecord
   validate :check_order_not_closed # don't allow changes to closed (aka settled) orders
   validates :quantity, :tolerance, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
+  # ordered here means the order was placed, not to be confused with sorted!
   scope :ordered, -> { includes(group_order: :ordergroup).order('groups.name') }
+
+  # use this whenever showing the results to a user
+  # (deliberately NOT a default_scope: the join breaks eager-loaded queries
+  # where `articles` gets aliased, e.g. during order close)
+  scope :sorted, -> { joins(order_article: :article).order('articles.name') }
 
   localize_input_of :result
 

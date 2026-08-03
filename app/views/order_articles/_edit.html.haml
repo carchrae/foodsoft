@@ -28,5 +28,7 @@
       = form.input :update_global_price, as: :boolean
       = f.input :order_number
   .modal-footer
+    = button_tag(id: 'updateSplitButton', type: 'button', class: 'btn', onclick: 'updateSplitPrice();') do
+      = t('articles.form.recalculate_price')
     = link_to t('ui.close'), '#', class: 'btn', data: {dismiss: 'modal'}
     = form.submit class: 'btn btn-primary'

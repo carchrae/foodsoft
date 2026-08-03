@@ -41,6 +41,9 @@ class Order < ApplicationRecord
   # 1. ...only transition in one direction (e.g. an order that has been `finished` currently cannot be reopened)
   # 2. ...be set to `closed` when having the `finished` state. (`received` is optional)
   scope :open, -> { where(state: 'open').order(ends: :desc) }
+  # open but not yet started — shown separately so members aren't confused by
+  # orders they cannot order from yet
+  scope :upcoming, -> { where(state: 'open').where('starts >= ?', Time.now).order(ends: :desc) }
   scope :finished, -> { where(state: %w[finished received closed]).order(ends: :desc) }
   scope :finished_not_closed, -> { where(state: %w[finished received]).order(ends: :desc) }
 
@@ -129,7 +132,7 @@ class Order < ApplicationRecord
   # sets up first guess of dates when initializing a new object
   # I guess `def initialize` would work, but it's tricky http://stackoverflow.com/questions/1186400
   def init_dates
-    self.starts ||= Time.now
+    self.starts ||= Time.zone.now
     if FoodsoftConfig[:order_schedule]
       # try to be smart when picking a reference day
       last = begin
@@ -207,9 +210,11 @@ class Order < ApplicationRecord
   # :fc, guess what...
   def sum(type = :gross)
     total = 0
-    if %i[net gross fc].include?(type)
+    if %i[net gross fc gross_price_supplier rounding_error tax deposit].include?(type)
       for oa in order_articles.ordered.includes(:article, :article_price)
-        quantity = oa.units * oa.price.unit_quantity
+        # member-facing sums are based on what members actually get, which in
+        # balancing can differ from what was ordered from the supplier
+        quantity = oa.group_orders_sum[:quantity]
         case type
         when :net
           total += quantity * oa.price.price
@@ -217,6 +222,14 @@ class Order < ApplicationRecord
           total += quantity * oa.price.gross_price
         when :fc
           total += quantity * oa.price.fc_price
+        when :gross_price_supplier
+          total += oa.units * oa.price.supplier_price
+        when :rounding_error
+          total += oa.calculate_rounding_error(oa.total_supplier_charge, oa.group_orders_sum[:quantity]) * oa.group_orders_sum[:quantity]
+        when :tax
+          total += quantity * oa.price.tax_cost
+        when :deposit
+          total += quantity * oa.price.deposit
         end
       end
     elsif %i[groups groups_without_markup].include?(type)
@@ -296,6 +309,42 @@ class Order < ApplicationRecord
       end
 
       update!(state: 'closed', updated_by: user, foodcoop_result: profit)
+    end
+  end
+
+  # Reopens the order for ordering after it was mistakenly closed for orders
+  # (state back to 'open'); recomputes results from scratch.
+  def unclose!(user)
+    update!(state: 'open', updated_by: user, foodcoop_result: nil)
+    order_articles.each do |oa|
+      oa.article_price = nil
+      oa.group_order_articles.each do |goa|
+        goa.result = nil
+        goa.save!
+      end
+      oa.update_results!
+    end
+  end
+
+  # Puts order state back to 'finished' and reverts the account charges made at
+  # close (credits each ordergroup what it was charged, including transport).
+  # The order stays closed for ordering, but accounting mistakes can be fixed
+  # and the order settled again.
+  def reopen!(user, transaction_type = nil)
+    raise I18n.t('orders.model.error_not_closed') unless closed?
+
+    transaction_note = I18n.t('orders.model.notice_reopen', name: name,
+                                                            ends: ends.strftime(I18n.t('date.formats.default')))
+
+    transaction do
+      group_orders.includes(:ordergroup).find_each do |group_order|
+        if group_order.ordergroup
+          price = group_order.total # increase account balance again
+          group_order.ordergroup.add_financial_transaction!(price, transaction_note, user, transaction_type)
+        end
+      end
+
+      update!(state: 'finished', updated_by: user, foodcoop_result: nil)
     end
   end
 

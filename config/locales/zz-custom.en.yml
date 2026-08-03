@@ -20,6 +20,9 @@ en:
   orders:
     fax:
       delivery_day: 'Delivery On: %{date}'
+    model:
+      error_not_closed: Order isn't already settled
+      notice_reopen: 'Order: %{name} - %{ends} (reopened)'
     form:
       note_placeholder: add any notes to be shown for co-op members
       supplier_note_placeholder: add any instructions to be emailed to the supplier
