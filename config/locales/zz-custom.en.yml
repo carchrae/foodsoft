@@ -7,6 +7,37 @@ en:
   articles:
     form:
       recalculate_price: Recalculate Price
+  documents:
+    order_fax:
+      rows:
+        - SKU
+        - Cases
+        - Name
+        - Price
+        - Subtotal
+      deliver_on: 'Delivery On: %{date}'
+      ordered_on: 'Order Date: %{date}'
+  orders:
+    fax:
+      delivery_day: 'Delivery On: %{date}'
+    form:
+      note_placeholder: add any notes to be shown for co-op members
+      supplier_note_placeholder: add any instructions to be emailed to the supplier
+  activerecord:
+    attributes:
+      order:
+        supplier_note: Supplier note
+  mailer:
+    order_result_supplier:
+      text: |
+        Hello,
+
+        %{foodcoop} would like to place an order.  Find our order attached.  Please confirm receipt.
+
+        %{supplier_note}
+
+        Kind regards,
+        %{user}
   shared:
     article_fields_price:
       price_warning: Supplier price does not equal Price * Unit.  You can use the 'Recalculate Price' button to update the price.

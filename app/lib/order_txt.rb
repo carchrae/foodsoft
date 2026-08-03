@@ -10,7 +10,7 @@ class OrderTxt
     contact = FoodsoftConfig[:contact].symbolize_keys
     text = I18n.t('orders.fax.heading', name: FoodsoftConfig[:name])
     text += "\n#{Supplier.human_attribute_name(:customer_number)}: #{supplier.customer_number}" if supplier.customer_number.present?
-    text += "\n" + I18n.t('orders.fax.delivery_day')
+    text += "\n" + I18n.t('orders.fax.delivery_day', date: @order.pickup.strftime(I18n.t('date.formats.long'))) unless @order.pickup.nil?
     text += "\n\n#{supplier.name}\n#{supplier.address}\n#{Supplier.human_attribute_name(:fax)}: #{supplier.fax}\n\n"
     text += '****** ' + I18n.t('orders.fax.to_address') + "\n\n"
     text += "#{FoodsoftConfig[:name]}\n#{contact[:street]}\n#{contact[:zip_code]} #{contact[:city]}\n\n"
@@ -19,7 +19,7 @@ class OrderTxt
                    I18n.t('orders.fax.name'))
     # now display all ordered articles
     @order.order_articles.ordered.includes(%i[article article_price]).each do |oa|
-      text += format("%8s %8d   %s\n", oa.article.order_number, oa.units_to_order.to_i, oa.article.name)
+      text += format("%8s %8.2f   %s\n", oa.article.order_number, oa.units, oa.article.name)
     end
     text
   end

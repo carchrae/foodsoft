@@ -84,9 +84,11 @@ class Mailer < ActionMailer::Base
     subject = I18n.t('mailer.order_result_supplier.subject', name: order.supplier.name)
     subject += " (#{I18n.t('activerecord.attributes.order.pickup')}: #{format_date(order.pickup)})" if order.pickup
 
+    # replies go to the group inbox, not the individual orderer; bcc keeps a copy
     mail to: order.supplier.email,
          cc: user,
-         reply_to: user,
+         bcc: FoodsoftConfig[:email_from],
+         reply_to: FoodsoftConfig[:email_from],
          subject: subject
   end
 
@@ -157,7 +159,8 @@ class Mailer < ActionMailer::Base
   # separate method to allow plugins to mess with the attachments
   def add_order_result_attachments(order, options = {})
     attachments['order.pdf'] = OrderFax.new(order, options).to_pdf
-    attachments['order.csv'] = OrderCsv.new(order, options).to_csv
+    # suppliers only want the PDF; the csv attachment just confused people
+    # attachments['order.csv'] = OrderCsv.new(order, options).to_csv
   end
 
   # separate method to allow plugins to mess with the text
