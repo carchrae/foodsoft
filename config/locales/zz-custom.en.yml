@@ -152,9 +152,6 @@ en:
     shared:
       article_fields_price:
         price_already_correct: This button lets you quickly recalculate the price = (supplier price/unit), however the price is already correct.
-  layouts:
-    foodsoft: Food coop
-    logo: Food Co-op
   login:
     join:
       body: '<p>
