@@ -3,12 +3,15 @@
 module ApplicationHelper
   include PathHelper
 
+  # display formats come from the :short locale keys (overridden in
+  # zz-custom.en.yml); the :default formats stay ISO so date-picker form
+  # fields keep round-tripping
   def format_time(time = Time.now)
-    I18n.l(time, format: :foodsoft_datetime) unless time.nil?
+    I18n.l(time, format: :short) unless time.nil?
   end
 
   def format_date(time = Time.now)
-    I18n.l(time.to_date) unless time.nil?
+    I18n.l(time.to_date, format: :short) unless time.nil?
   end
 
   def format_datetime(time = Time.now)

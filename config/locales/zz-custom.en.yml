@@ -6,6 +6,12 @@
 # values win; the filename deliberately does not match the available_locales
 # glob, so it adds no phantom locale.
 en:
+  date:
+    formats:
+      short: '%a, %d %b %Y'
+  time:
+    formats:
+      short: '%a %l:%M %P %d %b'
   activerecord:
     attributes:
       article:
