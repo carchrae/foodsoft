@@ -21,11 +21,14 @@ class ArticlePrice < ApplicationRecord
   # @!attribute order_articles
   #   @return [Array<OrderArticle>] Order articles this price is associated with.
   has_many :order_articles
+  # @!attribute supplier_price
+  #   @return [Number] Supplier's case price
+  #   @see Article#supplier_price
 
   localize_input_of :price, :tax, :deposit
 
   validates :price, :tax, :deposit, :unit_quantity, presence: true
-  validates :price, numericality: { greater_than_or_equal_to: 0 }
+  validates :price, :supplier_price, numericality: { greater_than_or_equal_to: 0 }
   validates :unit_quantity, numericality: { greater_than: 0 }
   validates :deposit, :tax, numericality: true
 end

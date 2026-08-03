@@ -1,0 +1,16 @@
+# Custom locale keys for our patch series (new keys only — wording OVERRIDES of
+# upstream en.yml keys also belong here, so upstream locale changes never conflict).
+# The zz- prefix keeps this file loading after en.yml; the filename deliberately
+# does not match the `{??,???}{-*,}.yml` available_locales glob, so it adds no
+# phantom locale.
+en:
+  articles:
+    form:
+      recalculate_price: Recalculate Price
+  shared:
+    article_fields_price:
+      price_warning: Supplier price does not equal Price * Unit.  You can use the 'Recalculate Price' button to update the price.
+  js:
+    shared:
+      article_fields_price:
+        price_already_correct: This button lets you quickly recalculate the price = (supplier price/unit), however the price is already correct.

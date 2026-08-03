@@ -15,6 +15,8 @@
     / TODO labels
 
     = render partial: 'shared/article_fields_price', locals: {f: f}
+    = button_tag(id: 'updateSplitButton', type: 'button', class: 'btn', onclick: 'updateSplitPrice();') do
+      = t('articles.form.recalculate_price')
 
     = f.input :origin
     = f.input :manufacturer
