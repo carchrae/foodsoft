@@ -1,12 +1,52 @@
-# Custom locale keys for our patch series (new keys only — wording OVERRIDES of
-# upstream en.yml keys also belong here, so upstream locale changes never conflict).
-# The zz- prefix keeps this file loading after en.yml; the filename deliberately
-# does not match the `{??,???}{-*,}.yml` available_locales glob, so it adds no
-# phantom locale.
+# Custom locale keys for our patch series: new keys for custom features AND
+# wording overrides of upstream en.yml keys (co-op terminology: settle/accounts,
+# split sheets, bin sheets, delivery days, ...). Keeping them here instead of
+# editing en.yml means upstream locale changes never conflict.
+# The zz- prefix + the initializer force this file to load after en.yml so its
+# values win; the filename deliberately does not match the available_locales
+# glob, so it adds no phantom locale.
 en:
+  activerecord:
+    attributes:
+      article:
+        supplier_price: Supplier price
+        tax: Tax
+      article_price:
+        tax: Tax
+      group_order:
+        price: Your Total
+      group_order_article:
+        total_price: Total
+      invoice:
+        deliveries: Delivery
+        deposit: Deduct Charges
+        deposit_credit: Refund Credits
+      order:
+        pickup: Delivery
+        split_effort: Splits
+        supplier_note: Supplier note
+      ordergroup:
+        available_funds: Available funds
+      task:
+        done: Mark as Completed
+  admin:
+    search_placeholder: name ..
   articles:
     form:
       recalculate_price: Recalculate Price
+    index:
+      change_supplier: Change supplier ...
+      search_placeholder: enter search
+    sync:
+      outlist:
+        alert_used: Warning, %{article} is used in an open order and the name will be appended with the word UNAVAILABLE
+      update:
+        body: 'Every article is shown twice: old values are gray, while the text fields contain updated values. Differences with the old articles are marked yellow.  <i class="icon icon-shopping-cart"></i> indicates the article is used in an open order'
+  config:
+    hints:
+      tax_default: Default tax percentage for new articles.
+    keys:
+      tax_default: Default tax
   documents:
     order_by_articles:
       filename: Order %{name}-%{date} - by articles
@@ -15,130 +55,276 @@ en:
       filename: Bin Sheets %{name} - %{date}
       sum: Estimated Total (may be adjusted depending on actual received and spoilage)
       title: '%{name} Order - %{date} - ordering by %{user_name}'
+    order_fax:
+      deliver_on: 'Delivery On: %{date}'
+      ordered_on: 'Order Date: %{date}'
+      rows:
+      - SKU
+      - Cases
+      - Name
+      - Price
+      - Subtotal
     order_matrix:
       filename: Splitsheets %{name}-%{date}
       heading: Delivery Checklist Page
-      rows:
-        - Article
-        - Unit
-        - Unit quantity
-        - Unit Price
-        - Case Price
-        - Cases
-        - Count/Weight
-        - Spoilage (%)
-      title: 'Split sheets: %{name} - %{date} - Ordered by %{user_name}'
       note: ''
-    order_fax:
       rows:
-        - SKU
-        - Cases
-        - Name
-        - Price
-        - Subtotal
-      deliver_on: 'Delivery On: %{date}'
-      ordered_on: 'Order Date: %{date}'
-  orders:
-    fax:
-      delivery_day: 'Delivery On: %{date}'
-    model:
-      error_not_closed: Order isn't already settled
-      notice_reopen: 'Order: %{name} - %{ends} (reopened)'
-    index:
-      upcoming_orders: Upcoming
-    articles:
-      prices: Net/gross/supplier price
-    show:
-      swap-articles: Swap articles
-    swap:
-      title: 'Swap articles: %{name}'
-      updated_order: The order has been updated with any substitutions
-      order_closed: You cannot change an order after it is closed.  Make any changes by editing the article on %{url}
-    form:
-      note_placeholder: add any notes to be shown for co-op members
-      supplier_note_placeholder: add any instructions to be emailed to the supplier
-  activerecord:
-    attributes:
-      article:
-        supplier_price: Supplier price
-      order:
-        supplier_note: Supplier note
-        split_effort: Splits
-      ordergroup:
-        available_funds: Available funds
+      - Article
+      - Unit
+      - Unit quantity
+      - Unit Price
+      - Case Price
+      - Cases
+      - Count/Weight
+      - Spoilage (%)
+      title: 'Split sheets: %{name} - %{date} - Ordered by %{user_name}'
   finance:
     balancing:
+      close:
+        notice: Order was settled succesfully, the balances of members have been charged.
+      edit_results_by_articles:
+        gross: Supplier
+        net: Members
       group_order_articles:
         total_fc: Charged to members
         total_supplier: Total paid to supplier
+      invoice:
+        minus_refund_calculated: 'Deduct Charges:'
+        new: Add invoice
+        plus_refund_credited: 'Refund Credits:'
+        refund_adjusted_amount: 'Net Charge:'
+      new:
+        confirm_reopen_order: Reopen Order
+      orders:
+        clear: Settle Accounts
+        cleared: Accounted (%{amount})
       reopen:
         alert: 'An error occured while reopening: %{message}'
         notice: Order was reopened succesfully, the balances of members account have been refunded.
-      new:
-        confirm_reopen_order: Reopen Order
+      summary:
+        duration: Order date %{ends}
+        fc_profit: Balance
+        groups_amount: 'Members Paid:'
+        with_extra_charge: 'with markup:'
+        without_extra_charge: ':'
+    financial_transactions:
+      new_collection:
+        add_all_ordergroups: Add all member accounts
+        new_ordergroup: Add another member
+        sidebar: Here you can update many member's accounts at the same time. For example, add a monthly charge like a member fee to each member's account.
+        title: Add transaction
+    invoices:
+      form:
+        attachment_hint: Only JPEG and PDF are allowed.
+  group_order_articles:
+    form:
+      amount_change_for: Add Member to Order for %{article}
+  group_orders:
+    form:
+      total_tolerance: Everyone's Tolerance
+      units_full: Filled
+      units_total: Everyone Wants
+    show:
+      articles:
+        order_nopen_title: The amount you will get considering the current orders of everyone else
+        order_open: Available to You
+        unit_price: Price
+      title: '%{order} for %{ordergroup}'
   helpers:
     tasks:
-      required_users_unconfirmed: "%{count} members have not confirmed"
-  mailer:
-    order_result:
-      subject: 'Order %{name} %{pickup}'
-      html0: |
-        Dear %{user},
-        <br/>
-        <p>%{message}</p>
-        <p>%{orderuser}</p>
-      html1: |-
-        o Total sum: %{sum}
-
-        You can view the order online: %{order_url}
-
-        Kind regards from %{foodcoop}.
-    order_result_supplier:
-      text: |
-        Hello,
-
-        %{foodcoop} would like to place an order.  Find our order attached.  Please confirm receipt.
-
-        %{supplier_note}
-
-        Kind regards,
-        %{user}
-  shared:
-    article_fields_price:
-      price_warning: Supplier price does not equal Price * Unit.  You can use the 'Recalculate Price' button to update the price.
-    upcoming_orders:
-      title: Upcoming orders
-      no_upcoming_orders: There are no upcoming orders
-    closed_orders:
-      title: Closed
-      no_closed_orders: There are no orders to show
-      who_ordered: Who ordered?
-      total_sum: Total cost
-      not_enough_apples: Attention your ordergroup has too few apple points to place an order!
+      required_users: '%{count} members are still needed'
+      required_users_unconfirmed: '%{count} members have not confirmed'
+  home:
+    index:
+      my_ordergroup:
+        title: My Account
+    start_nav:
+      finances:
+        accounts: Member Accounts
+        settle: Order Accounting
   js:
     shared:
       article_fields_price:
         price_already_correct: This button lets you quickly recalculate the price = (supplier price/unit), however the price is already correct.
+  layouts:
+    foodsoft: Food coop
+    logo: Food Co-op
   login:
     join:
-      title: Join our food-coop
-      body: |
-        <p>
+      body: '<p>
+
         Would you like to join our food-coop?
+
         </p>
+
         <p>
+
         Please read our new members guide to understand more about how our co-op operates.
+
         <br/> <a class="btn btn-info" target="_blank" href="https://docs.google.com/document/d/e/2PACX-1vSZ_XkP-7bNZ6S5tfMFKRClYpmaNRJABV992MMjO3FuR8VxXxyZCGw1BANVd8lNwvjDjbHBxYrgHhWa/pub">Learn</a>
+
         </p>
+
         <p>
+
         If it sounds like the co-op is a good fit for you and your family, then please apply by filling out this form
+
         <br/>
+
         <a href="https://forms.gle/AaNWmUacArMY6moH6" class="btn btn-success">Apply</a>
+
         </p>
+
         <p>
+
         We would like you to understand that the co-op does not always take on new members as we want to keep the size managable.
+
         That said, if you do not hear back from us (sometimes we are busy or miss emails) please email mlbg-membership@googlegroups.com
+
         </p>
+
+        '
+      title: Join our food-coop
+  mailer:
+    negative_balance:
+      text: 'Dear %{group},
+
+
+        Your account balance has dropped below zero due to a recent order on %{when}: %{balance}
+
+
+        There was a charge of %{amount} for "%{note}" by %{user}.
+
+
+        Please make a deposit to your account as soon as possible.
+
+
+
+        Kind regards from %{foodcoop}.
+
+        '
+    order_result:
+      html0: 'Dear %{user},
+
+        <br/>
+
+        <p>%{message}</p>
+
+        <p>%{orderuser}</p>
+
+        '
+      html1: 'o Total sum: %{sum}
+
+
+        You can view the order online: %{order_url}
+
+
+        Kind regards from %{foodcoop}.'
+      subject: Order %{name} %{pickup}
+      text0: 'Dear %{ordergroup},
+
+
+        The order for "%{order}" has been closed by %{user}.
+
+
+        The following articles have been ordered for your ordergroup:
+
+        '
+      text1: 'o Total sum: %{sum}
+
+
+        You can view the order online: %{order_url}
+
+
+
+        Kind regards from %{foodcoop}.'
+    order_result_supplier:
+      text: 'Hello,
+
+
+        %{foodcoop} would like to place an order.  Find our order attached.  Please confirm receipt.
+
+
+        %{supplier_note}
+
+
+        Kind regards,
+
+        %{user}
+
+        '
+  navigation:
+    finances:
+      accounts: Member Accounts
+      balancing: Order Accounting
+      invoices: Supplier Invoices
+  orders:
+    articles:
+      prices: Net/gross/supplier price
+    fax:
+      amount: Cases
+      delivery_day: 'Delivery On: %{date}'
+    form:
+      note_placeholder: add any notes to be shown for co-op members
+      prices: Prices (net/coop/supplier)
+      supplier_note_placeholder: add any instructions to be emailed to the supplier
+    index:
+      upcoming_orders: Upcoming
+    model:
+      error_not_closed: Order isn't already settled
+      notice_close: 'Order: %{name} - %{ends}'
+      notice_reopen: 'Order: %{name} - %{ends} (reopened)'
+    show:
+      articles: Order Summary
+      sort_article: Group by Article
+      sort_group: Group by Member
+      swap-articles: Swap articles
+    swap:
+      order_closed: You cannot change an order after it is closed.  Make any changes by editing the article on %{url}
+      title: 'Swap articles: %{name}'
+      updated_order: The order has been updated with any substitutions
+  pickups:
+    document:
+      filename: Splitsheets-%{date}
+      title: Split sheet for %{date}
+    index:
+      article_pdf: Split Sheets for Articles (for Receipts) PDF
+      group_pdf: Bin Sheets (for Members) PDF
+      matrix_pdf: Old Split Sheets (not used) PDF
+      title: Delivery/Split Days
   sessions:
     new:
       join: Join our coop
+  shared:
+    article_fields_price:
+      price_warning: Supplier price does not equal Price * Unit.  You can use the 'Recalculate Price' button to update the price.
+    articles_by:
+      price_sum: Cost
+    closed_orders:
+      no_closed_orders: There are no orders to show
+      not_enough_apples: Attention your ordergroup has too few apple points to place an order!
+      title: Closed
+      total_sum: Total cost
+      who_ordered: Who ordered?
+    open_orders:
+      title: Open orders
+      total_sum: Total cost
+    order_download_button:
+      article_pdf: Split Sheets for Articles (for Reciepts) PDF
+      fax_csv: Supplier Order CSV
+      fax_pdf: Supplier Order PDF
+      fax_txt: Supplier Order text
+      group_pdf: Bin Sheets (for Members) PDF
+      matrix_pdf: Old Split Sheets (not used) PDF
+    task_list:
+      done_q: Mark Completed
+    upcoming_orders:
+      no_upcoming_orders: There are no upcoming orders
+      title: Upcoming orders
+  simple_form:
+    hints:
+      order_article:
+        units_to_order: If you change the received amount, you will need to update each member's amount received so members are charged the correct amount.
+  tasks:
+    show:
+      reject_task: Find someone else to do it
