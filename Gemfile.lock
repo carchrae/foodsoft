@@ -208,6 +208,10 @@ GEM
       railties (>= 5)
     doorkeeper-i18n (5.2.7)
       doorkeeper (>= 5.2)
+    dotenv (2.8.1)
+    dotenv-rails (2.8.1)
+      dotenv (= 2.8.1)
+      railties (>= 3.2)
     email_reply_trimmer (0.1.13)
     erubi (1.12.0)
     eventmachine (1.0.9.1)
@@ -350,6 +354,7 @@ GEM
       ast (~> 2.4.1)
       racc
     pdf-core (0.9.0)
+    pg (1.6.3)
     polyglot (0.3.5)
     prawn (2.4.0)
       pdf-core (~> 0.9.0)
@@ -644,6 +649,7 @@ DEPENDENCIES
   date_time_attribute
   doorkeeper
   doorkeeper-i18n
+  dotenv-rails
   exception_notification
   factory_bot_rails
   faker
@@ -673,6 +679,7 @@ DEPENDENCIES
   mysql2
   net-ftp
   net-http
+  pg
   prawn
   prawn-table
   pry-rescue
