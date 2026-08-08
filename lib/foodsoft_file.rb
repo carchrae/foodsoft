@@ -24,40 +24,76 @@ class FoodsoftFile
     end
   end
 
+  # header labels used to locate columns in newer Horizon catalogues
+  HORIZON_HEADER_COLUMNS = {
+    'code' => :order_number,
+    'brand name' => :manufacturer,
+    'sku description' => :name,
+    'catalogue description' => :note,
+    'case pack' => :unit_quantity,
+    'unit size' => :unit,
+    'unit price' => :price
+  }.freeze
+
   def self.parseHorizon(file, options = {})
+    row_to_index = ('a'..'z').zip(0..25).to_h
+    # legacy catalogue layout (up to ~2024): Bulk column at E, data shifted
+    # one right of the header labels, taxes at M/N
+    cols = {
+      order_number: row_to_index['b'],
+      manufacturer: row_to_index['c'],
+      name: row_to_index['d'],
+      note: row_to_index['g'],
+      unit_quantity: row_to_index['h'],
+      unit: row_to_index['i'],
+      price: row_to_index['j'],
+      pst: row_to_index['m'],
+      gst: row_to_index['n']
+    }
+
     SpreadsheetFile.parse file, options do |row, row_index|
-      next if row[2].blank?
+      headers = row.map { |cell| cell.to_s.gsub(/\s+/, ' ').strip }
+      if headers.include?('Code') && headers.include?('Unit Price')
+        # In the legacy catalogue the header labels sit one column left of the
+        # data (merged cells), so keep the static mapping for it; it is
+        # recognisable by 'Bulk' appearing before 'Catalogue Description'.
+        bulk_index = headers.index('Bulk')
+        note_index = headers.index('Catalogue Description')
+        unless bulk_index && note_index && bulk_index < note_index
+          headers.each_with_index do |header, index|
+            key = HORIZON_HEADER_COLUMNS[header.downcase]
+            key ||= :pst if header.start_with?('P (')
+            key ||= :gst if header.start_with?('T (')
+            cols[key] = index if key
+          end
+        end
+        next
+      end
 
-      row_to_index = ('a'..'z').zip(0..25).to_h
-      map = lambda do |row|
+      next if row[cols[:manufacturer]].blank?
+
+      begin
         tax = 0
-        tax += 5 if row[row_to_index['n']]
-        tax += 7 if row[row_to_index['m']]
+        tax += 5 if row[cols[:gst]].present?
+        tax += 7 if row[cols[:pst]].present?
 
-        unit_quantity = row[row_to_index['h']]
+        unit_quantity = row[cols[:unit_quantity]]
         # annoying import inconsistency, EA means UQ = 1
         unit_quantity = 1 if (unit_quantity == 'EA')
 
-        price = row[row_to_index['j']]
-
-        parsed = {
-          order_number: row[row_to_index['b']],
-          name: row[row_to_index['d']],
-          note: row[row_to_index['g']],
-          manufacturer: row[row_to_index['c']],
+        article = {
+          order_number: row[cols[:order_number]],
+          name: row[cols[:name]],
+          note: row[cols[:note]],
+          manufacturer: row[cols[:manufacturer]],
           # origin: 0,
-          unit: row[row_to_index['i']],
+          unit: row[cols[:unit]],
           unit_quantity: unit_quantity,
-          price: price,
+          price: row[cols[:price]],
           tax: tax,
           # deposit:
           article_category: 'Grocery'
         }
-        puts "row #{row.to_s} #{parsed.to_s}"
-        return parsed
-      end
-      begin
-        article = map.call(row)
         status = nil
         next unless article[:order_number].present? && article[:price].to_f != 0
       rescue => error
