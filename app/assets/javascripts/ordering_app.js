@@ -33,6 +33,7 @@
     openOrders: 'Open orders',
     ordersCount: function (n) { return n + (n === 1 ? ' open order' : ' open orders'); },
     noOpenOrders: 'There are no open orders right now.',
+    jumpTo: 'Jump to order…',
     staleOrder: function (name) { return 'Someone else in your group saved the ' + name + ' order in the meantime.'; },
     help: 'How ordering works',
     closes: 'Order closes',
@@ -282,6 +283,7 @@
         toast: null,
         showRangeDialog: false,
         showCancelDialog: false,
+        jumpTo: '',            // combined page: order id picked in the jump select
         T: T
       };
     },
@@ -591,6 +593,18 @@
         if (toSave) this.$nextTick(function () { self.save(true); });
       },
 
+      // scroll an order section to just below the sticky toolbar
+      jumpToOrder: function () {
+        var id = this.jumpTo;
+        this.jumpTo = '';
+        if (!id) return;
+        var target = document.getElementById('order-' + id);
+        var toolbar = document.querySelector('.oa-toolbar');
+        if (!target) return;
+        var offset = (toolbar ? toolbar.getBoundingClientRect().height : 0) + 6;
+        window.scrollTo(0, target.getBoundingClientRect().top + window.pageYOffset - offset);
+      },
+
       addExtra: function () {
         this.showRangeDialog = false;
         this.filter = 'mine';
@@ -754,7 +768,7 @@
       '      <a href="#" class="oa-classic" @click.prevent="switchToClassic">{{ T.classic }}</a>' +
       '      <button type="button" class="oa-linkbtn" @click="showHelp = !showHelp" :aria-expanded="showHelp">?</button>' +
       '    </div>' +
-      '    <p class="oa-meta">{{ T.ordersCount(orders.length) }}<span v-for="o in orders" :key="o.order.id"> · <a :href="\'#order-\' + o.order.id">{{ o.order.name }}</a></span></p>' +
+      '    <p class="oa-meta">{{ T.ordersCount(orders.length) }}</p>' +
       '    <div class="oa-help" v-if="showHelp">' +
       '      <h3>{{ T.help }}</h3>' +
       '      <div v-html="T.helpHtml"></div>' +
@@ -765,6 +779,10 @@
       // ---- toolbar (sticky) -----------------------------------------------
       '  <div class="oa-toolbar" v-if="state === \'ready\'">' +
       '    <input class="oa-search" type="search" inputmode="search" autocomplete="off" :placeholder="T.search" v-model.trim="search">' +
+      '    <select class="oa-category-select oa-jump" v-if="combined && orders.length > 1" v-model="jumpTo" @change="jumpToOrder">' +
+      '      <option value="">{{ T.jumpTo }}</option>' +
+      '      <option v-for="o in orders" :key="o.order.id" :value="o.order.id">{{ o.order.name }}<template v-if="o.order.ends_human"> · {{ o.order.ends_human }}</template></option>' +
+      '    </select>' +
       '    <div class="oa-filters">' +
       '      <div class="oa-chips" role="tablist">' +
       '        <button type="button" class="oa-chipbtn" :class="{ active: filter === \'all\' }" @click="filter = \'all\'">{{ T.all }}</button>' +

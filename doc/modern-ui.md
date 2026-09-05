@@ -57,7 +57,8 @@ order is a section (name, closing time, pickup, households so far, note) with
 its category groups and article cards underneath, and search, the Mine / To
 fill filters and the category picker work across all of them. The footer sums
 everything: total, credit (funds excluding all open orders minus the page's
-totals), the helping gauge, Save and Cancel. Save sends one request per order
+totals), the helping gauge, Save and Cancel. A "Jump to order…" select in the sticky
+toolbar scrolls to an order's section. Save sends one request per order
 that changed, each with its own lock version, in sequence; a stale conflict
 names the order. The dashboard links to it with "Order from all at once" when
 there is more than one open order.
