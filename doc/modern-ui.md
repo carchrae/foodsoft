@@ -154,6 +154,9 @@ articles are tagged with their order id and stock flag on the client.
 * Stepper labels include the current amount and unit ("At least 2×454g",
   "Up to 3×454g"). The category picker is hidden when an order has a single
   category. On desktop the unit price is larger and vertically centred.
+* Article cards flow into two columns from 660px and three from 1100px, with
+  the same stacked card layout as on phones (slightly more compact steppers in
+  grid mode). The earlier desktop "row" layout is gone.
 * Compact header on phones for the modern pages only: the modern views add an
   `fs-modern` class to `<html>` from `<head>`, and CSS in `ordering_app.scss`
   shrinks the logo, puts the user menu / Help / Feedback on the same row,

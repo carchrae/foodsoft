@@ -461,23 +461,55 @@ $oa-tap: 44px;
   }
 }
 
+// ---- card internals, same at every width: info + price/chips on top, steppers below,
+// the "You get" sentence centred underneath with one line reserved
+.oa .oa-article-aside { flex: 0 0 35%; width: 35%; }
+.oa .oa-article-main { min-height: 58px; }   // name, maker line and note
+.oa .oa-article-side { flex-basis: 100%; }
+.oa .oa-controls { justify-content: space-between; gap: 10px 16px; }
+.oa .oa-controls .oa-stepper:only-child { margin-right: auto; }
+.oa .oa-controls.has-progress { margin: 0; padding: 6px 6px 8px; }
+.oa .oa-line { min-height: 1.5em; }
+.oa .oa-line.is-empty { visibility: hidden; }
+.oa .oa-outcome { text-align: center; width: 100%; }
+
+// ---- two columns of cards from ~660px, three from ~1100px ------------------------------
+@media (min-width: 660px) {
+  .oa .oa-category {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 0 8px 8px;
+    background: $oa-bg;
+  }
+  // slightly more compact steppers so both fit side by side in a half-width card
+  .oa .oa-step { width: 40px; height: 40px; font-size: 20px; }
+  .oa .oa-num { width: 48px; height: 40px; font-size: 17px; }
+  .oa .oa-stepper-row { border-radius: 20px; }
+  .oa .oa-controls { gap: 10px 12px; }
+  .oa .oa-category-title { grid-column: 1 / -1; margin: 0 -8px; }
+  .oa .oa-article {
+    margin: 0;
+    border: 1px solid $oa-line;
+    border-left-width: 4px;
+    border-radius: 8px;
+    background: #fff;
+    // cards are distinct on their own, no alternating shade
+    &:nth-of-type(even) { background: #fff; }
+    &.is-mine, &.is-mine:nth-of-type(even) { background: #fbfdf8; }
+  }
+}
+@media (min-width: 1100px) {
+  .oa .oa-category { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 // ---- layout tweaks -------------------------------------------------------------
 @media (max-width: 767px) {
   // bootstrap 2 pads the body by 20px on phones; let the list run edge to edge
   .oa { margin-left: -20px; margin-right: -20px; }
   .oa .oa-category-title { top: 100px; }
   .oa .oa-toolbar:has(.oa-jump) ~ .oa-list .oa-category-title { top: 144px; }
-  .oa .oa-article-aside { flex: 0 0 35%; width: 35%; }
-  // room for name, maker line and note, so steppers sit at the same height on every card
-  .oa .oa-article-main { min-height: 58px; }
   .oa .oa-title { white-space: normal; font-size: 18px; }
-  .oa .oa-article-side { flex-basis: 100%; }
-  .oa .oa-controls { justify-content: space-between; gap: 10px 16px; }
-  .oa .oa-controls .oa-stepper:only-child { margin-right: auto; }
-  .oa .oa-controls.has-progress { margin: 0; padding: 6px 6px 8px; }
-  // keep the space for one line of the "You get" sentence so cards don't jump
-  .oa .oa-line { min-height: 1.5em; }
-  .oa .oa-line.is-empty { visibility: hidden; }
   // two rows: total + credit above, gauge + buttons below
   .oa .oa-footer {
     display: grid;
@@ -503,7 +535,6 @@ $oa-tap: 44px;
   .oa .oa-category-select { flex: 1 1 110px; min-width: 110px; }
   .oa .oa-btn.oa-cancel { height: 40px; line-height: 38px; font-size: 14px; padding: 0 12px; border-color: lighten($oa-red, 30%); }
   .oa .oa-save { height: 40px; line-height: 38px; padding: 0 18px; }
-  .oa .oa-outcome { text-align: center; width: 100%; }
   .oa .oa-gauge { flex-direction: column; align-items: center; gap: 2px; }
   .oa .oa-gauge .oa-label { font-size: 10px; }
   .oa .oa-gauge-wrap { gap: 8px; }
@@ -519,22 +550,5 @@ $oa-tap: 44px;
   .oa .oa-filters { flex: 0 1 auto; }
   .oa .oa-toolbar .oa-jump { flex: 0 0 260px; height: 40px; border-radius: 20px; }
   .oa .oa-category-title { top: 57px; }
-  // two columns: info on the left with the "You get" sentence pinned to the
-  // bottom, steppers on the right
-  .oa .oa-article {
-    padding-left: 16px;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "main controls" "line controls";
-    column-gap: 24px;
-    row-gap: 6px;
-  }
-  .oa .oa-article-main { grid-area: main; align-items: center; }
-  .oa .oa-article-aside { justify-content: center; gap: 8px; }
-  .oa .oa-article-price { font-size: 20px; .oa-per { font-size: 13px; } }
-  .oa .oa-article-side { display: contents; }
-  .oa .oa-controls { grid-area: controls; align-self: start; }
-  .oa .oa-line { grid-area: line; align-self: end; justify-self: start; margin-top: 0; display: block; }
-  .oa .oa-line.is-empty { visibility: hidden; }
-  .oa .oa-outcome { text-align: left; }
+  .oa .oa-article-price { font-size: 18px; .oa-per { font-size: 12px; } }
 }
