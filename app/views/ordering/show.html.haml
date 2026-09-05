@@ -1,0 +1,10 @@
+-# Modern ordering page. Everything is rendered client-side by ordering_app.js
+-# from the JSON at data-url; this shell only exists so the page has a URL.
+- title @order.name, false
+#ordering-app{data: {url: data_ordering_path(@order, (params[:stock_order].present? ? {stock_order: 1} : {})), celebrate: image_path('heyeeyeeyyeyah.gif')}}
+  .oa-boot
+    %p.muted Loading #{@order.name}…
+    %noscript
+      .alert.alert-danger
+        This page needs JavaScript.
+        = link_to 'Use the classic ordering page instead', new_group_order_path(order_id: @order.id)

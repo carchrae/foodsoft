@@ -1,0 +1,9 @@
+-# Modern dashboard. Rendered client-side by dashboard_app.js from data-url.
+- title t('home.index.title'), false
+#dashboard-app{data: {url: data_dashboard_path}}
+  .da-boot
+    %p.muted Loading…
+    %noscript
+      .alert.alert-danger
+        This page needs JavaScript.
+        = link_to 'Use the classic dashboard instead', root_path(classic: 1)

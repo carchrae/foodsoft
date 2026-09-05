@@ -1,0 +1,232 @@
+// Styles for the modern dashboard (dashboard_app.js). Scoped under .da so
+// nothing leaks into the classic pages. Shares its palette with ordering_app.
+
+$da-green: #78b74e;
+$da-green-dark: #468847;
+$da-green-bg: #dff0d8;
+$da-red: #b94a48;
+$da-red-bg: #f2dede;
+$da-amber: #c09853;
+$da-amber-bg: #fcf8e3;
+$da-ink: #333;
+$da-muted: #777;
+$da-line: #e5e5e5;
+$da-bg: #f7f7f5;
+$da-radius: 10px;
+$da-tap: 44px;
+
+.da-switch-banner {
+  margin: 0 0 10px;
+  .btn i { margin-right: 4px; }
+}
+
+.da {
+  color: $da-ink;
+  padding-bottom: 24px;
+  -webkit-tap-highlight-color: transparent;
+
+  *, *:before, *:after { box-sizing: border-box; }
+  h1, h2, h3, h4 { line-height: 1.2; }
+  .da-muted, small { color: $da-muted; }
+  .da-ok { color: $da-green-dark; }
+  .da-bad { color: $da-red; }
+  .da-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: $da-muted; font-weight: 600; }
+
+  // ---- generic pieces ---------------------------------------------------------
+  .da-card {
+    background: #fff;
+    border: 1px solid $da-line;
+    border-radius: $da-radius;
+    padding: 12px 14px;
+    margin: 0 0 10px;
+  }
+  .da-section {
+    margin: 18px 0 0;
+    > h2 {
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: $da-muted;
+      margin: 0 0 8px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      small { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 13px; }
+      small a { color: $da-green-dark; }
+    }
+  }
+  .da-empty { color: $da-muted; padding: 6px 0; }
+  .da-alert {
+    padding: 10px 12px;
+    border-radius: $da-radius;
+    margin: 10px 0;
+    border: 1px solid transparent;
+  }
+  .da-alert-danger { background: $da-red-bg; color: $da-red; border-color: darken($da-red-bg, 8%); }
+  .da-alert-warning { background: $da-amber-bg; color: darken($da-amber, 15%); border-color: darken($da-amber-bg, 10%); }
+
+  .da-btn {
+    display: inline-block;
+    height: $da-tap;
+    line-height: $da-tap - 2px;
+    padding: 0 18px;
+    border-radius: $da-tap / 2;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: $da-ink;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover { text-decoration: none; background: #f7f7f7; }
+    &:disabled { opacity: 0.5; cursor: default; }
+  }
+  .da-btn-small { height: 34px; line-height: 32px; padding: 0 14px; font-size: 13px; }
+  .da-btn-primary { background: $da-green; border-color: darken($da-green, 8%); color: #fff; &:hover { background: darken($da-green, 5%); } }
+  .da-linkbtn { border: 0; background: none; color: $da-green-dark; cursor: pointer; padding: 0; font: inherit; }
+
+  .da-chip {
+    display: inline-block;
+    font-size: 12px;
+    line-height: 22px;
+    padding: 0 9px;
+    border-radius: 11px;
+    background: #eee;
+    color: #555;
+    white-space: nowrap;
+    text-decoration: none;
+    &.ok { background: $da-green-bg; color: $da-green-dark; }
+    &.warn { background: $da-amber-bg; color: darken($da-amber, 15%); }
+    &.bad { background: $da-red-bg; color: $da-red; }
+    &.info { background: #e8f0f7; color: #3a6ea5; }
+    &.dark { background: #444; color: #fff; }
+    &.link { background: #fff; border: 1px solid #ccc; color: $da-ink; line-height: 30px; padding: 0 12px; border-radius: 16px; font-size: 13px; &:hover { border-color: $da-green; color: $da-green-dark; } }
+  }
+
+  .da-state { padding: 40px 12px; text-align: center; }
+  .da-spinner {
+    display: inline-block;
+    width: 28px; height: 28px;
+    border: 3px solid $da-line;
+    border-top-color: $da-green;
+    border-radius: 50%;
+    animation: da-spin 0.8s linear infinite;
+  }
+  @keyframes da-spin { to { transform: rotate(360deg); } }
+
+  // ---- top bar + hero ----------------------------------------------------------------
+  .da-topbar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 4px 0 8px; }
+  .da-group { color: $da-muted; font-weight: 600; }
+  .da-classic { font-size: 12px; color: $da-muted; text-decoration: underline; white-space: nowrap; &:hover { color: $da-green-dark; } }
+  .da-hero { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-start; }
+  .da-credit {
+    flex: 1 1 100%;
+    border-radius: $da-radius;
+    padding: 14px 16px;
+    border: 1px solid $da-line;
+    background: #fff;
+    &.ok { border-color: darken($da-green-bg, 10%); background: lighten($da-green-bg, 6%); }
+    &.low { border-color: darken($da-red-bg, 10%); background: lighten($da-red-bg, 4%); }
+    .da-credit-value { display: block; font-size: 32px; line-height: 1.1; margin: 2px 0; }
+    &.ok .da-credit-value { color: $da-green-dark; }
+    &.low .da-credit-value { color: $da-red; }
+    .da-credit-detail { display: block; font-size: 12px; }
+    .da-credit-msg { margin: 8px 0; font-size: 13px; }
+    &.low .da-credit-msg { color: $da-red; font-weight: 600; }
+    .da-hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  }
+
+  // ---- notice board ----------------------------------------------------------------
+  .da-wiki { font-size: 14px; :first-child { margin-top: 0; } :last-child { margin-bottom: 0; } }
+  .da-wiki-links { margin-bottom: 10px; ul { margin: 4px 0 0 18px; } }
+  a.da-row-title { color: $da-ink; &:hover { color: $da-green-dark; text-decoration: none; } }
+
+  // ---- orders ------------------------------------------------------------------------
+  .da-grid { display: grid; grid-template-columns: 1fr; gap: 10px; .da-card { margin: 0; } }
+  .da-order {
+    border-left: 4px solid $da-line;
+    display: flex; flex-direction: column;
+    &.is-ordered { border-left-color: $da-green; }
+    .da-order-actions { margin-top: auto; }
+  }
+  .da-order-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; h3 { flex: 1 1 auto; margin: 0; font-size: 18px; } }
+  .da-closing {
+    font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 10px; white-space: nowrap;
+    background: #eee; color: #555;
+    &.soon { background: $da-amber-bg; color: darken($da-amber, 15%); }
+    &.urgent { background: $da-red-bg; color: $da-red; }
+    &.past { background: #f0f0f0; color: $da-muted; }
+  }
+  .da-order-meta { margin: 4px 0 6px; font-size: 13px; color: $da-muted; span + span:before { content: " · "; } strong { color: $da-ink; font-weight: 600; } }
+  .da-note {
+    background: $da-amber-bg;
+    border-left: 3px solid $da-amber;
+    padding: 6px 10px;
+    margin: 6px 0;
+    font-size: 13px;
+    white-space: pre-line;
+    border-radius: 0 6px 6px 0;
+    a { word-break: break-all; }
+  }
+  .da-mine {
+    margin: 8px 0 6px;
+    font-size: 14px;
+    strong { font-size: 18px; margin: 0 4px; }
+    small { display: block; }
+    &.none { color: $da-muted; font-style: italic; }
+  }
+  .da-badges { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 10px; }
+  .da-order-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  // ---- tasks ------------------------------------------------------------------------------
+  .da-tasks h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: $da-muted; }
+  .da-task {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 8px 0;
+    border-top: 1px solid $da-line;
+    &:first-of-type { border-top: 0; }
+  }
+  .da-task-main { flex: 1 1 200px; min-width: 0; }
+  .da-task-title { font-weight: 600; color: $da-ink; }
+  .da-task-meta { font-size: 12px; color: $da-muted; span + span:before { content: " · "; } .soon { color: darken($da-amber, 15%); font-weight: 600; } .past { color: $da-red; font-weight: 600; } .da-needed { color: $da-red; } }
+  .da-task-actions { flex: 0 0 auto; display: flex; gap: 6px; }
+
+  // ---- lists (finished orders, transactions) ---------------------------------------------------
+  .da-list { padding: 0 14px; }
+  .da-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid $da-line;
+    color: $da-ink; text-decoration: none;
+    &:first-child { border-top: 0; }
+    &:hover { text-decoration: none; }
+  }
+  a.da-row:hover .da-row-title { color: $da-green-dark; }
+  .da-row-main { flex: 1 1 auto; min-width: 0; }
+  .da-row-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+  .da-row-meta { font-size: 12px; color: $da-muted; span + span:before { content: " · "; } }
+  .da-row-side { flex: 0 0 auto; text-align: right; strong { font-size: 15px; } }
+
+  // ---- apples -------------------------------------------------------------------------------------
+  .da-progress { height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin: 6px 0; }
+  .da-bar { height: 100%; background: $da-green; &.danger { background: $da-red; } &.warning { background: $da-amber; } &.success { background: $da-green; } }
+
+  // ---- shortcuts -----------------------------------------------------------------------------------
+  .da-links { display: flex; flex-direction: column; gap: 8px; }
+  .da-linkgroup { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; .da-label { flex: 0 0 100%; } }
+
+  .da-foot { margin: 24px 0 0; font-size: 13px; color: $da-muted; text-align: center; a { color: $da-green-dark; } }
+
+  .da-toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 40;
+    padding: 10px 16px; border-radius: 20px; background: rgba(50,50,50,0.95); color: #fff; font-size: 14px;
+    &.error { background: $da-red; }
+  }
+}
+
+@media (min-width: 768px) {
+  .da .da-grid { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 12px; }
+  .da .da-linkgroup .da-label { flex: 0 0 auto; margin-right: 6px; }
+  .da .da-section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+}

@@ -1,0 +1,19 @@
+-# Opt-in hook rendered on the classic home page.
+-# Preference lives in localStorage (key foodsoft.dashboard.ui). When it says
+-# "modern" we leave right away, unless ?classic=1 forces the classic page.
+-# When it is not set yet (first visit) a small dialog offers the new design once.
+- content_for :head do
+  :javascript
+    try {
+      if (window.localStorage && localStorage.getItem('foodsoft.dashboard.ui') === 'modern' &&
+          !/[?&]classic=/.test(window.location.search)) {
+        window.location.replace(#{dashboard_path.to_json});
+      }
+    } catch (e) {}
+.fs-switch-banner
+  %a.btn.btn-small.btn-info{href: dashboard_path, 'data-dashboard-ui' => 'modern'}
+    %i.icon-mobile-phone
+    Try the new mobile-friendly dashboard
+= render 'ordering/try_dialog', key: 'foodsoft.dashboard.ui', url: dashboard_path,
+  title: 'Try the new dashboard?',
+  body: 'There is a new version of the home page designed for phones: your credit, current orders and tasks at a glance. You can switch back to the classic page at any time from the link at the top.'

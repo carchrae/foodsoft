@@ -1,0 +1,19 @@
+-# Opt-in hook rendered on the classic ordering form.
+-# The preference lives in localStorage (key foodsoft.ordering.ui); when it says
+-# "modern" we leave immediately, before the heavy classic table renders. When it
+-# is not set yet (first visit) a small dialog offers the new design once.
+- modern_url = ordering_path(order, (params[:stock_order].present? ? {stock_order: 1} : {}))
+- content_for :head do
+  :javascript
+    try {
+      if (window.localStorage && localStorage.getItem('foodsoft.ordering.ui') === 'modern') {
+        window.location.replace(#{modern_url.to_json});
+      }
+    } catch (e) {}
+.fs-switch-banner
+  %a.btn.btn-small.btn-info{href: modern_url, 'data-ordering-ui' => 'modern'}
+    %i.icon-mobile-phone
+    Try the new mobile-friendly ordering page
+= render 'ordering/try_dialog', key: 'foodsoft.ordering.ui', url: modern_url,
+  title: 'Try the new ordering page?',
+  body: 'There is a new version of this page designed for phones: bigger buttons, search and filters, and clearer information about which cases are filling. You can switch back to the classic page at any time from the link at the top.'

@@ -1,0 +1,524 @@
+// Styles for the modern ordering page (ordering_app.js). Everything is scoped
+// under .oa so nothing leaks into the classic pages.
+
+$oa-green: #78b74e;
+$oa-green-dark: #468847;
+$oa-green-bg: #dff0d8;
+$oa-red: #b94a48;
+$oa-red-bg: #f2dede;
+$oa-amber: #c09853;
+$oa-amber-bg: #fcf8e3;
+$oa-ink: #333;
+$oa-muted: #777;
+$oa-line: #e5e5e5;
+$oa-bg: #f7f7f5;
+$oa-footer-h: 64px;
+$oa-radius: 8px;
+$oa-tap: 44px;
+
+// "Try the new page" button on the classic pages, and the one-time prompt.
+.fs-switch-banner, .oa-switch-banner, .da-switch-banner {
+  margin: 0 0 10px;
+  .btn i { margin-right: 4px; }
+}
+.fs-try-backdrop {
+  position: fixed; left: 0; top: 0; right: 0; bottom: 0;
+  z-index: 1100;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  &[hidden] { display: none; }
+}
+.fs-try {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 20px 16px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  color: $oa-ink;
+  h3 { margin: 0 0 10px; font-size: 18px; line-height: 1.2; }
+  p { margin: 0 0 16px; font-size: 15px; line-height: 1.45; }
+}
+.fs-try-actions { display: flex; flex-direction: column; gap: 8px; }
+.fs-try-btn {
+  display: block; width: 100%; height: $oa-tap; line-height: $oa-tap - 2px;
+  border-radius: $oa-tap / 2; border: 1px solid #ccc; background: #fff; color: $oa-ink;
+  font-size: 15px; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer;
+  &:hover { text-decoration: none; color: $oa-ink; }
+}
+.fs-try-primary { background: $oa-green; border-color: darken($oa-green, 8%); color: #fff; &:hover { color: #fff; background: darken($oa-green, 5%); } }
+
+.oa {
+  color: $oa-ink;
+  padding-bottom: $oa-footer-h + 24px;
+  -webkit-tap-highlight-color: transparent;
+
+  *, *:before, *:after { box-sizing: border-box; }
+
+  h1, h2, h3 { line-height: 1.2; }
+  small, .oa-muted { color: $oa-muted; }
+  .oa-ok { color: $oa-green-dark; }
+  .oa-bad { color: $oa-red; }
+
+  // ---- header ---------------------------------------------------------------
+  .oa-head { padding: 8px 12px 0; }
+  .oa-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .oa-back {
+    flex: 0 0 auto;
+    color: $oa-green-dark;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 6px 8px 6px 0;
+    &:hover { text-decoration: underline; }
+  }
+  .oa-title {
+    flex: 1 1 auto;
+    font-size: 20px;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .oa-classic { flex: 0 0 auto; font-size: 12px; color: $oa-muted; text-decoration: underline; white-space: nowrap; &:hover { color: $oa-green-dark; } }
+  .oa-linkbtn {
+    flex: 0 0 auto;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 1px solid $oa-line;
+    background: #fff;
+    color: $oa-green-dark;
+    font-weight: 700;
+    cursor: pointer;
+    &[aria-expanded="true"] { background: $oa-green-dark; color: #fff; border-color: $oa-green-dark; }
+  }
+  .oa-meta { margin: 4px 0 8px; font-size: 13px; color: $oa-muted; strong { color: $oa-ink; } }
+  .oa-note {
+    background: $oa-amber-bg;
+    border-left: 3px solid $oa-amber;
+    padding: 8px 10px;
+    margin: 0 0 10px;
+    white-space: pre-line;
+    border-radius: 0 $oa-radius $oa-radius 0;
+  }
+  .oa-help {
+    background: #fff;
+    border: 1px solid $oa-line;
+    border-radius: $oa-radius;
+    padding: 10px 14px;
+    margin: 0 0 10px;
+    font-size: 14px;
+    h3 { margin: 4px 0 8px; font-size: 16px; }
+    p { margin: 0 0 8px; }
+  }
+
+  .oa-alert {
+    padding: 10px 12px;
+    border-radius: $oa-radius;
+    margin: 0 0 10px;
+    border: 1px solid transparent;
+  }
+  .oa-alert-danger { background: $oa-red-bg; color: $oa-red; border-color: darken($oa-red-bg, 8%); }
+  .oa-alert-warning { background: $oa-amber-bg; color: darken($oa-amber, 15%); border-color: darken($oa-amber-bg, 10%); }
+
+  // ---- toolbar (sticky) -----------------------------------------------------
+  .oa-toolbar {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.96);
+    border-bottom: 1px solid $oa-line;
+    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .oa-search {
+    flex: 1 1 220px;
+    height: 40px;
+    margin: 0;
+    padding: 0 12px;
+    font-size: 16px;   // avoids iOS zoom on focus
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    box-shadow: none;
+    &:focus { border-color: $oa-green; outline: none; box-shadow: 0 0 0 2px rgba($oa-green, 0.25); }
+  }
+  .oa-filters {
+    flex: 1 1 100%;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .oa-chips { display: flex; gap: 6px; flex: 0 0 auto; }
+  .oa-chipbtn {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 16px;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: $oa-ink;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+    b { font-weight: 600; color: $oa-muted; margin-left: 2px; }
+    &.active { background: $oa-green-dark; border-color: $oa-green-dark; color: #fff; b { color: rgba(255,255,255,0.8); } }
+  }
+  .oa-category-select {
+    flex: 1 1 140px;
+    min-width: 140px;
+    height: 32px;
+    margin: 0;
+    font-size: 13px;
+    border-radius: 16px;
+    border: 1px solid #ccc;
+    background: #fff;
+  }
+
+  // ---- states ---------------------------------------------------------------
+  .oa-state { padding: 30px 12px; text-align: center; }
+  .oa-spinner {
+    display: inline-block;
+    width: 28px; height: 28px;
+    border: 3px solid $oa-line;
+    border-top-color: $oa-green;
+    border-radius: 50%;
+    animation: oa-spin 0.8s linear infinite;
+  }
+  @keyframes oa-spin { to { transform: rotate(360deg); } }
+  .oa-empty { padding: 30px 12px; text-align: center; color: $oa-muted; }
+
+  // ---- list -----------------------------------------------------------------
+  .oa-list { background: $oa-bg; padding-bottom: 8px; }
+  .oa-category-title {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 92px;       // below the toolbar (two rows)
+    z-index: 10;
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $oa-muted;
+    background: $oa-bg;
+    small { font-weight: 400; margin-left: 4px; }
+  }
+
+  .oa-article {
+    background: #fff;
+    border-top: 1px solid $oa-line;
+    border-bottom: 1px solid $oa-line;
+    margin-bottom: -1px;
+    padding: 10px 12px 12px;
+    border-left: 4px solid transparent;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+
+    // alternate shades so each item reads as its own row
+    &:nth-of-type(even) { background: #f4f4ef; }
+    &.is-mine { border-left-color: $oa-green; background: #fbfdf8; }
+    &.is-mine:nth-of-type(even) { background: #f0f6ea; }
+    &.missing-few { border-left-color: $oa-amber; }
+    &.missing-many { border-left-color: lighten($oa-amber, 20%); }
+    &.is-mine.missing-few, &.is-mine.missing-many { border-left-color: $oa-amber; }
+  }
+  .oa-article-main { flex: 1 1 260px; min-width: 0; display: flex; gap: 6px 12px; align-items: flex-start; }
+  .oa-article-info { flex: 1 1 auto; min-width: 0; }
+  .oa-article-aside { flex: 0 0 220px; width: 220px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .oa-article-side { flex: 1 1 260px; min-width: 0; }
+
+  .oa-article-name { flex: 1 1 auto; font-weight: 600; font-size: 15px; small { font-weight: 400; } }
+  .oa-article-price { flex: 0 0 auto; font-weight: 600; white-space: nowrap; .oa-per { font-weight: 400; color: $oa-muted; font-size: 12px; } }
+  .oa-article-sub {
+    font-size: 12px; color: $oa-muted; margin-top: 2px;
+    span + span:before { content: " · "; }
+  }
+  .oa-article-note { font-size: 13px; color: #555; margin-top: 4px; font-style: italic; }
+
+  .oa-status { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+  .oa-chip {
+    display: inline-block;
+    font-size: 12px;
+    line-height: 20px;
+    padding: 0 8px;
+    border-radius: 10px;
+    background: #eee;
+    color: #555;
+    white-space: nowrap;
+    &.ok { background: $oa-green-bg; color: $oa-green-dark; }
+    &.warn { background: $oa-amber-bg; color: darken($oa-amber, 15%); }
+    &.muted { background: #f0f0f0; color: $oa-muted; }
+  }
+
+  // ---- steppers -------------------------------------------------------------
+  .oa-controls {
+    display: flex; gap: 10px 28px; flex-wrap: wrap; align-items: flex-start;
+    &.has-progress { position: relative; padding: 6px 8px 8px; margin: 0 -8px; border-radius: 10px; overflow: hidden; }
+    > .oa-stepper { position: relative; z-index: 1; }
+  }
+  // one bar per case behind the steppers
+  .oa-cases {
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column; gap: 2px;
+    pointer-events: none;
+  }
+  .oa-case {
+    flex: 1 1 0;
+    min-height: 4px;
+    border-radius: 3px;
+    background-repeat: no-repeat;
+    transition: background-image 0.2s;
+    &.full { background: rgba(120, 183, 78, 0.30); }
+  }
+  .oa-stepper-price {
+    margin: 4px 0 0;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    &.is-zero { color: #bbb; font-weight: 400; }
+  }
+  .oa-households { margin-top: -4px; }
+  .oa-stepper {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: $oa-muted; margin: 0 0 2px 2px; font-weight: 600; }
+  }
+  .oa-stepper-row {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid #ccc;
+    border-radius: $oa-tap / 2;
+    overflow: hidden;
+    background: #fff;
+  }
+  .oa-step {
+    width: $oa-tap; height: $oa-tap;
+    border: 0;
+    background: #f4f4f4;
+    color: $oa-ink;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    &:active { background: #e6e6e6; }
+    &:disabled { color: #bbb; cursor: default; }
+  }
+  .oa-num {
+    width: 54px; height: $oa-tap;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-left: 1px solid $oa-line;
+    border-right: 1px solid $oa-line;
+    border-radius: 0;
+    box-shadow: none;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    -moz-appearance: textfield;
+    &::-webkit-inner-spin-button, &::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    &:focus { outline: none; background: lighten($oa-green-bg, 4%); box-shadow: none; }
+  }
+
+  .oa-line {
+    margin-top: 6px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .oa-outcome { flex: 1 1 auto; line-height: 1.4; b { font-size: 14px; } }
+
+
+  // ---- footer ---------------------------------------------------------------
+  .oa-footer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    margin: 0;   // the layout styles every <footer> with a bottom margin
+    z-index: 30;
+    min-height: $oa-footer-h;
+    background: #fff;
+    border-top: 2px solid $oa-green;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .oa-totals { flex: 1 1 auto; display: flex; flex-direction: row-reverse; justify-content: flex-start; align-items: center; gap: 22px; flex-wrap: wrap; min-width: 0; }
+
+  .oa-total, .oa-balance {
+    display: flex; flex-direction: column;
+    .oa-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: $oa-muted; white-space: nowrap; }
+    strong { font-size: 18px; line-height: 1.1; }
+    small { font-size: 11px; }
+  }
+  .oa-gauge {
+    display: flex; flex-direction: column;
+    .oa-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: $oa-muted; white-space: nowrap; }
+    small { font-size: 11px; white-space: nowrap; }
+    strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+  }
+  .oa-gauge-wrap { display: flex; align-items: center; gap: 10px; }
+  .oa-party { height: 48px; width: auto; border-radius: 6px; display: block; flex: 0 0 auto; }
+  .oa-gauge-row { display: flex; align-items: center; gap: 8px; }
+  .oa-gauge-bar { width: 90px; height: 8px; border-radius: 4px; background: #e6e6e2; overflow: hidden; }
+  .oa-gauge-fill { height: 100%; border-radius: 4px; background: $oa-red; transition: width 0.3s; }
+  .oa-gauge.some .oa-gauge-fill { background: $oa-amber; }
+  .oa-gauge.good .oa-gauge-fill { background: $oa-green; }
+  .oa-gauge.good strong { color: $oa-green-dark; }
+  .oa-label-short { display: none; }
+  .oa-balance.ok strong { color: $oa-green-dark; }
+  .oa-balance.bad strong { color: $oa-red; }
+  .oa-actions { flex: 0 0 auto; display: flex; gap: 8px; align-items: center; }
+
+  .oa-btn {
+    display: inline-block;
+    height: $oa-tap;
+    line-height: $oa-tap;
+    padding: 0 18px;
+    border-radius: $oa-tap / 2;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: $oa-ink;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover { text-decoration: none; }
+  }
+  .oa-btn-plain { color: $oa-green-dark; }
+  .oa-btn-primary {
+    background: $oa-green;
+    border-color: darken($oa-green, 8%);
+    color: #fff;
+    &:disabled { background: #cfd8c8; border-color: #cfd8c8; color: #fff; cursor: default; }
+  }
+  .oa-btn-danger { background: $oa-red; border-color: darken($oa-red, 8%); color: #fff; &:hover { background: darken($oa-red, 6%); } }
+  .oa-btn.oa-cancel { flex: 0 0 auto; color: $oa-red; border-color: transparent; padding: 0 10px; &:hover { border-color: $oa-red; background: #fff; } }
+  &.is-dirty .oa-save:not(:disabled) { box-shadow: 0 0 0 3px rgba($oa-green, 0.3); }
+
+  .oa-modal-backdrop {
+    position: fixed; left: 0; top: 0; right: 0; bottom: 0;
+    z-index: 50;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .oa-modal {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 20px 16px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+    h3 { margin: 0 0 10px; font-size: 18px; }
+    p { margin: 0 0 16px; font-size: 15px; line-height: 1.45; }
+  }
+  .oa-modal-actions { display: flex; flex-direction: column; gap: 8px; .oa-btn { text-align: center; } }
+
+  .oa-toast {
+    position: fixed;
+    left: 50%;
+    bottom: $oa-footer-h + 16px;
+    transform: translateX(-50%);
+    z-index: 40;
+    padding: 10px 16px;
+    border-radius: 20px;
+    background: rgba(50, 50, 50, 0.95);
+    color: #fff;
+    font-size: 14px;
+    max-width: 90vw;
+    &.ok { background: $oa-green-dark; }
+    &.error { background: $oa-red; }
+  }
+}
+
+// ---- layout tweaks -------------------------------------------------------------
+@media (max-width: 767px) {
+  // bootstrap 2 pads the body by 20px on phones; let the list run edge to edge
+  .oa { margin-left: -20px; margin-right: -20px; }
+  .oa .oa-category-title { top: 100px; }
+  .oa .oa-article-aside { flex: 0 0 35%; width: 35%; }
+  // room for name, maker line and note, so steppers sit at the same height on every card
+  .oa .oa-article-main { min-height: 58px; }
+  .oa .oa-title { white-space: normal; font-size: 18px; }
+  .oa .oa-article-side { flex-basis: 100%; }
+  .oa .oa-controls { justify-content: space-between; gap: 10px 16px; }
+  .oa .oa-controls .oa-stepper:only-child { margin-right: auto; }
+  .oa .oa-controls.has-progress { margin: 0; padding: 6px 6px 8px; }
+  // keep the space for one line of the "You get" sentence so cards don't jump
+  .oa .oa-line { min-height: 1.5em; }
+  .oa .oa-line.is-empty { visibility: hidden; }
+  // two rows: total + credit above, gauge + buttons below
+  .oa .oa-footer {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "credit total total" "cancel gauge save";
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 6px;
+    padding-top: 8px;
+  }
+  .oa .oa-totals { display: contents; }
+  .oa .oa-total { grid-area: total; flex-direction: row; align-items: baseline; gap: 6px; flex-wrap: wrap; justify-self: end; justify-content: flex-end; }
+  .oa .oa-balance { grid-area: credit; flex-direction: row; align-items: baseline; gap: 6px; justify-self: start; }
+  .oa .oa-gauge-wrap { grid-area: gauge; min-width: 0; overflow: hidden; justify-self: center; }
+  .oa .oa-gauge { min-width: 0; }
+  .oa .oa-gauge .oa-label { white-space: nowrap; }
+  .oa .oa-cancel { grid-area: cancel; }
+  .oa .oa-actions { grid-area: save; justify-self: end; }
+  .oa .oa-cancel { justify-self: start; }
+  .oa .oa-total strong, .oa .oa-balance strong { font-size: 16px; }
+  .oa .oa-balance .oa-label-long, .oa .oa-chipbtn .oa-label-long { display: none; }
+  .oa .oa-balance .oa-label-short, .oa .oa-chipbtn .oa-label-short { display: inline; }
+  .oa .oa-category-select { flex: 1 1 110px; min-width: 110px; }
+  .oa .oa-btn.oa-cancel { height: 40px; line-height: 38px; font-size: 14px; padding: 0 12px; border-color: lighten($oa-red, 30%); }
+  .oa .oa-save { height: 40px; line-height: 38px; padding: 0 18px; }
+  .oa .oa-outcome { text-align: center; width: 100%; }
+  .oa .oa-gauge { flex-direction: column; align-items: center; gap: 2px; }
+  .oa .oa-gauge .oa-label { font-size: 10px; }
+  .oa .oa-gauge-wrap { gap: 8px; }
+  .oa .oa-gauge small { display: none; }
+  .oa .oa-gauge-bar { width: 50px; flex: 0 0 50px; }
+  .oa .oa-gauge strong { white-space: nowrap; font-size: 13px; }
+  .oa .oa-gauge { gap: 5px; }
+  .oa .oa-party { height: 36px; }
+}
+
+@media (min-width: 768px) {
+  .oa .oa-toolbar { flex-wrap: nowrap; }
+  .oa .oa-filters { flex: 0 1 auto; }
+  .oa .oa-category-title { top: 57px; }
+  // two columns: info on the left with the "You get" sentence pinned to the
+  // bottom, steppers on the right
+  .oa .oa-article {
+    padding-left: 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "main controls" "line controls";
+    column-gap: 24px;
+    row-gap: 6px;
+  }
+  .oa .oa-article-main { grid-area: main; }
+  .oa .oa-article-side { display: contents; }
+  .oa .oa-controls { grid-area: controls; align-self: start; }
+  .oa .oa-line { grid-area: line; align-self: end; justify-self: start; margin-top: 0; display: block; }
+  .oa .oa-line.is-empty { visibility: hidden; }
+  .oa .oa-outcome { text-align: left; }
+}

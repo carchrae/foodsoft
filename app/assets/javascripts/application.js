@@ -20,6 +20,9 @@
 //= require touchclick
 //= require delta_input
 //= require recurring_select
+//= require vue.global.prod
+//= require ordering_app
+//= require dashboard_app
 
 $.fn.select2.defaults.set('theme', 'bootstrap');
 

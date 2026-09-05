@@ -7,4 +7,6 @@
 *= require list.unlist
 *= require list.missing
 *= require recurring_select
+*= require ordering_app
+*= require dashboard_app
 */

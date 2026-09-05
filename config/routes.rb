@@ -68,6 +68,16 @@ Foodsoft::Application.routes.draw do
       get :archive, on: :collection
     end
 
+    # Modern (Vue) ordering page and its JSON layer, :id is the order id. See OrderingController.
+    resources :ordering, only: [:show, :update], controller: :ordering do
+      get :data, on: :member
+    end
+
+    # Modern (Vue) dashboard and its JSON layer. See DashboardController.
+    resource :dashboard, only: [:show], controller: :dashboard do
+      get :data
+    end
+
     resources :group_order_articles
 
     resources :order_comments, only: [:new, :create]
