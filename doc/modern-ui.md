@@ -122,6 +122,11 @@ and remain the default.
 * Stable card layout: the right column (unit price and chips) has a fixed width
   (35% on phones, 220px on desktop) so names never rewrap when chips appear,
   and one line is reserved for the "You get" sentence so cards don't jump.
+* Compact header on phones for the modern pages only: the modern views add an
+  `fs-modern` class to `<html>` from `<head>`, and CSS in `ordering_app.scss`
+  shrinks the logo, puts the user menu / Help / Feedback on the same row,
+  hides the long coop-homepage link, slims the collapsed menu bar and the
+  flash message. The shared layout file is untouched.
 * Alternating row shading so each item reads as its own row (a slightly greener
   pair of shades for items in your order).
 * The Save footer no longer floats 20 px above the bottom: the layout styles

@@ -1,6 +1,11 @@
 -# Modern ordering page. Everything is rendered client-side by ordering_app.js
 -# from the JSON at data-url; this shell only exists so the page has a URL.
 - title @order.name, false
+-# Mark the document so the shared header can be compacted on phones (see
+-# ordering_app.scss, html.fs-modern). Runs in <head>, before the body paints.
+- content_for :head do
+  :javascript
+    document.documentElement.className += ' fs-modern';
 #ordering-app{data: {url: data_ordering_path(@order, (params[:stock_order].present? ? {stock_order: 1} : {})), celebrate: image_path('heyeeyeeyyeyah.gif')}}
   .oa-boot
     %p.muted Loading #{@order.name}…

@@ -449,6 +449,27 @@ $oa-tap: 44px;
   }
 }
 
+// ---- compact shared header on phones, only on the modern pages -------------------
+// The layout itself is untouched; the modern views add html.fs-modern from <head>.
+@media (max-width: 767px) {
+  html.fs-modern {
+    body { padding-top: 4px; }
+    .logo { font-size: 20px; margin: 6px 0 0 4px; line-height: 32px; }
+    .nav.nav-pills.pull-right {
+      margin: 4px 0 0;
+      > li > a { padding: 6px 8px; font-size: 13px; line-height: 20px; }
+      // the coop homepage link is long and least useful on a phone
+      > li:nth-child(2) { display: none; }
+    }
+    .clearfix { margin: 0; }
+    .navbar { margin-bottom: 6px; }
+    .navbar .navbar-inner { min-height: 36px; padding: 0 6px; }
+    .navbar .btn-navbar { margin: 4px 4px 4px 0; padding: 6px 9px; }
+    .navbar .nav-collapse.in { margin-top: 0; }
+    .container-fluid > .alert, .container-fluid > .row-fluid > .alert { padding: 6px 30px 6px 10px; margin-bottom: 6px; font-size: 13px; }
+  }
+}
+
 // ---- layout tweaks -------------------------------------------------------------
 @media (max-width: 767px) {
   // bootstrap 2 pads the body by 20px on phones; let the list run edge to edge

@@ -1,5 +1,10 @@
 -# Modern dashboard. Rendered client-side by dashboard_app.js from data-url.
 - title t('home.index.title'), false
+-# Mark the document so the shared header can be compacted on phones (see
+-# ordering_app.scss, html.fs-modern). Runs in <head>, before the body paints.
+- content_for :head do
+  :javascript
+    document.documentElement.className += ' fs-modern';
 #dashboard-app{data: {url: data_dashboard_path}}
   .da-boot
     %p.muted Loading…
