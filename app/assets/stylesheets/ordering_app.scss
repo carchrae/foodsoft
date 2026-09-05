@@ -294,7 +294,7 @@ $oa-tap: 44px;
     display: flex;
     flex-direction: column;
     .oa-units { text-transform: none; letter-spacing: 0; font-weight: 600; color: $oa-ink; margin-left: 2px; }
-    label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: $oa-muted; margin: 0 0 2px 2px; font-weight: 600; }
+    label { display: block; text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: $oa-muted; margin: 0 0 2px; font-weight: 600; }
   }
   .oa-stepper-row {
     display: inline-flex;
