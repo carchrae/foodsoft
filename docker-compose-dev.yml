@@ -1,9 +1,10 @@
 # Development compose file.
 #
-# Assumes postgres (localhost:5432) and redis (localhost:6379) already run as
-# separate containers on this machine (see ../bin/docker-db.sh). The app
-# container uses host networking so the localhost connection strings from
-# local-settings.sh work unchanged.
+# Assumes postgres (localhost:5432) already runs as a separate container on
+# this machine (see ../bin/docker-db.sh). Redis is started here as part of the
+# stack (host networking, port 6379) because saving an order enqueues a Resque
+# job and fails without it. The app container uses host networking so the
+# localhost connection strings from local-settings.sh work unchanged.
 #
 # Launch with ./start-docker-dev.sh — it sources local-settings.sh and passes
 # DATABASE_URL / SHARED_DATABASE_URL through to the container.
@@ -13,6 +14,14 @@
 
 services:
 
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --appendonly no
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - redis:/data
+
   foodsoft:
     build: &build
       context: .
@@ -21,7 +30,9 @@ services:
         HOST_UID: ${HOST_UID:-1000}
         HOST_GID: ${HOST_GID:-1000}
     command: ./proc-start web
+    restart: unless-stopped
     network_mode: host
+    depends_on: [redis]
     environment: &env
       - DATABASE_URL=${DATABASE_URL:-postgres://food-coop:food-coop@localhost:5432/food-coop}
       - SHARED_DATABASE_URL=${SHARED_DATABASE_URL:-postgres://food-coop:food-coop@localhost:5432/food-prices}
@@ -35,7 +46,9 @@ services:
     profiles: [worker]
     build: *build
     command: ./proc-start worker
+    restart: unless-stopped
     network_mode: host
+    depends_on: [redis]
     environment: *env
     volumes:
       - bundle:/home/app/bundle
@@ -43,3 +56,4 @@ services:
 
 volumes:
   bundle:
+  redis:
