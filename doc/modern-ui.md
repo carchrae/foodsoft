@@ -175,7 +175,8 @@ app/assets/javascripts/ordering_app.js
 app/assets/javascripts/dashboard_app.js
 app/assets/stylesheets/ordering_app.scss
 app/assets/stylesheets/dashboard_app.scss
-vendor/assets/javascripts/vue.global.prod.js   (Vue 3.4.38, global build)
+public/vendor/vue.global.prod.min.js          (Vue 3.4.38, served as a static file)
+app/views/ordering/_vue_runtime.html.haml       (script tag + start-up fallback)
 doc/modern-ui.md
 ```
 
@@ -183,7 +184,7 @@ Existing files touched (all one-liners or route blocks):
 
 ```
 config/routes.rb                          +8 lines: resources :ordering, resource :dashboard
-app/assets/javascripts/application.js     +3 requires: vue.global.prod, ordering_app, dashboard_app
+app/assets/javascripts/application.js     +2 requires: ordering_app, dashboard_app
 app/assets/stylesheets/application.css    +2 requires: ordering_app, dashboard_app
 app/views/group_orders/_form.html.haml    +1 line: render 'ordering/legacy_switch'
 app/views/home/index.html.haml            +1 line: render 'dashboard/legacy_switch'
@@ -201,9 +202,25 @@ two `_legacy_switch` partials. The controllers use `before_action`, Rails 7
 compatible. `GroupOrder#load_data` and `save_ordering!` exist on that branch with
 the same shape, so the serializers should work unchanged.
 
+## Checking a production build locally
+
+`./start-docker-prodcheck.sh` runs the app in `RAILS_ENV=production` from the
+dev image (Ruby 2.6.6 like the server), precompiles assets with the production
+Uglifier and serves on http://localhost:3001/f against the local database. Its
+precompiled assets and tmp/ live in docker volumes, so the dev server keeps
+compiling assets live. A precompile failure like the Uglifier ES6 error shows
+up here before a deploy.
+
 ## Design decisions
 
-1. **Vue via sprockets, not a build pipeline.** The vendored Vue global build
+1. **Vue is a static file, the apps ride in `application.js`.** Vue's global
+   build is ES2016 and the production Uglifier (4.2, ES5 mode) aborts the
+   precompile on it (`Unexpected token: name (t)`), so Vue is served from
+   `public/vendor/` by the two modern views only, outside the compressed bundle.
+   The apps themselves are plain ES5 and are required from `application.js`.
+   Alternative if you prefer one bundle: `config.assets.js_compressor =
+   Uglifier.new(harmony: true)` in production.rb, untested here.
+1. **(superseded) Vue via sprockets, not a build pipeline.** The vendored Vue global build
    (~140 KB, ~50 KB gzipped, cached after first load) and the two apps are
    required from `application.js`, so they load on every page. A separate bundle
    would have needed a `config.assets.precompile` entry and a server restart,

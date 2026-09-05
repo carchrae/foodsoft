@@ -12,3 +12,4 @@
       .alert.alert-danger
         This page needs JavaScript.
         = link_to 'Use the classic dashboard instead', root_path(classic: 1)
+= render 'ordering/vue_runtime', boot_selector: '.da-boot', fallback_url: "#{root_path(classic: 1)}"

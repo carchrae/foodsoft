@@ -1,0 +1,15 @@
+-# Loads the Vue runtime for the modern pages. It is served as a plain static
+-# file from public/ on purpose: Vue's build is ES2016 and the app's Uglifier
+-# (ES5 only) cannot minify it, so it must stay out of the sprockets bundle.
+-# The page's own code lives in application.js and checks for window.Vue on
+-# DOMContentLoaded, which fires after this tag has run.
+- content_for :javascript do
+  = javascript_include_tag '/vendor/vue.global.prod.min.js?v=3.4.38'
+  :javascript
+    // if the app has not replaced the placeholder after a while, say so
+    setTimeout(function () {
+      var boot = document.querySelector('#{boot_selector}');
+      if (!boot) return;
+      boot.innerHTML = '<div class="alert alert-danger">The page could not start. ' +
+        '<a href="#{fallback_url}">Use the classic page instead</a>.</div>';
+    }, 8000);

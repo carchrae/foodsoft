@@ -13,3 +13,4 @@
       .alert.alert-danger
         This page needs JavaScript.
         = link_to 'Use the classic ordering page instead', new_group_order_path(order_id: @order.id)
+= render 'ordering/vue_runtime', boot_selector: '.oa-boot', fallback_url: "#{new_group_order_path(order_id: @order.id)}"
