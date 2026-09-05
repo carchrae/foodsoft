@@ -131,6 +131,9 @@ and remain the default.
   prompt and "Try the new…" button otherwise. The dashboard gained a "Settled
   orders" section (last five closed orders, your amount, link to the archive) so
   nothing from that page is lost.
+* Stepper labels include the current amount and unit ("At least 2×454g",
+  "Up to 3×454g"). The category picker is hidden when an order has a single
+  category. On desktop the unit price is larger and vertically centred.
 * Compact header on phones for the modern pages only: the modern views add an
   `fs-modern` class to `<html>` from `<head>`, and CSS in `ordering_app.scss`
   shrinks the logo, puts the user menu / Help / Feedback on the same row,

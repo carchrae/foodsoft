@@ -293,6 +293,7 @@ $oa-tap: 44px;
     flex: 0 0 auto;
     display: flex;
     flex-direction: column;
+    .oa-units { text-transform: none; letter-spacing: 0; font-weight: 600; color: $oa-ink; margin-left: 2px; }
     label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: $oa-muted; margin: 0 0 2px 2px; font-weight: 600; }
   }
   .oa-stepper-row {
@@ -536,7 +537,9 @@ $oa-tap: 44px;
     column-gap: 24px;
     row-gap: 6px;
   }
-  .oa .oa-article-main { grid-area: main; }
+  .oa .oa-article-main { grid-area: main; align-items: center; }
+  .oa .oa-article-aside { justify-content: center; gap: 8px; }
+  .oa .oa-article-price { font-size: 20px; .oa-per { font-size: 13px; } }
   .oa .oa-article-side { display: contents; }
   .oa .oa-controls { grid-area: controls; align-self: start; }
   .oa .oa-line { grid-area: line; align-self: end; justify-self: start; margin-top: 0; display: block; }
