@@ -11,8 +11,9 @@ and remain the default.
 
 ## How the opt-in works
 
-* The preference lives in the browser only: `localStorage["foodsoft.ordering.ui"]`
-  and `localStorage["foodsoft.dashboard.ui"]`, each `"modern"` or `"legacy"`.
+* One preference for all modern pages, in the browser only:
+  `localStorage["foodsoft.ui"]`, `"modern"` or `"legacy"`. (Earlier per-page
+  keys are still read and are cleaned up on the next choice.)
 * Each classic page shows a small "Try the new mobile-friendly …" button. Clicking it
   stores `"modern"` and opens the modern page.
 * A tiny script in the `<head>` of the classic page redirects to the modern page

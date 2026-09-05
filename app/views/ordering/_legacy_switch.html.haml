@@ -1,16 +1,20 @@
 -# Opt-in hook rendered on the classic ordering form.
--# The preference lives in localStorage (key foodsoft.ordering.ui); when it says
--# "modern" we leave immediately, before the heavy classic table renders.
+-# The preference lives in localStorage (key foodsoft.ui, shared by all modern
+-# pages); when it says "modern" we leave immediately, before the heavy classic
+-# table renders.
 - modern_url = ordering_path(order, (params[:stock_order].present? ? {stock_order: 1} : {}))
 - content_for :head do
   :javascript
     try {
-      if (window.localStorage && localStorage.getItem('foodsoft.ordering.ui') === 'modern') {
+      var ls = window.localStorage;
+      // one preference for all modern pages; older per-page keys still count
+      var ui = ls.getItem('foodsoft.ui') || ls.getItem('foodsoft.ordering.ui') || ls.getItem('foodsoft.dashboard.ui');
+      if (ui === 'modern') {
         window.location.replace(#{modern_url.to_json});
       }
     } catch (e) {}
 .alert.alert-info.fs-switch-alert
-  %a.btn.btn-large.btn-primary{href: modern_url, 'data-ordering-ui' => 'modern'}
+  %a.btn.btn-large.btn-primary{href: modern_url, 'data-fs-ui' => 'modern'}
     %i.icon-mobile-phone
     Try the new mobile-friendly look
   %span.fs-switch-hint Bigger buttons, search and filters. You can switch back any time.

@@ -1,16 +1,19 @@
 -# Opt-in hook rendered on the classic home page and the orders overview.
--# Preference lives in localStorage (key foodsoft.dashboard.ui). When it says
--# "modern" we leave right away, unless ?classic=1 forces the classic page.
+-# Preference lives in localStorage (key foodsoft.ui, shared by all modern
+-# pages). When it says "modern" we leave right away, unless ?classic=1 forces
+-# the classic page.
 - content_for :head do
   :javascript
     try {
-      if (window.localStorage && localStorage.getItem('foodsoft.dashboard.ui') === 'modern' &&
-          !/[?&]classic=/.test(window.location.search)) {
+      var ls = window.localStorage;
+      // one preference for all modern pages; older per-page keys still count
+      var ui = ls.getItem('foodsoft.ui') || ls.getItem('foodsoft.ordering.ui') || ls.getItem('foodsoft.dashboard.ui');
+      if (ui === 'modern' && !/[?&]classic=/.test(window.location.search)) {
         window.location.replace(#{dashboard_path.to_json});
       }
     } catch (e) {}
 .alert.alert-info.fs-switch-alert
-  %a.btn.btn-large.btn-primary{href: dashboard_path, 'data-dashboard-ui' => 'modern'}
+  %a.btn.btn-large.btn-primary{href: dashboard_path, 'data-fs-ui' => 'modern'}
     %i.icon-mobile-phone
     Try the new mobile-friendly look
   %span.fs-switch-hint Your credit, orders and tasks at a glance. You can switch back any time.

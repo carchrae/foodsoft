@@ -5,12 +5,27 @@
 // a PUT to urls.save (OrderingController#update). Nothing here touches the
 // classic ordering page; the two share nothing but the models on the server.
 //
-// Members opt in/out with localStorage[foodsoft.ordering.ui] = 'modern'|'legacy'.
+// Members opt in/out with localStorage[foodsoft.ui] = 'modern'|'legacy' (shared by all modern pages).
 // The classic form redirects here when it says 'modern' (ordering/_legacy_switch).
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'foodsoft.ordering.ui';
+  // one preference shared by every modern page
+  var STORAGE_KEY = 'foodsoft.ui';
+  var OLD_KEYS = ['foodsoft.ordering.ui', 'foodsoft.dashboard.ui'];
+
+  function readUiPref() {
+    try {
+      return localStorage.getItem(STORAGE_KEY) || localStorage.getItem(OLD_KEYS[0]) || localStorage.getItem(OLD_KEYS[1]);
+    } catch (e) { return null; }
+  }
+
+  function writeUiPref(value) {
+    try {
+      localStorage.setItem(STORAGE_KEY, value);
+      OLD_KEYS.forEach(function (k) { localStorage.removeItem(k); });
+    } catch (e) { /* ignore */ }
+  }
 
   // All user-facing strings in one place so they can be moved to I18n later.
   var T = {
@@ -511,7 +526,7 @@
       },
 
       switchToClassic: function () {
-        try { localStorage.setItem(STORAGE_KEY, 'legacy'); } catch (e) { /* ignore */ }
+        writeUiPref('legacy');
         this.dirty = false;
         window.location.href = this.urls.legacy;
       },
@@ -805,11 +820,11 @@
   }
 
   ready(function () {
-    // opt-in/out links anywhere in the app: <a data-ordering-ui="modern|legacy" href=...>
+    // opt-in/out links anywhere in the app: <a data-fs-ui="modern|legacy" href=...>
     document.addEventListener('click', function (e) {
-      var link = e.target.closest ? e.target.closest('[data-ordering-ui]') : null;
+      var link = e.target.closest ? e.target.closest('[data-fs-ui]') : null;
       if (!link) return;
-      try { localStorage.setItem(STORAGE_KEY, link.getAttribute('data-ordering-ui')); } catch (err) { /* ignore */ }
+      writeUiPref(link.getAttribute('data-fs-ui'));
     });
 
     var el = document.getElementById('ordering-app');
@@ -818,7 +833,7 @@
       el.innerHTML = '<div class="alert alert-danger">Vue failed to load.</div>';
       return;
     }
-    try { localStorage.setItem(STORAGE_KEY, 'modern'); } catch (err) { /* ignore */ }
+    writeUiPref('modern');
     Vue.createApp(OrderingApp, { dataUrl: el.getAttribute('data-url'), celebrateUrl: el.getAttribute('data-celebrate') }).mount(el);
   });
 })();

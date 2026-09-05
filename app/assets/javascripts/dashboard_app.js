@@ -5,13 +5,27 @@
 // writes are the task accept/decline/done buttons, which POST to the existing
 // TasksController actions and then reload the data.
 //
-// Members opt in/out with localStorage[foodsoft.dashboard.ui] = 'modern'|'legacy'.
+// Members opt in/out with localStorage[foodsoft.ui] = 'modern'|'legacy' (shared by all modern pages).
 // The classic home page redirects here when it says 'modern' (dashboard/_legacy_switch).
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'foodsoft.dashboard.ui';
-  var ORDERING_KEY = 'foodsoft.ordering.ui';
+  // one preference shared by every modern page
+  var STORAGE_KEY = 'foodsoft.ui';
+  var OLD_KEYS = ['foodsoft.ordering.ui', 'foodsoft.dashboard.ui'];
+
+  function readUiPref() {
+    try {
+      return localStorage.getItem(STORAGE_KEY) || localStorage.getItem(OLD_KEYS[0]) || localStorage.getItem(OLD_KEYS[1]);
+    } catch (e) { return null; }
+  }
+
+  function writeUiPref(value) {
+    try {
+      localStorage.setItem(STORAGE_KEY, value);
+      OLD_KEYS.forEach(function (k) { localStorage.removeItem(k); });
+    } catch (e) { /* ignore */ }
+  }
 
   var T = {
     hi: function (name) { return 'Hi ' + name; },
@@ -182,7 +196,7 @@
       },
 
       switchToClassic: function () {
-        try { localStorage.setItem(STORAGE_KEY, 'legacy'); } catch (e) { /* ignore */ }
+        writeUiPref('legacy');
         window.location.href = this.d.urls.legacy;
       },
 
@@ -190,9 +204,7 @@
 
       // members who opted into the modern ordering page go straight there
       orderUrl: function (o) {
-        var pref = null;
-        try { pref = localStorage.getItem(ORDERING_KEY); } catch (e) { /* ignore */ }
-        return (pref === 'modern' && o.urls.order_modern) ? o.urls.order_modern : o.urls.order;
+        return (readUiPref() === 'modern' && o.urls.order_modern) ? o.urls.order_modern : o.urls.order;
       },
 
       closing: function (o) {
@@ -436,9 +448,9 @@
 
   ready(function () {
     document.addEventListener('click', function (e) {
-      var link = e.target.closest ? e.target.closest('[data-dashboard-ui]') : null;
+      var link = e.target.closest ? e.target.closest('[data-fs-ui]') : null;
       if (!link) return;
-      try { localStorage.setItem(STORAGE_KEY, link.getAttribute('data-dashboard-ui')); } catch (err) { /* ignore */ }
+      writeUiPref(link.getAttribute('data-fs-ui'));
     });
 
     var el = document.getElementById('dashboard-app');
@@ -447,7 +459,7 @@
       el.innerHTML = '<div class="alert alert-danger">Vue failed to load.</div>';
       return;
     }
-    try { localStorage.setItem(STORAGE_KEY, 'modern'); } catch (err) { /* ignore */ }
+    writeUiPref('modern');
     Vue.createApp(DashboardApp, { dataUrl: el.getAttribute('data-url') }).mount(el);
   });
 })();
