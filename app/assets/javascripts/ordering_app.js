@@ -301,8 +301,7 @@
       },
 
       rangePossible: function () {
-        var self = this;
-        return !this.order.stockit && this.allArticles.some(function (a) { return a.quantity > 0 && a.unit_quantity > 1; });
+        return !this.order.stockit && this.allArticles.some(function (a) { return a.quantity + a.tolerance > 0 && a.unit_quantity > 1; });
       },
 
       // share of ordered items (that can carry a range) with some extra on them
@@ -434,7 +433,8 @@
       // Nag once before saving a bigger order with little flexibility; force skips it.
       save: function (force) {
         if (!this.canSave) return;
-        if (!force && this.orderedCount > 5 && this.helping && this.helping.pct < 50) {
+        // only when at least one ordered item can actually carry a range
+        if (!force && this.orderedCount > 5 && this.rangePossible && this.helping && this.helping.pct < 50) {
           this.showRangeDialog = true;
           return;
         }
