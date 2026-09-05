@@ -9,6 +9,7 @@ class DashboardSerializer
   # The classic home page warns when available credit drops below this (hard-coded there too).
   LOW_CREDIT_THRESHOLD = 200
   RECENT_TRANSACTIONS = 5
+  RECENT_CLOSED_ORDERS = 5
 
   def initialize(user, view)
     @user = user
@@ -23,6 +24,7 @@ class DashboardSerializer
       tasks: tasks_json,
       open_orders: Order.open_reverse.map { |o| order_json(o, open: true) },
       finished_orders: Order.finished_not_closed.map { |o| order_json(o, open: false) },
+      closed_orders: Order.closed.limit(RECENT_CLOSED_ORDERS).map { |o| order_json(o, open: false, stats: false) },
       transactions: transactions_json,
       apples: apples_json,
       notice: notice_json,
@@ -141,7 +143,7 @@ class DashboardSerializer
 
   # ---- orders ------------------------------------------------------------------------
 
-  def order_json(order, open:)
+  def order_json(order, open:, stats: true)
     group_order = @ordergroup && order.group_order(@ordergroup)
     {
       id: order.id,
@@ -160,7 +162,7 @@ class DashboardSerializer
         updated_on: group_order.updated_on.try(:iso8601),
         updated_on_human: @view.format_time(group_order.updated_on),
       },
-      stats: order_stats(order),
+      stats: (stats ? order_stats(order) : nil),
       urls: order_urls(order, group_order, open),
     }
   end

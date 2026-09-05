@@ -209,6 +209,7 @@ $da-tap: 44px;
     &:hover { text-decoration: none; }
   }
   a.da-row:hover .da-row-title { color: $da-green-dark; }
+  .da-row-muted .da-row-title { color: $da-muted; font-weight: 400; }
   .da-row-main { flex: 1 1 auto; min-width: 0; }
   .da-row-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
   .da-row-meta { font-size: 12px; color: $da-muted; span + span:before { content: " · "; } }

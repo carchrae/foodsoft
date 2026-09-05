@@ -126,6 +126,11 @@ and remain the default.
   fill and an unmet minimum highlighted) instead of chips, your amount or "Not
   ordered yet" sits bottom-left with a single "Order" button bottom-right, and
   the View button is gone.
+* The orders overview (`/f/group_orders`) also honours the dashboard preference:
+  with "modern" set it redirects to the dashboard, and shows the same first-visit
+  prompt and "Try the new…" button otherwise. The dashboard gained a "Settled
+  orders" section (last five closed orders, your amount, link to the archive) so
+  nothing from that page is lost.
 * Compact header on phones for the modern pages only: the modern views add an
   `fs-modern` class to `<html>` from `<head>`, and CSS in `ordering_app.scss`
   shrinks the logo, puts the user menu / Help / Feedback on the same row,

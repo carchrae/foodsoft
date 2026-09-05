@@ -68,6 +68,8 @@
     due: 'Due',
     finishedOrders: 'Awaiting settlement',
     finishedHint: 'Closed orders that have not been settled yet.',
+    closedOrders: 'Settled orders',
+    allOrders: 'All past orders',
     recentTransactions: 'Recent transactions',
     noTransactions: 'No transactions yet.',
     quickLinks: 'Shortcuts',
@@ -356,6 +358,20 @@
       '    <h2>{{ T.finishedOrders }} <small>{{ T.finishedHint }}</small></h2>' +
       '    <div class="da-card da-list">' +
       '      <a class="da-row" v-for="o in d.finished_orders" :key="o.id" :href="o.urls.show || d.urls.orders">' +
+      '        <div class="da-row-main">' +
+      '          <div class="da-row-title">{{ o.name }}</div>' +
+      '          <div class="da-row-meta"><span v-if="o.pickup_human">{{ T.pickup }} {{ o.pickup_human }}</span><span v-if="o.ends_human">{{ T.closes }} {{ o.ends_human }}</span></div>' +
+      '        </div>' +
+      '        <div class="da-row-side"><strong v-if="o.my_order">{{ money(o.my_order.price) }}</strong><span class="da-muted" v-else>—</span></div>' +
+      '      </a>' +
+      '    </div>' +
+      '  </section>' +
+
+      // ---- settled orders (the orders overview page shows these too) ---------------------------
+      '  <section class="da-section" v-if="og && d.closed_orders && d.closed_orders.length">' +
+      '    <h2>{{ T.closedOrders }} <small><a :href="d.urls.orders_archive">{{ T.allOrders }}</a></small></h2>' +
+      '    <div class="da-card da-list">' +
+      '      <a class="da-row" v-for="o in d.closed_orders" :key="o.id" :href="o.urls.show || d.urls.orders_archive" :class="{ \'da-row-muted\': !o.my_order }">' +
       '        <div class="da-row-main">' +
       '          <div class="da-row-title">{{ o.name }}</div>' +
       '          <div class="da-row-meta"><span v-if="o.pickup_human">{{ T.pickup }} {{ o.pickup_human }}</span><span v-if="o.ends_human">{{ T.closes }} {{ o.ends_human }}</span></div>' +
