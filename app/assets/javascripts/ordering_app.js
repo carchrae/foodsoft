@@ -34,12 +34,21 @@
     ordersCount: function (n) { return n + (n === 1 ? ' open order' : ' open orders'); },
     noOpenOrders: 'There are no open orders right now.',
     jumpTo: 'Jump to order…',
+    timeLeft: function (ms) {
+      if (ms <= 0) return 'past closing time';
+      var m = Math.round(ms / 60000);
+      if (m < 60) return m + ' min left';
+      var h = Math.round(m / 60);
+      if (h < 48) return h + (h === 1 ? ' hour left' : ' hours left');
+      var d = Math.round(h / 24);
+      return d + (d === 1 ? ' day left' : ' days left');
+    },
     staleOrder: function (name) { return 'Someone else in your group saved the ' + name + ' order in the meantime.'; },
     help: 'How ordering works',
     closes: 'Order closes',
     pickup: 'Pickup',
     createdBy: 'Order created by',
-    search: 'Search articles…',
+    search: 'Search for something…',
     all: 'All',
     mine: 'My order',
     mineShort: 'Mine',
@@ -284,6 +293,7 @@
         showRangeDialog: false,
         showCancelDialog: false,
         jumpTo: '',            // combined page: order id picked in the jump select
+        now: Date.now(),
         T: T
       };
     },
@@ -417,6 +427,7 @@
     created: function () {
       var self = this;
       this.load();
+      setInterval(function () { self.now = Date.now(); }, 60000);
       // remember which items needed filling when the filter is chosen, so an
       // item the member just completed stays visible instead of vanishing
       this.$watch('filter', function (f) {
@@ -591,6 +602,18 @@
         });
         this.dirty = toSave;
         if (toSave) this.$nextTick(function () { self.save(true); });
+      },
+
+      // "Discovery Organics · 2 days left · Avalon Dairy" for the jump select
+      jumpLabel: function (order) {
+        var parts = [order.name];
+        if (order.ends) parts.push(T.timeLeft(new Date(order.ends).getTime() - this.now));
+        if (order.note) {
+          var note = order.note.split('\n')[0].trim();
+          if (note.length > 32) note = note.slice(0, 31).trim() + '…';
+          if (note) parts.push(note);
+        }
+        return parts.join(' · ');
       },
 
       // scroll an order section to just below the sticky toolbar
@@ -781,7 +804,7 @@
       '    <input class="oa-search" type="search" inputmode="search" autocomplete="off" :placeholder="T.search" v-model.trim="search">' +
       '    <select class="oa-category-select oa-jump" v-if="combined && orders.length > 1" v-model="jumpTo" @change="jumpToOrder">' +
       '      <option value="">{{ T.jumpTo }}</option>' +
-      '      <option v-for="o in orders" :key="o.order.id" :value="o.order.id">{{ o.order.name }}<template v-if="o.order.ends_human"> · {{ o.order.ends_human }}</template></option>' +
+      '      <option v-for="o in orders" :key="o.order.id" :value="o.order.id">{{ jumpLabel(o.order) }}</option>' +
       '    </select>' +
       '    <div class="oa-filters">' +
       '      <div class="oa-chips" role="tablist">' +
