@@ -350,7 +350,8 @@ $oa-tap: 44px;
     align-items: center;
     gap: 12px;
   }
-  .oa-totals { flex: 1 1 auto; display: flex; flex-direction: row-reverse; justify-content: flex-start; align-items: center; gap: 22px; flex-wrap: wrap; min-width: 0; }
+  // gauge, credit and total spread evenly between Cancel and Save
+  .oa-totals { flex: 1 1 auto; display: flex; flex-direction: row-reverse; justify-content: space-evenly; align-items: center; gap: 16px; flex-wrap: wrap; min-width: 0; }
 
   .oa-total, .oa-balance {
     display: flex; flex-direction: column;
