@@ -61,6 +61,7 @@
     notOrdered: 'Not ordered yet',
     savedBy: function (who, when) { return 'saved by ' + who + ', ' + when; },
     order: 'Order',
+    orderAll: 'Order from all at once',
     view: 'View',
     itemsFilled: function (n) { return n + (n === 1 ? ' item' : ' items'); },
     casesToFill: function (n) { return n + (n === 1 ? ' case' : ' cases') + ' to fill'; },
@@ -279,7 +280,8 @@
 
       // ---- current orders -----------------------------------------------------------
       '  <section class="da-section" v-if="og">' +
-      '    <h2>{{ T.currentOrders }} <small v-if="d.open_orders.length">{{ d.open_orders.length }}</small></h2>' +
+      '    <h2>{{ T.currentOrders }} <small v-if="d.open_orders.length">{{ d.open_orders.length }}</small>' +
+      '      <a class="da-btn da-btn-small da-btn-primary da-orderall" :href="d.urls.ordering_all" v-if="d.open_orders.length > 1 && d.urls.ordering_all">{{ T.orderAll }}</a></h2>' +
       '    <p class="da-empty" v-if="!d.open_orders.length">{{ T.noOpenOrders }}</p>' +
       '    <div class="da-grid">' +
       '    <article class="da-card da-order" v-for="o in d.open_orders" :key="o.id" :class="{ \'is-ordered\': o.my_order }">' +

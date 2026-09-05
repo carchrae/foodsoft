@@ -86,6 +86,11 @@ class OrderingSerializer
     }
   end
 
+  # Also used on its own by the combined page when there are no open orders.
+  def self.config_json
+    new(nil, nil, nil).send(:config_json)
+  end
+
   def config_json
     {
       tolerance_is_costly: !!FoodsoftConfig[:tolerance_is_costly],
@@ -94,7 +99,7 @@ class OrderingSerializer
       currency_unit: FoodsoftConfig[:currency_unit] || '',
       auto_tolerance_value: AUTO_TOLERANCE_VALUE,
       splittable_cases: self.class.splittable_cases?,
-      payments_url: payments_url,
+      payments_url: (@view ? payments_url : nil),
     }
   end
 

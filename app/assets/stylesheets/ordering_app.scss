@@ -187,6 +187,21 @@ $oa-tap: 44px;
     small { font-weight: 400; margin-left: 4px; }
   }
 
+  // order sections on the combined page
+  .oa-order-head {
+    background: #fff;
+    border-top: 4px solid $oa-green;
+    padding: 12px 12px 10px;
+    margin-top: 12px;
+    h2 { margin: 0 0 4px; font-size: 19px; }
+    .oa-meta { margin: 0 0 6px; }
+    .oa-chip { margin-left: 6px; vertical-align: 1px; }
+    .oa-note { margin: 6px 0 0; }
+  }
+  .oa-order-head:first-child { margin-top: 0; }
+  // the layout gives every <section> a bottom margin; the list is packed tight
+  .oa-order-head, .oa-category { margin-bottom: 0; }
+
   .oa-article {
     background: #fff;
     border-top: 1px solid $oa-line;

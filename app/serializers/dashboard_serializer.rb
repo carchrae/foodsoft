@@ -41,6 +41,7 @@ class DashboardSerializer
         legacy: @view.root_path(classic: 1),
         profile: @view.my_profile_path,
         orders: @view.group_orders_path,
+        ordering_all: @view.ordering_index_path,
         orders_archive: @view.archive_group_orders_path,
         tasks: @view.tasks_path,
         my_tasks: @view.user_tasks_path,

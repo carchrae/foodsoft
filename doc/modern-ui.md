@@ -7,6 +7,7 @@ and remain the default.
 | Page | Classic URL | Modern URL | JSON layer |
 |---|---|---|---|
 | Ordering | `/f/group_orders/new?order_id=X`, `/f/group_orders/:id/edit` | `/f/ordering/X` | `GET /f/ordering/X/data`, `PUT /f/ordering/X` |
+| All open orders | (none) | `/f/ordering` | `GET /f/ordering/all` |
 | Dashboard | `/f` | `/f/dashboard` | `GET /f/dashboard/data` |
 
 ## How the opt-in works
@@ -48,6 +49,24 @@ and remain the default.
   `lock_version` returns HTTP 409 and the page shows a reload prompt.
 * Boxfill min/max limits and stock orders (`?stock_order=1`) are passed through
   from the classic data but are untested here (neither is used on this coop).
+
+## Combined ordering page (all open orders)
+
+`/f/ordering` shows every open order on one page as one "virtual" order: each
+order is a section (name, closing time, pickup, households so far, note) with
+its category groups and article cards underneath, and search, the Mine / To
+fill filters and the category picker work across all of them. The footer sums
+everything: total, credit (funds excluding all open orders minus the page's
+totals), the helping gauge, Save and Cancel. Save sends one request per order
+that changed, each with its own lock version, in sequence; a stale conflict
+names the order. The dashboard links to it with "Order from all at once" when
+there is more than one open order.
+
+Implementation: the same Vue component drives both pages. Internally it holds a
+list of orders and the single page is the one-order case, so behaviour stays
+identical there. `GET /f/ordering/all` returns one `OrderingSerializer`
+snapshot per open order plus `funds.available_funds_without_open_orders`;
+articles are tagged with their order id and stock flag on the client.
 
 ## What the modern dashboard does
 
@@ -168,6 +187,7 @@ app/controllers/dashboard_controller.rb
 app/serializers/ordering_serializer.rb
 app/serializers/dashboard_serializer.rb
 app/views/ordering/show.html.haml
+app/views/ordering/index.html.haml
 app/views/ordering/_legacy_switch.html.haml
 app/views/dashboard/show.html.haml
 app/views/dashboard/_legacy_switch.html.haml

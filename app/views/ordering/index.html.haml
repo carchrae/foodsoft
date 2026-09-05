@@ -1,0 +1,14 @@
+-# Modern ordering page for all open orders at once. Rendered client-side by
+-# ordering_app.js from the JSON at data-url (one snapshot per open order).
+- title 'Open orders', false
+- content_for :head do
+  :javascript
+    document.documentElement.className += ' fs-modern';
+#ordering-app{data: {url: all_ordering_index_path, celebrate: image_path('heyeeyeeyyeyah.gif')}}
+  .oa-boot
+    %p.muted Loading open orders…
+    %noscript
+      .alert.alert-danger
+        This page needs JavaScript.
+        = link_to 'Use the classic orders page instead', group_orders_path
+= render 'ordering/vue_runtime', boot_selector: '.oa-boot', fallback_url: "#{group_orders_path}"

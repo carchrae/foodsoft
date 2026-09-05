@@ -52,6 +52,7 @@ $da-tap: 44px;
       align-items: baseline;
       gap: 8px;
       small { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 13px; }
+      .da-orderall { margin-left: auto; text-transform: none; letter-spacing: 0; }
       small a { color: $da-green-dark; }
     }
   }

@@ -30,6 +30,10 @@
   // All user-facing strings in one place so they can be moved to I18n later.
   var T = {
     back: 'Orders',
+    openOrders: 'Open orders',
+    ordersCount: function (n) { return n + (n === 1 ? ' open order' : ' open orders'); },
+    noOpenOrders: 'There are no open orders right now.',
+    staleOrder: function (name) { return 'Someone else in your group saved the ' + name + ' order in the meantime.'; },
     help: 'How ordering works',
     closes: 'Order closes',
     pickup: 'Pickup',
@@ -263,12 +267,11 @@
       return {
         state: 'loading',      // loading | ready | error | stale | closed
         errorMessage: null,
-        order: null,
-        groupOrder: null,
-        funds: null,
+        orders: [],            // [{order, groupOrder, funds, urls, categories, dirty}] one per open order
+        combined: false,       // true on /ordering (all open orders), false on /ordering/:id
+        funds: null,           // combined funds (all open orders excluded) when combined
         cfg: {},
-        urls: {},
-        categories: [],        // [{name, articles: [...]}] articles are reactive
+        urls: {},              // page-level urls (legacy, back)
         search: '',
         filter: 'all',         // all | mine | fill
         fillSnapshot: null,    // ids that needed filling when the filter was chosen
@@ -284,10 +287,28 @@
     },
 
     computed: {
+      // the single order on /ordering/:id, null on the combined page
+      order: function () { return (!this.combined && this.orders.length === 1) ? this.orders[0].order : null; },
+      groupOrder: function () { return (!this.combined && this.orders.length === 1) ? this.orders[0].groupOrder : null; },
+
       allArticles: function () {
         var out = [];
-        this.categories.forEach(function (c) { c.articles.forEach(function (a) { out.push(a); }); });
+        this.orders.forEach(function (o) { o.categories.forEach(function (c) { c.articles.forEach(function (a) { out.push(a); }); }); });
         return out;
+      },
+
+      allStock: function () {
+        return this.orders.length > 0 && this.orders.every(function (o) { return o.order.stockit; });
+      },
+
+      // category names across all orders, for the picker
+      categoryOptions: function () {
+        var counts = {}, names = [];
+        this.orders.forEach(function (o) { o.categories.forEach(function (c) {
+          if (counts[c.name] == null) { counts[c.name] = 0; names.push(c.name); }
+          counts[c.name] += c.articles.length;
+        }); });
+        return names.map(function (n) { return { name: n, count: counts[n] }; });
       },
 
       // derived numbers for every article, keyed by id
@@ -316,34 +337,39 @@
       },
 
       rangePossible: function () {
-        return !this.order.stockit && this.allArticles.some(function (a) { return a.quantity + a.tolerance > 0 && a.unit_quantity > 1; });
+        return this.allArticles.some(function (a) { return !a.stockit && a.quantity + a.tolerance > 0 && a.unit_quantity > 1; });
       },
 
       // share of ordered items (that can carry a range) with some extra on them
       helping: function () {
-        var eligible = this.allArticles.filter(function (a) { return a.quantity + a.tolerance > 0 && a.unit_quantity > 1; });
-        if (this.order.stockit) return null;
+        var eligible = this.allArticles.filter(function (a) { return !a.stockit && a.quantity + a.tolerance > 0 && a.unit_quantity > 1; });
+        if (this.allStock) return null;
         var withRange = eligible.filter(function (a) { return a.tolerance > 0; }).length;
         // always shown, an empty order simply reads 0%
         var pct = eligible.length ? Math.round(100 * withRange / eligible.length) : 0;
         return { count: withRange, total: eligible.length, pct: pct, level: pct >= 67 ? 'good' : (pct >= 34 ? 'some' : 'low') };
       },
 
+      // [{order, categories: [{name, articles}]}] after search and filters
       rows: function () {
         var self = this, d = this.derived, needle = normalize(this.search);
         var out = [];
-        this.categories.forEach(function (c) {
-          if (self.category && c.name !== self.category) return;
-          var articles = c.articles.filter(function (a) {
-            if (self.filter === 'mine' && a.quantity + a.tolerance === 0) return false;
-            if (self.filter === 'fill' && d[a.id].missing === 0 && !(self.fillSnapshot && self.fillSnapshot[a.id])) return false;
-            if (needle) {
-              var hay = normalize(a.name) + ' ' + normalize(a.manufacturer) + ' ' + normalize(a.origin) + ' ' + normalize(a.order_number);
-              if (hay.indexOf(needle) === -1) return false;
-            }
-            return true;
+        this.orders.forEach(function (o) {
+          var groups = [];
+          o.categories.forEach(function (c) {
+            if (self.category && c.name !== self.category) return;
+            var articles = c.articles.filter(function (a) {
+              if (self.filter === 'mine' && a.quantity + a.tolerance === 0) return false;
+              if (self.filter === 'fill' && d[a.id].missing === 0 && !(self.fillSnapshot && self.fillSnapshot[a.id])) return false;
+              if (needle) {
+                var hay = normalize(a.name) + ' ' + normalize(a.manufacturer) + ' ' + normalize(a.origin) + ' ' + normalize(a.order_number);
+                if (hay.indexOf(needle) === -1) return false;
+              }
+              return true;
+            });
+            if (articles.length) groups.push({ name: c.name, articles: articles });
           });
-          if (articles.length) out.push({ name: c.name, articles: articles });
+          if (groups.length) out.push({ order: o.order, categories: groups });
         });
         return out;
       },
@@ -360,10 +386,12 @@
         return sum;
       },
 
-      // available_funds from the server already excludes this group order
+      // single order: its available_funds already exclude that group order;
+      // combined: funds excluding every open order, our totals cover them all
       baseFunds: function () {
         if (!this.funds) return null;
-        return this.cfg.charge_members_manually ? this.funds.account_balance : this.funds.available_funds;
+        if (this.cfg.charge_members_manually) return this.funds.account_balance;
+        return this.combined ? this.funds.available_funds_without_open_orders : this.funds.available_funds;
       },
 
       newBalance: function () {
@@ -423,14 +451,34 @@
       },
 
       apply: function (json) {
-        this.order = json.order;
-        this.groupOrder = json.group_order;
-        this.funds = json.funds;
+        var self = this;
+        this.combined = !!json.orders;
+        var list = json.orders || [json];
+        this.orders = list.map(function (snap) { return self.wrapOrder(snap); });
         this.cfg = json.config || {};
+        this.funds = json.funds || null;
         this.urls = json.urls || {};
-        this.categories = json.categories || [];
         this.fillSnapshot = this.filter === 'fill' ? this.snapshotFill() : null;
-        document.title = (json.order && json.order.name ? json.order.name + ' - ' : '') + document.title.replace(/^.* - /, '');
+        var name = this.combined ? T.openOrders : (json.order && json.order.name);
+        document.title = (name ? name + ' - ' : '') + document.title.replace(/^.* - /, '');
+      },
+
+      // one server snapshot -> reactive order entry; articles remember their order
+      wrapOrder: function (snap) {
+        var order = snap.order;
+        (snap.categories || []).forEach(function (c) { c.articles.forEach(function (a) { a.order_id = order.id; a.stockit = !!order.stockit; }); });
+        return { order: order, groupOrder: snap.group_order, funds: snap.funds, urls: snap.urls || {}, categories: snap.categories || [], dirty: false };
+      },
+
+      orderEntry: function (a) {
+        for (var i = 0; i < this.orders.length; i++) if (this.orders[i].order.id === a.order_id) return this.orders[i];
+        return null;
+      },
+
+      markDirty: function (a) {
+        var o = this.orderEntry(a);
+        if (o) o.dirty = true;
+        this.dirty = true;
       },
 
       fail: function (err) {
@@ -457,31 +505,51 @@
         var self = this;
         this.saving = true;
         var token = document.querySelector('meta[name="csrf-token"]');
-        var body = {
-          lock_version: this.groupOrder.lock_version,
-          articles: this.allArticles.map(function (a) { return { id: a.id, quantity: a.quantity, tolerance: a.tolerance }; })
+        var pending = this.orders.filter(function (o) { return o.dirty; });
+        if (!pending.length) pending = this.orders.slice();
+
+        var saveOne = function (entry) {
+          var articles = [];
+          entry.categories.forEach(function (c) { c.articles.forEach(function (a) { articles.push({ id: a.id, quantity: a.quantity, tolerance: a.tolerance }); }); });
+          return fetch(entry.urls.save, {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-CSRF-Token': token ? token.getAttribute('content') : ''
+            },
+            body: JSON.stringify({ lock_version: entry.groupOrder.lock_version, articles: articles })
+          })
+            .then(function (r) { return self.parseResponse(r); })
+            .then(function (json) {
+              // swap in the fresh snapshot for this order only
+              var fresh = self.wrapOrder(json);
+              var idx = self.orders.indexOf(entry);
+              if (idx >= 0) self.orders.splice(idx, 1, fresh); else self.orders.push(fresh);
+              if (!self.combined) { self.funds = json.funds; self.urls = json.urls || self.urls; }
+              return json;
+            })
+            .catch(function (err) { err = err || {}; err.orderName = entry.order.name; throw err; });
         };
-        fetch(this.urls.save, {
-          method: 'PUT',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-CSRF-Token': token ? token.getAttribute('content') : ''
-          },
-          body: JSON.stringify(body)
-        })
-          .then(function (r) { return self.parseResponse(r); })
-          .then(function (json) {
-            self.apply(json);
+
+        var lastJson = null;
+        pending.reduce(function (chain, entry) {
+          return chain.then(function () { return saveOne(entry).then(function (json) { lastJson = json; }); });
+        }, Promise.resolve())
+          .then(function () {
+            // credit changed on the server; refresh combined funds quietly
+            if (self.combined) self.refreshFunds();
             self.dirty = false;
             self.saving = false;
-            self.notify('ok', json.notice || T.savedToast);
+            self.fillSnapshot = self.filter === 'fill' ? self.snapshotFill() : null;
+            self.notify('ok', (lastJson && lastJson.notice) || T.savedToast);
           })
           .catch(function (err) {
             self.saving = false;
             if (err && err.kind === 'api' && err.body && err.body.error === 'stale') {
               self.state = 'stale';
+              self.errorMessage = self.combined && err.orderName ? T.staleOrder(err.orderName) : null;
             } else if (err && err.kind === 'api' && err.body && err.body.error === 'closed') {
               self.state = 'closed';
               self.errorMessage = err.body.message || T.closed;
@@ -489,6 +557,15 @@
               self.notify('error', (err && err.body && err.body.message) || T.saveError);
             }
           });
+      },
+
+      // combined page: re-read funds after saving without disturbing edits
+      refreshFunds: function () {
+        var self = this;
+        fetch(this.dataUrl, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+          .then(function (r) { return self.parseResponse(r); })
+          .then(function (json) { if (json.funds) self.funds = json.funds; })
+          .catch(function () { /* keep what we have */ });
       },
 
       reload: function () {
@@ -500,16 +577,18 @@
       clearOrder: function () {
         var self = this;
         this.showCancelDialog = false;
-        this.allArticles.forEach(function (a) {
-          a.quantity = a.min_quantity || 0;
-          a.tolerance = a.min_tolerance || 0;
+        var toSave = false;
+        this.orders.forEach(function (o) {
+          o.categories.forEach(function (c) { c.articles.forEach(function (a) {
+            a.quantity = a.min_quantity || 0;
+            a.tolerance = a.min_tolerance || 0;
+          }); });
+          // only orders already on the server need a save to clear them
+          o.dirty = !!(o.groupOrder && o.groupOrder.persisted);
+          toSave = toSave || o.dirty;
         });
-        this.dirty = true;
-        if (this.groupOrder && this.groupOrder.persisted) {
-          this.$nextTick(function () { self.save(true); });
-        } else {
-          this.dirty = false;
-        }
+        this.dirty = toSave;
+        if (toSave) this.$nextTick(function () { self.save(true); });
       },
 
       addExtra: function () {
@@ -533,12 +612,12 @@
 
       // ---- editing --------------------------------------------------------
       autoTolerance: function (a) {
-        if (a.unit_quantity <= 1 || !(a.price > 0) || this.order.stockit) return 0;
+        if (a.unit_quantity <= 1 || !(a.price > 0) || a.stockit) return 0;
         return Math.floor((this.cfg.auto_tolerance_value || 0) / a.price);
       },
 
       maxQuantity: function (a) {
-        if (this.order.stockit) return a.quantity_available + a.used_quantity;
+        if (a.stockit) return a.quantity_available + a.used_quantity;
         return a.max_quantity == null ? null : a.max_quantity;
       },
 
@@ -550,12 +629,12 @@
         if (a.quantity === 0 && q > 0 && a.tolerance === 0) a.tolerance = Math.max(auto, a.min_tolerance || 0);
         if (a.quantity !== 0 && q === 0 && a.tolerance === auto) a.tolerance = a.min_tolerance || 0;
         a.quantity = q;
-        this.dirty = true;
+        this.markDirty(a);
       },
 
       setTolerance: function (a, value) {
         a.tolerance = Math.max(toInt(value, a.tolerance), a.min_tolerance || 0);
-        this.dirty = true;
+        this.markDirty(a);
       },
 
       // "Up to" is amount + tolerance; it can never be below the amount
@@ -573,7 +652,7 @@
       // One bar per case behind the steppers: complete cases are green, the
       // partial case fills from faint red towards yellow. Capped so bars stay legible.
       caseBars: function (a, d) {
-        if (d.progress == null || this.order.stockit) return [];
+        if (d.progress == null || a.stockit) return [];
         var bars = [], full = d.fullCases, i;
         var hasPartial = d.progress != null && d.progress < 1 && d.progress > 0;
         var maxFull = hasPartial || d.partialShips ? 5 : 6;
@@ -597,7 +676,7 @@
       },
 
       showsRange: function (a) {
-        return a.unit_quantity > 1 && !this.order.stockit;
+        return a.unit_quantity > 1 && !a.stockit;
       },
 
       // ---- formatting -----------------------------------------------------
@@ -630,7 +709,7 @@
       },
 
       splitHint: function (a) {
-        if (!this.cfg.splittable_cases || !a.split_fraction || a.unit_quantity <= 1) return null;
+        if (!this.cfg.splittable_cases || !a.split_fraction || a.unit_quantity <= 1 || a.stockit) return null;
         return T.shipsFraction(a.split_fraction);
       },
 
@@ -668,6 +747,20 @@
       '    </div>' +
       '    <div class="oa-alert oa-alert-danger" v-if="!balanceOk">{{ T.lowCredit(money(cfg.minimum_balance || 0)) }}</div>' +
       '  </header>' +
+      '  <header class="oa-head" v-else-if="combined && state === \'ready\'">' +
+      '    <div class="oa-titlebar">' +
+      '      <a class="oa-back" :href="urls.back">&lsaquo; {{ T.back }}</a>' +
+      '      <h1 class="oa-title">{{ T.openOrders }}</h1>' +
+      '      <a href="#" class="oa-classic" @click.prevent="switchToClassic">{{ T.classic }}</a>' +
+      '      <button type="button" class="oa-linkbtn" @click="showHelp = !showHelp" :aria-expanded="showHelp">?</button>' +
+      '    </div>' +
+      '    <p class="oa-meta">{{ T.ordersCount(orders.length) }}<span v-for="o in orders" :key="o.order.id"> · <a :href="\'#order-\' + o.order.id">{{ o.order.name }}</a></span></p>' +
+      '    <div class="oa-help" v-if="showHelp">' +
+      '      <h3>{{ T.help }}</h3>' +
+      '      <div v-html="T.helpHtml"></div>' +
+      '    </div>' +
+      '    <div class="oa-alert oa-alert-danger" v-if="!balanceOk">{{ T.lowCredit(money(cfg.minimum_balance || 0)) }}</div>' +
+      '  </header>' +
 
       // ---- toolbar (sticky) -----------------------------------------------
       '  <div class="oa-toolbar" v-if="state === \'ready\'">' +
@@ -676,11 +769,11 @@
       '      <div class="oa-chips" role="tablist">' +
       '        <button type="button" class="oa-chipbtn" :class="{ active: filter === \'all\' }" @click="filter = \'all\'">{{ T.all }}</button>' +
       '        <button type="button" class="oa-chipbtn" :class="{ active: filter === \'mine\' }" @click="filter = \'mine\'"><span class="oa-label-long">{{ T.mine }}</span><span class="oa-label-short">{{ T.mineShort }}</span> <b>{{ mineCount }}</b></button>' +
-      '        <button type="button" class="oa-chipbtn" :class="{ active: filter === \'fill\' }" @click="filter = \'fill\'" v-if="!order.stockit"><span class="oa-label-long">{{ T.needsFilling }}</span><span class="oa-label-short">{{ T.needsFillingShort }}</span> <b>{{ fillCount }}</b></button>' +
+      '        <button type="button" class="oa-chipbtn" :class="{ active: filter === \'fill\' }" @click="filter = \'fill\'" v-if="!allStock"><span class="oa-label-long">{{ T.needsFilling }}</span><span class="oa-label-short">{{ T.needsFillingShort }}</span> <b>{{ fillCount }}</b></button>' +
       '      </div>' +
-      '      <select class="oa-category-select" v-model="category" v-if="categories.length > 1">' +
+      '      <select class="oa-category-select" v-model="category" v-if="categoryOptions.length > 1">' +
       '        <option value="">{{ T.allCategories }}</option>' +
-      '        <option v-for="c in categories" :key="c.name" :value="c.name">{{ c.name }} ({{ c.articles.length }})</option>' +
+      '        <option v-for="c in categoryOptions" :key="c.name" :value="c.name">{{ c.name }} ({{ c.count }})</option>' +
       '      </select>' +
       '    </div>' +
       '  </div>' +
@@ -693,13 +786,23 @@
       '       <a class="oa-btn oa-btn-plain" :href="urls.back || \'#\'">{{ T.back }}</a></p>' +
       '  </div>' +
       '  <div class="oa-state" v-else-if="state === \'stale\'">' +
-      '    <div class="oa-alert oa-alert-warning"><strong>{{ T.staleTitle }}</strong><br>{{ T.staleBody }}</div>' +
+      '    <div class="oa-alert oa-alert-warning"><strong>{{ errorMessage || T.staleTitle }}</strong><br>{{ T.staleBody }}</div>' +
       '    <p><button type="button" class="oa-btn oa-btn-primary" @click="reload">{{ T.reload }}</button></p>' +
       '  </div>' +
 
       // ---- article list ---------------------------------------------------
       '  <main class="oa-list" v-else>' +
-      '    <section class="oa-category" v-for="group in rows" :key="group.name">' +
+      '    <template v-for="og in rows" :key="og.order.id">' +
+      '    <section class="oa-order-head" v-if="combined" :id="\'order-\' + og.order.id">' +
+      '      <h2>{{ og.order.name }}</h2>' +
+      '      <p class="oa-meta">' +
+      '        <span v-if="og.order.ends_human">{{ T.closes }} <strong>{{ og.order.ends_human }}</strong></span>' +
+      '        <span v-if="og.order.pickup_human"> · {{ T.pickup }} {{ og.order.pickup_human }}</span>' +
+      '        <span class="oa-chip ok" v-if="og.order.ordergroups_ordered != null">{{ T.orderedSoFar(og.order.ordergroups_ordered) }}</span>' +
+      '      </p>' +
+      '      <div class="oa-note" v-if="og.order.note">{{ og.order.note }}</div>' +
+      '    </section>' +
+      '    <section class="oa-category" v-for="group in og.categories" :key="og.order.id + \'-\' + group.name">' +
       '      <h2 class="oa-category-title">{{ group.name }} <small>{{ group.articles.length }}</small></h2>' +
       '      <article class="oa-article" v-for="a in group.articles" :key="a.id" :class="articleClass(a, derived[a.id])">' +
       '        <div class="oa-article-main">' +
@@ -710,13 +813,13 @@
       '              <span v-if="a.supplier">{{ a.supplier }}</span>' +
       '              <span v-if="a.unit_quantity > 1">{{ T.caseOf }} {{ a.unit_quantity }}</span>' +
       '              <span v-if="a.deposit > 0">{{ money(a.deposit) }} {{ T.deposit }}</span>' +
-      '              <span v-if="order.stockit">{{ a.quantity_available }} {{ T.inStock }}</span>' +
+      '              <span v-if="a.stockit">{{ a.quantity_available }} {{ T.inStock }}</span>' +
       '            </div>' +
       '            <div class="oa-article-note" v-if="a.note">{{ a.note }}</div>' +
       '          </div>' +
       '          <div class="oa-article-aside">' +
       '            <div class="oa-article-price">{{ money(a.price) }} <span class="oa-per">{{ T.perUnit }} {{ a.unit }}</span></div>' +
-      '            <div class="oa-status" v-if="!order.stockit && a.unit_quantity > 1">' +
+      '            <div class="oa-status" v-if="!a.stockit && a.unit_quantity > 1">' +
       '              <span class="oa-chip" :class="derived[a.id].units > 0 && derived[a.id].extra === 0 ? \'ok\' : (derived[a.id].units > 0 ? \'warn\' : \'muted\')">{{ caseLabel(a, derived[a.id]) }}</span>' +
       '              <span class="oa-chip warn" v-if="derived[a.id].missing > 0">{{ T.toFill(derived[a.id].missing) }}</span>' +
       '              <span class="oa-chip ok" v-if="derived[a.id].extra > 0">{{ T.extra(derived[a.id].extra) }}</span>' +
@@ -752,7 +855,8 @@
       '        </div>' +
       '      </article>' +
       '    </section>' +
-      '    <p class="oa-empty" v-if="rows.length === 0">{{ T.noMatch }}</p>' +
+      '    </template>' +
+      '    <p class="oa-empty" v-if="rows.length === 0">{{ orders.length ? T.noMatch : T.noOpenOrders }}</p>' +
       '  </main>' +
 
       // ---- footer (fixed) -------------------------------------------------
@@ -834,6 +938,16 @@
       return;
     }
     writeUiPref('modern');
-    Vue.createApp(OrderingApp, { dataUrl: el.getAttribute('data-url'), celebrateUrl: el.getAttribute('data-celebrate') }).mount(el);
+    var app = Vue.createApp(OrderingApp, { dataUrl: el.getAttribute('data-url'), celebrateUrl: el.getAttribute('data-celebrate') });
+    // surface unexpected errors instead of a silently blank page
+    app.config.errorHandler = function (err, vm, info) {
+      if (window.console) console.error('ordering app error', info, err);
+      var box = document.createElement('div');
+      box.className = 'alert alert-danger';
+      box.textContent = 'Something went wrong on this page (' + (err && err.message ? err.message : err) + ').';
+      if (!el.querySelector('.alert-danger')) el.insertBefore(box, el.firstChild);
+    };
+    app.mount(el);
+    window.FoodsoftOrderingApp = OrderingApp;
   });
 })();

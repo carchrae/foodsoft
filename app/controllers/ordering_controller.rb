@@ -1,6 +1,8 @@
-# Modern (Vue) ordering page and its JSON layer.
+# Modern (Vue) ordering pages and their JSON layer.
 #
-#   GET  /ordering/:id       HTML shell that boots the Vue app (see ordering_app.js)
+#   GET  /ordering           HTML shell showing every open order on one page
+#   GET  /ordering/all       JSON: one snapshot per open order plus combined funds
+#   GET  /ordering/:id       HTML shell for a single order (see ordering_app.js)
 #   GET  /ordering/:id/data  JSON snapshot of the order for the member's ordergroup
 #   PUT  /ordering/:id       save quantities, returns a fresh snapshot
 #
@@ -12,10 +14,36 @@
 # another branch without touching existing code. Business logic stays in the
 # models (GroupOrder#load_data, GroupOrder#save_ordering!).
 class OrderingController < ApplicationController
+  SINGLE_ORDER_ACTIONS = %i[show data update].freeze
+
   before_action :ensure_ordergroup_member
-  before_action :ensure_open_order
-  before_action :find_group_order
-  before_action :enough_apples?
+  before_action :ensure_open_order, only: SINGLE_ORDER_ACTIONS
+  before_action :find_group_order, only: SINGLE_ORDER_ACTIONS
+  before_action :enough_apples?, only: SINGLE_ORDER_ACTIONS
+
+  # Every open order on one page.
+  def index
+  end
+
+  # Snapshots for all open orders (soonest closing first) plus funds that
+  # exclude every open order, so the page can compute credit from its own totals.
+  def all
+    orders = Order.open_reverse.includes([:supplier, :order_articles]).to_a
+    snapshots = orders.map do |order|
+      group_order = order.group_orders.where(ordergroup_id: @ordergroup.id).first ||
+                    order.group_orders.build(ordergroup: @ordergroup, updated_by: current_user)
+      OrderingSerializer.new(order, group_order, view_context).as_json
+    end
+    render json: {
+      orders: snapshots,
+      funds: {
+        account_balance: @ordergroup.account_balance.to_f.round(2),
+        available_funds_without_open_orders: (@ordergroup.get_available_funds + @ordergroup.value_of_open_orders).to_f.round(2),
+      },
+      config: snapshots.first.try(:[], :config) || OrderingSerializer.config_json,
+      urls: {legacy: group_orders_path, back: group_orders_path},
+    }
+  end
 
   def show
   end
