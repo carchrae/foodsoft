@@ -148,7 +148,7 @@ $da-tap: 44px;
     border-left: 4px solid $da-line;
     display: flex; flex-direction: column;
     &.is-ordered { border-left-color: $da-green; }
-    .da-order-actions { margin-top: auto; }
+    .da-order-foot { margin-top: auto; padding-top: 12px; }
   }
   .da-order-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; h3 { flex: 1 1 auto; margin: 0; font-size: 18px; } }
   .da-closing {
@@ -169,15 +169,21 @@ $da-tap: 44px;
     border-radius: 0 6px 6px 0;
     a { word-break: break-all; }
   }
-  .da-mine {
-    margin: 8px 0 6px;
-    font-size: 14px;
-    strong { font-size: 18px; margin: 0 4px; }
-    small { display: block; }
-    &.none { color: $da-muted; font-style: italic; }
+  // one muted line of figures instead of a wall of chips
+  .da-stats {
+    margin: 6px 0 0; font-size: 12px; color: $da-muted; line-height: 1.5;
+    span + span:before { content: " · "; color: $da-muted; }
+    .warn { color: darken($da-amber, 15%); font-weight: 600; }
+    .bad { color: $da-red; font-weight: 600; }
+    .ok { color: $da-green-dark; font-weight: 600; }
   }
-  .da-badges { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 10px; }
-  .da-order-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .da-order-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+  .da-mine {
+    min-width: 0;
+    strong { font-size: 18px; display: block; line-height: 1.1; }
+    small { display: block; font-size: 12px; }
+    &.none { color: $da-muted; font-style: italic; font-size: 14px; }
+  }
 
   // ---- tasks ------------------------------------------------------------------------------
   .da-tasks h4 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: $da-muted; }

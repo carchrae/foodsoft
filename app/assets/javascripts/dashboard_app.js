@@ -44,17 +44,16 @@
     closes: 'Closes',
     pickup: 'Pickup',
     yourOrder: 'Your order',
-    notOrdered: "You haven't ordered yet",
+    notOrdered: 'Not ordered yet',
     savedBy: function (who, when) { return 'saved by ' + who + ', ' + when; },
-    order: 'Order now',
-    editOrder: 'Edit order',
+    order: 'Order',
     view: 'View',
-    itemsFilled: function (n) { return n + (n === 1 ? ' item' : ' items') + ' filled'; },
+    itemsFilled: function (n) { return n + (n === 1 ? ' item' : ' items'); },
     casesToFill: function (n) { return n + (n === 1 ? ' case' : ' cases') + ' to fill'; },
     fullCases: function (n) { return n + ' full ' + (n === 1 ? 'case' : 'cases'); },
-    coopTotal: function (a, b) { return 'co-op total ' + a + (b ? ' of ' + b : ''); },
+    coopTotal: function (a, b) { return 'co-op ' + a + (b ? ' of ' + b : ''); },
     minMet: function (m) { return m + ' minimum met'; },
-    minShort: function (m) { return m + ' minimum not met yet'; },
+    minShort: function (m) { return m + ' minimum not met'; },
     splits: function (n) { return n + ' splits'; },
     tasks: 'Tasks',
     toAccept: 'Waiting for your answer',
@@ -279,17 +278,14 @@
       '        <span v-if="o.pickup_human">{{ T.pickup }} <strong>{{ o.pickup_human }}</strong></span>' +
       '      </p>' +
       '      <div class="da-note" v-if="o.note_html" v-html="o.note_html"></div>' +
-      '      <div class="da-mine" v-if="o.my_order">' +
-      '        <span>{{ T.yourOrder }}</span> <strong>{{ money(o.my_order.price) }}</strong>' +
-      '        <small>{{ T.savedBy(o.my_order.updated_by, o.my_order.updated_on_human) }}</small>' +
-      '      </div>' +
-      '      <div class="da-mine none" v-else>{{ T.notOrdered }}</div>' +
-      '      <div class="da-badges">' +
-      '        <span class="da-chip" v-for="(b, i) in badges(o)" :key="i" :class="b.kind">{{ b.text }}</span>' +
-      '      </div>' +
-      '      <div class="da-order-actions">' +
-      '        <a class="da-btn da-btn-primary" :href="orderUrl(o)" v-if="o.urls.order">{{ o.my_order ? T.editOrder : T.order }}</a>' +
-      '        <a class="da-btn" :href="o.urls.show" v-if="o.urls.show">{{ T.view }}</a>' +
+      '      <p class="da-stats"><span v-for="(b, i) in badges(o)" :key="i" :class="b.kind">{{ b.text }}</span></p>' +
+      '      <div class="da-order-foot">' +
+      '        <div class="da-mine" v-if="o.my_order">' +
+      '          <strong>{{ money(o.my_order.price) }}</strong>' +
+      '          <small>{{ T.savedBy(o.my_order.updated_by, o.my_order.updated_on_human) }}</small>' +
+      '        </div>' +
+      '        <div class="da-mine none" v-else>{{ T.notOrdered }}</div>' +
+      '        <a class="da-btn da-btn-primary" :href="orderUrl(o)" v-if="o.urls.order">{{ T.order }}</a>' +
       '      </div>' +
       '    </article>' +
       '    </div>' +

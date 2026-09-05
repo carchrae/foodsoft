@@ -122,6 +122,10 @@ and remain the default.
 * Stable card layout: the right column (unit price and chips) has a fixed width
   (35% on phones, 220px on desktop) so names never rewrap when chips appear,
   and one line is reserved for the "You get" sentence so cards don't jump.
+* Dashboard order cards simplified: figures are one muted line (with cases to
+  fill and an unmet minimum highlighted) instead of chips, your amount or "Not
+  ordered yet" sits bottom-left with a single "Order" button bottom-right, and
+  the View button is gone.
 * Compact header on phones for the modern pages only: the modern views add an
   `fs-modern` class to `<html>` from `<head>`, and CSS in `ordering_app.scss`
   shrinks the logo, puts the user menu / Help / Feedback on the same row,
