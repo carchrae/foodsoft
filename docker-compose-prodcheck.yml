@@ -1,0 +1,46 @@
+# Local production check.
+#
+# Runs the app in RAILS_ENV=production from the same image as the dev stack
+# (Ubuntu 18.04 + Ruby 2.6.6, like the server) so asset precompilation and
+# production-only behaviour can be checked before deploying. It uses the local
+# postgres from local-settings.sh and the redis service of the dev stack.
+#
+# Launch with ./start-docker-prodcheck.sh, then open http://localhost:3001/f
+#
+# Precompiled assets and tmp/ go to volumes, not into the working tree, so the
+# dev server keeps compiling assets live.
+
+services:
+
+  foodsoft_prodcheck:
+    build:
+      context: .
+      dockerfile: Dockerfile-dev
+      args:
+        HOST_UID: ${HOST_UID:-1000}
+        HOST_GID: ${HOST_GID:-1000}
+    command: >
+      sh -c "bundle exec rake assets:precompile &&
+             exec bundle exec rails server -e production --binding=0.0.0.0 --port=$${PORT}"
+    network_mode: host
+    environment:
+      - RAILS_ENV=production
+      - PORT=${PRODCHECK_PORT:-3001}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-local-production-check-only-not-a-real-secret-0123456789abcdef0123456789abcdef}
+      - DATABASE_URL=${DATABASE_URL:-postgres://food-coop:food-coop@localhost:5432/food-coop}
+      - SHARED_DATABASE_URL=${SHARED_DATABASE_URL:-postgres://food-coop:food-coop@localhost:5432/food-prices}
+      - REDIS_URL=redis://localhost:6379
+      - RAILS_SERVE_STATIC_FILES=true
+      - RAILS_FORCE_SSL=false
+      - RAILS_LOG_TO_STDOUT=true
+      - HOSTNAME=localhost:${PRODCHECK_PORT:-3001}
+    volumes:
+      - bundle_prodcheck:/home/app/bundle
+      - .:/home/app/src
+      - prodcheck_assets:/home/app/src/public/assets
+      - prodcheck_tmp:/home/app/src/tmp
+
+volumes:
+  bundle_prodcheck:
+  prodcheck_assets:
+  prodcheck_tmp:
