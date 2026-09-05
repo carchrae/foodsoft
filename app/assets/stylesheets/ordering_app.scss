@@ -16,38 +16,12 @@ $oa-footer-h: 64px;
 $oa-radius: 8px;
 $oa-tap: 44px;
 
-// "Try the new page" button on the classic pages, and the one-time prompt.
-.fs-switch-banner, .oa-switch-banner, .da-switch-banner {
-  margin: 0 0 10px;
-  .btn i { margin-right: 4px; }
+// "Try the new look" call-out on the classic pages
+.fs-switch-alert {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
+  .btn i { margin-right: 6px; }
+  .fs-switch-hint { color: #3a6ea5; font-size: 14px; }
 }
-.fs-try-backdrop {
-  position: fixed; left: 0; top: 0; right: 0; bottom: 0;
-  z-index: 1100;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px;
-  &[hidden] { display: none; }
-}
-.fs-try {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px 20px 16px;
-  max-width: 420px;
-  width: 100%;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
-  color: $oa-ink;
-  h3 { margin: 0 0 10px; font-size: 18px; line-height: 1.2; }
-  p { margin: 0 0 16px; font-size: 15px; line-height: 1.45; }
-}
-.fs-try-actions { display: flex; flex-direction: column; gap: 8px; }
-.fs-try-btn {
-  display: block; width: 100%; height: $oa-tap; line-height: $oa-tap - 2px;
-  border-radius: $oa-tap / 2; border: 1px solid #ccc; background: #fff; color: $oa-ink;
-  font-size: 15px; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer;
-  &:hover { text-decoration: none; color: $oa-ink; }
-}
-.fs-try-primary { background: $oa-green; border-color: darken($oa-green, 8%); color: #fff; &:hover { color: #fff; background: darken($oa-green, 5%); } }
 
 .oa {
   color: $oa-ink;

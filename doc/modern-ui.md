@@ -109,11 +109,10 @@ and remain the default.
   changes by reloading the data,
   and asks people to avoid doing this at the last minute because other members need
   time to react and fill the cases. Boxfill minimums are respected.
-* First visit: when no preference is stored yet, the classic ordering page and
-  the classic home page show a one-time dialog offering the new design ("Try it
-  now" / "Not now"). Either answer is remembered. Both modern pages carry a
-  small "Classic view" link at the top; the classic pages keep their "Try the
-  new…" button at the top.
+* The classic ordering page, home page and orders overview show an alert with a
+  large "Try the new mobile-friendly look" button at the top (the earlier
+  first-visit dialog was dropped). Both modern pages carry a small "Classic
+  view" link at the top.
 * Dashboard: the greeting is gone; the ordergroup name sits in the top bar. The
   notice board now shows the wiki "Dashboard" page (as the classic page does),
   titled with the page name, and only when that page exists. The wiki front
