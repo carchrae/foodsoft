@@ -308,9 +308,10 @@
       // share of ordered items (that can carry a range) with some extra on them
       helping: function () {
         var eligible = this.allArticles.filter(function (a) { return a.quantity + a.tolerance > 0 && a.unit_quantity > 1; });
-        if (this.order.stockit || eligible.length === 0) return null;
+        if (this.order.stockit) return null;
         var withRange = eligible.filter(function (a) { return a.tolerance > 0; }).length;
-        var pct = Math.round(100 * withRange / eligible.length);
+        // always shown, an empty order simply reads 0%
+        var pct = eligible.length ? Math.round(100 * withRange / eligible.length) : 0;
         return { count: withRange, total: eligible.length, pct: pct, level: pct >= 67 ? 'good' : (pct >= 34 ? 'some' : 'low') };
       },
 
