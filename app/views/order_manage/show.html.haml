@@ -1,0 +1,16 @@
+-# Modern order management page. Rendered client-side by order_manage_app.js
+-# from the JSON at data-url (OrderManageController#data).
+- title t('orders.show.title', name: @order.name), false
+-# Mark the document so the shared header can be compacted on phones (see
+-# ordering_app.scss, html.fs-modern). Runs in <head>, before the body paints.
+- content_for :head do
+  :javascript
+    document.documentElement.className += ' fs-modern';
+#order-manage-app{data: {url: data_manage_path(@order)}}
+  .om-boot
+    %p.muted Loading #{@order.name}…
+    %noscript
+      .alert.alert-danger
+        This page needs JavaScript.
+        = link_to 'Use the classic order page instead', order_path(@order, classic: 1)
+= render 'ordering/vue_runtime', boot_selector: '.om-boot', fallback_url: "#{order_path(@order, classic: 1)}"

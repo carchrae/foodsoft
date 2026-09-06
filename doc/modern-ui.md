@@ -301,6 +301,95 @@ Matching and scoring happen in the browser.
 * Verified: JSON load and save with curl (a swap and the swap back), desktop
   and 390px screenshots, the filter and the count in headless Firefox.
 
+## Order management page (orders / pickups role)
+
+`/f/manage/:id` is the modern version of `/f/orders/:id` (OrdersController#show).
+It is a Vue page (`order_manage_app.js`) fed by `OrderManageController#data`
+and `OrderManageSerializer`; the classic page is untouched apart from the
+`order_manage/_legacy_switch` hook, which redirects when the shared `foodsoft.ui`
+preference says "modern" (`?classic=1` forces the classic page). The
+controller is read-only: comments go to the existing `OrderCommentsController`
+and result changes to `GroupOrderArticlesController`, both called as form-encoded
+XHR (they answer with JS snippets meant for the classic page, which are
+ignored; the page reloads its data afterwards). The state-changing buttons
+(Close, Send to supplier, Delete) submit a hidden form with the CSRF token to
+the existing routes, after a confirm dialog drawn by the page.
+
+* **Header**: name, state chip, supplier link, opened by / period / pickup, the
+  note, and four tiles (households, articles ordered, net, gross). The
+  households tile lists the names in its tooltip like the classic underline.
+* **Actions** follow the classic rules: Close order / Stock order / Edit /
+  Swap articles while open (orders role); Send to supplier (primary until it
+  has been sent, then a confirm) and Receive once finished; Download menu when
+  not open; Show / Add invoice for finance or invoices roles; Case report
+  always; Delete unless closed.
+* **Summary** (default): one card per article grouped by category, the left
+  border coloured like the classic rows (green full, amber part case, red
+  wanted but no case, grey nobody). Shows unit, note, net / gross / supplier
+  prices, "wanted q + t" with the number of households, cases with "n × case
+  size", and a chip ("full", "5 short", "not enough for a case", "nobody wants
+  it"). Tapping a card expands the households behind it. Totals at the bottom.
+* **Members**: one card per household with its total and who saved it, then a
+  line per article (unit, × case size, ordered q + t, gets, × price = total).
+  Lines with a result of 0 are greyed, lines using tolerance are marked green.
+* **Articles**: one card per ordered article ("1 case ordered, 12 × 3LB in
+  total", sum of results and prices), a line per household. The toggle "Show
+  items nobody is getting (n hidden)" adds the articles the classic view
+  leaves out (nothing being bought: no cases, nothing billed or received) so
+  their partial demand can be seen; those cards carry the same state chip.
+* **Results**: when finance opens a finished order, every "gets" figure has −
+  / + buttons and an input (PATCH to `group_order_articles/:id`), and each
+  article card has "Add household" (POST to `group_order_articles`), replacing
+  the classic delta inputs and "Add Group" modal.
+* **Comments** are listed with household, user and time, with a textarea to add
+  one (the model needs at least 3 characters).
+* Search matches article names and notes in Summary, household or article
+  names in the other two views. Two columns of cards from 1100px; the chosen
+  view is remembered in `localStorage` (`foodsoft.manage.view`).
+* Not carried over: the per-article "Edit" modal of the summary (edit the
+  article from the supplier's article list instead) and the stock-order
+  specific "units" column wording is kept as "units" only for stock orders.
+
+## Copy order with demand (orders role)
+
+`/f/order_copy/:id` ("Copy with demand" button next to "Copy" on the orders
+overview, `OrderCopyController` + `OrderCopySerializer`, `order_copy_app.js`,
+`order_copy_app.scss`) creates a new order from an earlier one, like the
+classic copy, but shows what each article did last time so the coordinator
+can decide what to keep.
+
+* Top card for the copied order: households that ordered, articles with and
+  without demand, total, closing and pickup dates, and an amber list of
+  articles from that order that can no longer be ordered (with their demand).
+* Order details in a collapsible card (collapsed on phones): opens, boxfill
+  (when the coop uses it), closes, pickup date, end action, member note and
+  supplier note, prefilled like the classic page from the copied order and
+  `Order#init_dates`; a closing/boxfill time that has already passed is not
+  reused. Native date/time inputs.
+* Every available article of the supplier, grouped by category, as a tickable
+  card: name, code, note, origin, manufacturer, unit × case, prices
+  (net / coop / supplier, like the classic table), and a demand line from the
+  copied order: households, wanted (+extra), cases shipped or "no case
+  filled", "N short of a case", units received, units delivered to members,
+  and a small case-fill bar. Left border: green when a case shipped, amber
+  when there was demand but no case, grey when nobody ordered, blue for
+  articles not in the last order. A mini bar chart per article shows
+  households over the supplier's last six finished orders with "ordered in 4
+  of last 6 · avg 5 households".
+* Search (name/code/origin/note), category picker, sort (most wanted first or
+  by name), filters All / Had demand / Nobody ordered / Not in last order, and
+  quick selection: as last order (the default, like classic), only with
+  demand, all, none, and all/none of the currently shown. Category headers
+  tick a whole category.
+* Fixed footer with "N selected · with demand / nobody ordered / new" and
+  Create order. Validation errors from the model (no articles, closes before
+  opens…) are listed at the top; success goes to the new order's page.
+* Stock orders: the card shows "N × unit in stock" instead of origin/unit.
+* JSON: `GET /f/order_copy/:id/data`, `POST /f/order_copy/:id` with
+  `{order: {starts, ends, boxfill, pickup, end_action, note, supplier_note,
+  article_ids}}` → `{url}` or 422 `{errors}`. Verified with curl (create and
+  delete) and headless Firefox screenshots.
+
 ## Files
 
 New, self-contained (drop-in for the custom-rebuild branch):
@@ -319,6 +408,11 @@ app/controllers/swap_controller.rb
 app/serializers/swap_serializer.rb
 app/assets/javascripts/swap_app.js
 app/assets/stylesheets/swap_app.scss
+app/controllers/order_copy_controller.rb
+app/serializers/order_copy_serializer.rb
+app/views/order_copy/show.html.haml
+app/assets/javascripts/order_copy_app.js
+app/assets/stylesheets/order_copy_app.scss
 app/assets/javascripts/ordering_app.js
 app/assets/javascripts/dashboard_app.js
 app/assets/stylesheets/ordering_app.scss

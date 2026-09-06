@@ -1,0 +1,273 @@
+// Styles for the modern order management page (order_manage_app.js). Scoped
+// under .om so nothing leaks into the classic pages. Same palette as the
+// ordering page and dashboard.
+
+$om-green: #78b74e;
+$om-green-dark: #468847;
+$om-green-bg: #dff0d8;
+$om-red: #b94a48;
+$om-red-bg: #f2dede;
+$om-amber: #c09853;
+$om-amber-bg: #fcf8e3;
+$om-ink: #333;
+$om-muted: #777;
+$om-line: #e5e5e5;
+$om-bg: #f7f7f5;
+$om-radius: 10px;
+$om-tap: 44px;
+
+.om {
+  color: $om-ink;
+  padding-bottom: 24px;
+  -webkit-tap-highlight-color: transparent;
+
+  *, *:before, *:after { box-sizing: border-box; }
+  h1, h2, h3, h4 { line-height: 1.2; }
+  .om-muted, small { color: $om-muted; }
+  .om-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: $om-muted; font-weight: 600; }
+  .om-unit { font-weight: 400; color: $om-muted; font-size: 13px; white-space: nowrap; }
+  .om-pkg { margin-left: 4px; white-space: nowrap; }
+
+  // ---- generic pieces ---------------------------------------------------------
+  .om-card {
+    background: #fff;
+    border: 1px solid $om-line;
+    border-radius: $om-radius;
+    padding: 12px 14px;
+    margin: 0;
+  }
+  .om-list { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .om-section { margin: 16px 0 0; }
+  .om-section-title, .om-category-title {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $om-muted;
+    margin: 0 0 8px;
+    small { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 13px; }
+  }
+  .om-category { margin: 0 0 16px; }
+  .om-empty { color: $om-muted; padding: 6px 0; margin: 0; }
+  .om-alert { padding: 10px 12px; border-radius: $om-radius; margin: 10px 0; border: 1px solid transparent; }
+  .om-alert-danger { background: $om-red-bg; color: $om-red; border-color: darken($om-red-bg, 8%); }
+
+  .om-btn {
+    display: inline-block;
+    height: $om-tap;
+    line-height: $om-tap - 2px;
+    padding: 0 16px;
+    border-radius: $om-tap / 2;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: $om-ink;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    &:hover { text-decoration: none; background: #f7f7f7; }
+    &:disabled { opacity: 0.5; cursor: default; }
+  }
+  .om-btn-small { height: 34px; line-height: 32px; padding: 0 14px; font-size: 13px; }
+  .om-btn-primary { background: $om-green; border-color: darken($om-green, 8%); color: #fff; &:hover { background: darken($om-green, 5%); } }
+  .om-btn-success { @extend .om-btn-primary; }
+  .om-btn-danger { background: #fff; border-color: $om-red; color: $om-red; &:hover { background: $om-red-bg; } }
+
+  .om-chip {
+    display: inline-block;
+    font-size: 12px;
+    line-height: 22px;
+    padding: 0 9px;
+    border-radius: 11px;
+    background: #eee;
+    color: #555;
+    white-space: nowrap;
+    font-weight: 600;
+    vertical-align: middle;
+    &.ok, &.state-finished { background: $om-green-bg; color: $om-green-dark; }
+    &.warn { background: $om-amber-bg; color: darken($om-amber, 15%); }
+    &.bad { background: $om-red-bg; color: $om-red; }
+    &.muted { background: #f0f0f0; color: $om-muted; font-weight: 400; }
+    &.state-open { background: #e8f0f7; color: #3a6ea5; }
+    &.state-closed { background: #444; color: #fff; }
+  }
+
+  .om-state { padding: 40px 12px; text-align: center; }
+  .om-spinner {
+    display: inline-block;
+    width: 28px; height: 28px;
+    border: 3px solid $om-line;
+    border-top-color: $om-green;
+    border-radius: 50%;
+    animation: om-spin 0.8s linear infinite;
+  }
+  @keyframes om-spin { to { transform: rotate(360deg); } }
+
+  // ---- header ---------------------------------------------------------------------
+  .om-topbar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 4px 0 4px; }
+  .om-back { color: $om-green-dark; font-weight: 600; text-decoration: none; &:hover { text-decoration: underline; } }
+  .om-classic { font-size: 12px; color: $om-muted; text-decoration: underline; white-space: nowrap; &:hover { color: $om-green-dark; } }
+  .om-head {
+    h1 { font-size: 24px; margin: 0 0 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+    .om-meta { margin: 0 0 8px; font-size: 13px; color: $om-muted; span + span:before { content: " · "; } a { color: $om-green-dark; } }
+  }
+  .om-note {
+    background: $om-amber-bg;
+    border-left: 3px solid $om-amber;
+    padding: 6px 10px;
+    margin: 6px 0 10px;
+    font-size: 14px;
+    white-space: pre-line;
+    border-radius: 0 6px 6px 0;
+    .om-label { display: block; margin-bottom: 2px; }
+  }
+  .om-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0 0; }
+  .om-tile {
+    background: #fff; border: 1px solid $om-line; border-radius: $om-radius; padding: 8px 10px; min-width: 0;
+    .om-label { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    strong { display: block; font-size: 18px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  }
+
+  // ---- actions ----------------------------------------------------------------------
+  .om-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+  .om-menu { position: relative; }
+  .om-menu-list {
+    position: absolute; top: 100%; left: 0; z-index: 30; margin-top: 4px;
+    background: #fff; border: 1px solid $om-line; border-radius: $om-radius; box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    min-width: 200px; padding: 6px 0;
+    a { display: block; padding: 8px 14px; color: $om-ink; text-decoration: none; white-space: nowrap; &:hover { background: #f5f5f5; } }
+  }
+
+  // ---- toolbar ----------------------------------------------------------------------------
+  .om-toolbar {
+    position: sticky; top: 0; z-index: 20;
+    background: $om-bg; margin: 12px -4px 0; padding: 8px 4px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  }
+  .om-search {
+    flex: 1 1 100%;
+    height: 40px; border-radius: 20px; border: 1px solid #ccc; padding: 0 14px; font-size: 15px; margin: 0;
+    box-shadow: none; &:focus { border-color: $om-green; outline: 0; box-shadow: none; }
+  }
+  .om-tabs {
+    display: flex; gap: 0; border: 1px solid #ccc; border-radius: 20px; overflow: hidden; background: #fff;
+    button {
+      border: 0; background: none; height: 38px; padding: 0 14px; font: inherit; font-size: 14px; font-weight: 600; color: $om-ink; cursor: pointer;
+      small { color: $om-muted; font-weight: 400; }
+      &.active { background: $om-green; color: #fff; small { color: rgba(255,255,255,0.85); } }
+      + button { border-left: 1px solid #ddd; }
+    }
+  }
+  .om-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; margin: 0; cursor: pointer; input { margin: 0; } }
+
+  // ---- summary cards -------------------------------------------------------------------------
+  .om-article { border-left: 4px solid $om-line; padding: 10px 12px; }
+  .om-article.is-used { border-left-color: $om-green; }
+  .om-article.is-partused { border-left-color: $om-amber; }
+  .om-article.is-unused { border-left-color: $om-red; }
+  .om-article.is-unavailable { border-left-color: #ddd; .om-article-name { color: $om-muted; } }
+  .om-article-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: flex-start; cursor: pointer; }
+  .om-article-main { flex: 1 1 240px; min-width: 0; }
+  .om-article-name { font-weight: 600; font-size: 15px; }
+  .om-article-note { font-size: 13px; color: $om-muted; font-style: italic; }
+  .om-article-prices { font-size: 13px; margin-top: 2px; .om-label { margin-right: 4px; } }
+  .om-article-figs { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+  .om-fig {
+    text-align: center; min-width: 52px;
+    .om-label { display: block; }
+    strong { display: block; font-size: 17px; line-height: 1.2; }
+    small { display: block; font-size: 11px; white-space: nowrap; }
+  }
+  .om-totals { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin-top: 8px; font-size: 14px; }
+
+  // ---- lines (members / articles) -------------------------------------------------------------
+  .om-group { padding: 0; overflow: hidden; }
+  .om-group-head {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    padding: 10px 14px; background: #fafaf8; border-bottom: 1px solid $om-line;
+    h3 { margin: 0; font-size: 16px; }
+    small { display: block; font-size: 12px; }
+  }
+  .om-group-total { text-align: right; flex: 0 0 auto; strong { display: block; font-size: 18px; line-height: 1.2; } }
+  .om-group-foot { padding: 8px 14px; border-top: 1px solid $om-line; }
+  .om-group .om-empty { padding: 8px 14px; }
+  .om-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "name ordered result" "price ordered result";
+    gap: 0 12px;
+    align-items: center;
+    padding: 6px 14px;
+    border-top: 1px solid $om-line;
+    font-size: 14px;
+    &:first-of-type { border-top: 0; }
+    &.is-none { color: $om-muted; .om-line-name { color: $om-muted; } }
+    &.is-tolerance .om-line-result { color: $om-green-dark; font-weight: 600; }
+  }
+  .om-lines .om-line { padding-left: 4px; padding-right: 0; }
+  .om-line-name { grid-area: name; font-weight: 600; color: $om-ink; min-width: 0; }
+  .om-line-fig { text-align: center; .om-label { display: block; } }
+  .om-line-fig:nth-of-type(2) { grid-area: ordered; }
+  .om-line-result { grid-area: result; display: flex; flex-direction: column; align-items: center; }
+  .om-line-price { grid-area: price; font-size: 13px; small { font-size: 12px; } }
+  .om-lines { margin-top: 8px; border-top: 1px dashed $om-line; padding-top: 4px; }
+  .om-mini {
+    width: 30px; height: 30px; border-radius: 15px; border: 1px solid #ccc; background: #fff; font-size: 16px; line-height: 1; cursor: pointer;
+    &:disabled { opacity: 0.4; }
+  }
+  .om-result { width: 56px; height: 30px; margin: 0 4px; text-align: center; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; padding: 0 4px; }
+  .om-line-result { flex-direction: row; flex-wrap: wrap; justify-content: center; .om-label { flex: 0 0 100%; text-align: center; } }
+
+  // ---- comments -----------------------------------------------------------------------------------
+  .om-comments { margin-top: 24px; .om-card + .om-card { margin-top: 8px; } }
+  .om-comment-meta { margin-bottom: 4px; }
+  .om-comment-text { white-space: pre-line; font-size: 14px; }
+  .om-comment-form {
+    margin-top: 8px; display: flex; flex-direction: column; gap: 8px;
+    textarea { width: 100%; border: 1px solid #ccc; border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 14px; margin: 0; resize: vertical; }
+    .om-btn { align-self: flex-end; }
+  }
+
+  // ---- modal + toast ----------------------------------------------------------------------------------
+  .om-modal-backdrop {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  .om-modal {
+    background: #fff; border-radius: 14px; padding: 18px 18px 14px; width: 100%; max-width: 420px;
+    h3 { margin: 0 0 8px; font-size: 18px; }
+    p { margin: 0 0 14px; font-size: 14px; }
+    select, input { width: 100%; height: 40px; border: 1px solid #ccc; border-radius: 8px; padding: 0 10px; font: inherit; margin: 0; }
+  }
+  .om-field { display: block; margin: 0 0 12px; .om-label { display: block; margin-bottom: 4px; } }
+  .om-modal-actions { display: flex; flex-direction: column; gap: 8px; .om-btn { text-align: center; } }
+  .om-toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 60;
+    padding: 10px 16px; border-radius: 20px; background: rgba(50,50,50,0.95); color: #fff; font-size: 14px;
+    &.error { background: $om-red; }
+  }
+}
+
+@media (max-width: 480px) {
+  .om .om-tiles { grid-template-columns: 1fr 1fr; }
+  .om .om-tabs button { padding: 0 10px; font-size: 13px; }
+}
+
+@media (min-width: 768px) {
+  .om .om-search { flex: 1 1 260px; }
+  .om .om-toolbar { top: 0; }
+  .om .om-modal-actions { flex-direction: row-reverse; .om-btn { flex: 1 1 auto; } }
+  .om .om-line {
+    grid-template-columns: minmax(0, 1fr) 90px 120px 120px;
+    grid-template-areas: "name ordered result price";
+  }
+  .om .om-line-price { text-align: right; font-size: 14px; }
+  .om .om-list { grid-template-columns: 1fr; }
+  .om .om-group-head h3 { font-size: 17px; }
+}
+
+@media (min-width: 1100px) {
+  .om .om-list { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .om .om-list.om-list-wide { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,20 @@
+-# Opt-in hook rendered on the classic order management page (orders/show).
+-# The preference lives in localStorage (key foodsoft.ui, shared by all modern
+-# pages); when it says "modern" we leave right away, unless ?classic=1 forces
+-# the classic page.
+- modern_url = manage_path(order)
+- content_for :head do
+  :javascript
+    try {
+      var ls = window.localStorage;
+      // one preference for all modern pages; older per-page keys still count
+      var ui = ls.getItem('foodsoft.ui') || ls.getItem('foodsoft.ordering.ui') || ls.getItem('foodsoft.dashboard.ui');
+      if (ui === 'modern' && !/[?&]classic=/.test(window.location.search)) {
+        window.location.replace(#{modern_url.to_json});
+      }
+    } catch (e) {}
+.alert.alert-info.fs-switch-alert
+  %a.btn.btn-large.btn-primary{href: modern_url, 'data-fs-ui' => 'modern'}
+    %i.icon-mobile-phone
+    Try the new mobile-friendly look
+  %span.fs-switch-hint Summary, members and articles as cards, with search. You can switch back any time.

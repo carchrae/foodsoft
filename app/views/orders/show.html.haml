@@ -8,6 +8,8 @@
       = link_to t('.create_invoice'), new_finance_invoice_path(:order_id => @order, :supplier_id => @order.supplier),
         class: 'btn'
 
+= render 'order_manage/legacy_switch', order: @order
+
 .well
   = close_button :alert
   %p

@@ -80,6 +80,12 @@ Foodsoft::Application.routes.draw do
       get :data, on: :member
     end
 
+    # Modern (Vue) order management page and its JSON layer, :id is the order id.
+    # See OrderManageController.
+    resources :manage, only: [:show], controller: :order_manage do
+      get :data, on: :member
+    end
+
     # Modern (Vue) dashboard and its JSON layer. See DashboardController.
     resource :dashboard, only: [:show], controller: :dashboard do
       get :data
