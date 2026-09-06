@@ -344,8 +344,9 @@ the existing routes, after a confirm dialog drawn by the page.
 * **Comments** are listed with household, user and time, with a textarea to add
   one (the model needs at least 3 characters).
 * Search matches article names and notes in Summary, household or article
-  names in the other two views. Two columns of cards from 1100px; the chosen
-  view is remembered in `localStorage` (`foodsoft.manage.view`).
+  names in the other two views. Cards stay in one column at every width (a
+  two-column grid was tried and dropped); the chosen view is remembered in
+  `localStorage` (`foodsoft.manage.view`).
 * Not carried over: the per-article "Edit" modal of the summary (edit the
   article from the supplier's article list instead) and the stock-order
   specific "units" column wording is kept as "units" only for stock orders.
