@@ -494,6 +494,12 @@ $oa-tap: 44px;
     &:nth-of-type(even) { background: #fff; }
     &.is-mine, &.is-mine:nth-of-type(even) { background: #fbfdf8; }
   }
+  // a little more compact so the steppers leave room for the info column
+  .oa .oa-step { width: 40px; height: 40px; font-size: 20px; }
+  .oa .oa-num { width: 48px; height: 40px; font-size: 17px; }
+  .oa .oa-stepper-row { border-radius: 20px; }
+  .oa .oa-controls { gap: 10px 14px; }
+  .oa .oa-line { min-height: 1.5em; }
 }
 
 // ---- layout tweaks -------------------------------------------------------------
@@ -543,5 +549,22 @@ $oa-tap: 44px;
   .oa .oa-filters { flex: 0 1 auto; }
   .oa .oa-toolbar .oa-jump { flex: 0 0 260px; height: 40px; border-radius: 20px; }
   .oa .oa-category-title { top: 57px; }
+  // wide card: info on the left with the "You get" sentence pinned bottom-left,
+  // steppers on the right (also used inside the two desktop columns)
+  .oa .oa-article {
+    padding-left: 16px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "main controls" "line controls";
+    column-gap: 20px;
+    row-gap: 6px;
+  }
+  .oa .oa-article-main { grid-area: main; align-items: center; min-height: 0; }
+  .oa .oa-article-aside { width: auto; flex: 0 0 auto; max-width: 45%; justify-content: center; gap: 6px; }
   .oa .oa-article-price { font-size: 18px; .oa-per { font-size: 12px; } }
+  .oa .oa-article-side { display: contents; }
+  .oa .oa-controls { grid-area: controls; align-self: start; justify-content: flex-start; gap: 10px 20px; }
+  .oa .oa-controls.has-progress { margin: 0 -8px; padding: 6px 8px 8px; }
+  .oa .oa-line { grid-area: line; align-self: end; justify-self: start; margin-top: 0; display: block; min-height: 0; }
+  .oa .oa-outcome { text-align: left; width: auto; }
 }
