@@ -162,6 +162,9 @@ articles are tagged with their order id and stock flag on the client.
   shrinks the logo, puts the user menu / Help / Feedback on the same row,
   hides the long coop-homepage link, slims the collapsed menu bar and the
   flash message. The shared layout file is untouched.
+* Card tint for your items follows the outcome: pale green (and green left
+  border) only when you get everything you asked for, pale amber (amber border)
+  while some or all of it is still waiting for a case.
 * Alternating row shading so each item reads as its own row (a slightly greener
   pair of shades for items in your order).
 * The Save footer no longer floats 20 px above the bottom: the layout styles

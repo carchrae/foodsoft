@@ -216,11 +216,13 @@ $oa-tap: 44px;
 
     // alternate shades so each item reads as its own row
     &:nth-of-type(even) { background: #f4f4ef; }
-    &.is-mine { border-left-color: $oa-green; background: #fbfdf8; }
-    &.is-mine:nth-of-type(even) { background: #f0f6ea; }
     &.missing-few { border-left-color: $oa-amber; }
     &.missing-many { border-left-color: lighten($oa-amber, 20%); }
-    &.is-mine.missing-few, &.is-mine.missing-many { border-left-color: $oa-amber; }
+    // your items: green only when you get everything you asked for, amber while short
+    &.is-covered { border-left-color: $oa-green; background: #fbfdf8; }
+    &.is-covered:nth-of-type(even) { background: #f0f6ea; }
+    &.is-short { border-left-color: $oa-amber; background: #fffaf0; }
+    &.is-short:nth-of-type(even) { background: #faf3e3; }
   }
   .oa-article-main { flex: 1 1 260px; min-width: 0; display: flex; gap: 6px 12px; align-items: flex-start; }
   .oa-article-info { flex: 1 1 auto; min-width: 0; }
@@ -492,7 +494,8 @@ $oa-tap: 44px;
     background: #fff;
     // cards are distinct on their own, no alternating shade
     &:nth-of-type(even) { background: #fff; }
-    &.is-mine, &.is-mine:nth-of-type(even) { background: #fbfdf8; }
+    &.is-covered, &.is-covered:nth-of-type(even) { background: #fbfdf8; }
+    &.is-short, &.is-short:nth-of-type(even) { background: #fffaf0; }
   }
   // a little more compact so the steppers leave room for the info column
   .oa .oa-step { width: 40px; height: 40px; font-size: 20px; }

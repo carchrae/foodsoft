@@ -756,8 +756,12 @@
       },
 
       articleClass: function (a, d) {
+        var mine = a.quantity + a.tolerance > 0;
         return {
-          'is-mine': a.quantity + a.tolerance > 0,
+          'is-mine': mine,
+          // green only when everything the member asked for is covered
+          'is-covered': mine && d.qUnused === 0,
+          'is-short': mine && d.qUnused > 0,
           'missing-few': d.missing === 1,
           'missing-many': d.missing > 1,
           'missing-none': d.missing === 0 && d.units > 0
