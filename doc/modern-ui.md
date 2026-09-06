@@ -184,6 +184,19 @@ articles are tagged with their order id and stock flag on the client.
   networking, port 6379) that the app and worker depend on, so saving orders
   works out of the box. It applies from the next `./start-docker-dev.sh`.
 
+## Nearly-full case report (page and email)
+
+`/f/orders/:id/nearly_full_articles` and the "Nearly Full Cases" email now
+render the same card partial (`app/views/orders/_case_report_item.html.erb`)
+with inline styles so it survives email clients: amber left border, "N to
+fill" and "% of a case" chips and an amber fill bar for cases still filling;
+green border, "N extra / case filled" chips and a full green bar for cases
+filled with extras; a "supplier may ship 12 of 24" chip for splittable
+articles (same split sizes as the ordering page); a one-line explanation with
+the shortfall in red or the extras in green; and "you ordered 2, up to 4" when
+the reader's group is on the item. The email could not be rendered from the
+sandbox; it shares the partial and helpers with the page, which was verified.
+
 ## Files
 
 New, self-contained (drop-in for the custom-rebuild branch):

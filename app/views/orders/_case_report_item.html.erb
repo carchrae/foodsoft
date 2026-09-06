@@ -1,0 +1,55 @@
+<%# One article card for the nearly-full case report, page and email alike.
+    Inline styles on purpose: email clients ignore stylesheets. Mirrors the
+    ordering page: amber while a case is still filling, green when it ships.
+    Locals: order_article, mode ('fill' or 'extra'), goa (this member's
+    GroupOrderArticle or nil). %>
+<% article   = order_article.article
+   unit_size = article.unit_quantity
+   fill      = mode.to_s == 'fill'
+   percent   = [[order_article.percent_of_full_case.to_i, 0].max, 100].min
+   need      = order_article.quantity_left_to_fill_case
+   extra     = order_article.extra_amount
+   split     = if defined?(OrderingSerializer) && OrderingSerializer.splittable_cases? && unit_size > 1 && article.note.to_s =~ OrderingSerializer::SPLITTABLE_NOTE
+                 OrderingSerializer::SPLIT_SIZES[unit_size] || (unit_size * OrderingSerializer::DEFAULT_SPLIT_FRACTION).round
+               end
+   accent    = fill ? '#c09853' : '#78b74e'
+   bar       = fill ? (percent >= 67 ? '#e6b93a' : '#e08a5a') : '#78b74e'
+   chip      = 'display:inline-block;font-size:12px;line-height:20px;padding:0 8px;border-radius:10px;margin:0 4px 4px 0;'
+%>
+<div style="border:1px solid #e5e5e5;border-left:4px solid <%= accent %>;border-radius:8px;padding:10px 12px;margin:0 0 8px;background:#ffffff;font-family:Helvetica,Arial,sans-serif;color:#333333;">
+  <div style="font-weight:bold;font-size:15px;line-height:1.3;">
+    <%= article.name %>
+    <% if article.origin.present? %><span style="font-weight:normal;color:#777777;font-size:13px;">(<%= article.origin %>)</span><% end %>
+  </div>
+  <div style="font-size:12px;color:#777777;margin:2px 0 6px;">
+    <% if article.manufacturer.present? %><%= article.manufacturer %> &middot; <% end %>case of <%= unit_size %> &middot; <%= number_to_currency(article.fc_price) %> per <%= article.unit %>
+  </div>
+  <div>
+    <% if fill %>
+      <span style="<%= chip %>background:#fcf8e3;color:#8a6d1e;"><strong><%= need %> to fill</strong></span>
+      <span style="<%= chip %>background:#eeeeee;color:#555555;"><%= percent %>% of a case</span>
+    <% else %>
+      <span style="<%= chip %>background:#dff0d8;color:#468847;"><strong><%= extra %> extra</strong></span>
+      <span style="<%= chip %>background:#dff0d8;color:#468847;">case filled</span>
+    <% end %>
+    <% if split %>
+      <span style="<%= chip %>background:#eeeeee;color:#555555;">supplier may ship <%= split %> of <%= unit_size %></span>
+    <% end %>
+  </div>
+  <div style="height:8px;background:#e6e6e2;border-radius:4px;overflow:hidden;margin:4px 0 8px;">
+    <div style="height:8px;width:<%= fill ? percent : 100 %>%;background:<%= bar %>;border-radius:4px;"></div>
+  </div>
+  <div style="font-size:13px;line-height:1.4;">
+    <% if fill %>
+      Everyone together wants <strong><%= order_article.quantity %></strong> and is flexible up to <strong><%= order_article.quantity + order_article.tolerance %></strong>.
+      We need <strong style="color:#b94a48;"><%= need %> more</strong> &times; <%= article.unit %> (<%= number_to_currency(article.fc_price * need) %>) to fill the case.
+    <% else %>
+      The case is filled by people taking more than they wanted: <strong style="color:#468847;"><%= extra %> &times; <%= article.unit %></strong> (<%= number_to_currency(article.fc_price) %> each) are extra. Take some if you need them.
+    <% end %>
+  </div>
+  <% if goa && goa.quantity + goa.tolerance > 0 %>
+    <div style="font-size:12px;color:#468847;margin-top:4px;">
+      &#8627; you ordered <strong><%= goa.quantity %></strong><% if goa.tolerance > 0 %>, up to <strong><%= goa.quantity + goa.tolerance %></strong><% end %>
+    </div>
+  <% end %>
+</div>
