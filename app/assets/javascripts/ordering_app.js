@@ -740,6 +740,11 @@
         return T.outcomePartial(got, want, waiting, d.missing, filling);
       },
 
+      // "500g" for one, "3×500g" for more
+      unitsLabel: function (n, unit) {
+        return n === 1 ? unit : n + '\u00d7' + unit;
+      },
+
       caseLabel: function (a, d) {
         if (a.unit_quantity <= 1) return null;
         return d.units > 0 ? T.filled(d.units) : T.noCase;
@@ -872,7 +877,7 @@
       '          <div class="oa-controls" :class="{ \'has-progress\': derived[a.id].progress != null }">' +
       '            <div class="oa-cases" aria-hidden="true"><div class="oa-case" v-for="(c, i) in caseBars(a, derived[a.id])" :key="i" :class="c.full ? \'full\' : \'partial\'" :style="c.style"></div></div>' +
       '            <div class="oa-stepper">' +
-      '              <label :for="\'q_\' + a.id">{{ showsRange(a) ? T.atLeast : T.amount }} <span class="oa-units" v-if="a.quantity > 1">{{ a.quantity }}&times;{{ a.unit }}</span></label>' +
+      '              <label :for="\'q_\' + a.id">{{ showsRange(a) ? T.atLeast : T.amount }} <span class="oa-units" v-if="a.quantity > 0">{{ unitsLabel(a.quantity, a.unit) }}</span></label>' +
       '              <div class="oa-stepper-row">' +
       '                <button type="button" class="oa-step" aria-label="less" :disabled="a.quantity <= (a.min_quantity || 0)" @click="setQuantity(a, a.quantity - 1)">&minus;</button>' +
       '                <input :id="\'q_\' + a.id" class="oa-num" type="number" inputmode="numeric" pattern="[0-9]*" :min="a.min_quantity || 0" :max="maxQuantity(a)" :value="a.quantity" @change="setQuantity(a, $event.target.value)" @keydown.enter.prevent="$event.target.blur()">' +
@@ -881,7 +886,7 @@
       '              <div class="oa-stepper-price" :class="{ \'is-zero\': a.quantity === 0 }">{{ money(a.price * a.quantity) }}</div>' +
       '            </div>' +
       '            <div class="oa-stepper" v-if="showsRange(a)">' +
-      '              <label :for="\'m_\' + a.id">{{ T.upTo }} <span class="oa-units" v-if="a.quantity + a.tolerance > 1">{{ a.quantity + a.tolerance }}&times;{{ a.unit }}</span></label>' +
+      '              <label :for="\'m_\' + a.id">{{ T.upTo }} <span class="oa-units" v-if="a.quantity + a.tolerance > 0">{{ unitsLabel(a.quantity + a.tolerance, a.unit) }}</span></label>' +
       '              <div class="oa-stepper-row">' +
       '                <button type="button" class="oa-step" aria-label="less" :disabled="a.tolerance <= (a.min_tolerance || 0)" @click="setTolerance(a, a.tolerance - 1)">&minus;</button>' +
       '                <input :id="\'m_\' + a.id" class="oa-num" type="number" inputmode="numeric" pattern="[0-9]*" :min="a.quantity + (a.min_tolerance || 0)" :value="a.quantity + a.tolerance" @change="setMax(a, $event.target.value)" @keydown.enter.prevent="$event.target.blur()">' +
