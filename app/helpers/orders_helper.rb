@@ -142,6 +142,25 @@ module OrdersHelper
     end
   end
 
+  # Normalised unit key used by the swap page to find alternatives: case and whitespace
+  # insensitive, and a leading "1" is dropped so "1lb", "1 LB" and "LB" all match.
+  def swap_unit_key(unit)
+    unit.to_s.downcase.gsub(/\s+/, '').sub(/\A1(?=[a-z#])/, '')
+  end
+
+  # Articles that are plausible swaps for +order_article+: same (normalised) unit and same
+  # first word of the name, in any category.
+  def swap_alternatives_for(order_article, articles)
+    key = swap_unit_key(order_article.article.unit)
+    word = order_article.article.name.split.first.to_s.downcase
+    articles.select { |a| swap_unit_key(a.unit) == key && a.name.split.first.to_s.downcase == word }
+  end
+
+  # True when the article name is flagged as unavailable by the supplier sync.
+  def swap_unavailable_name?(name)
+    name.to_s =~ /unavailable/i ? true : false
+  end
+
   # short or over
   def order_article_match_text(order_article)
     if order_article.units > 0

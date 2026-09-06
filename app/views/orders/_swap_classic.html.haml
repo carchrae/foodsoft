@@ -1,0 +1,81 @@
+- title t('orders.swap.title', name: @order.name)
+
+
+
+%div
+  .alert.alert-info This will let you swap an article on the order for another article.  Handy if the old one is no longer available.
+  .alert.alert-danger Make sure you choose an alternative that is very similar - it should be the same units (eg, by LB or by CT) so people's order amounts are respected
+
+= simple_form_for @order, url: swap_update_order_path do |form|
+  - articles_for_ordering = @order.articles_for_ordering
+  - articles_for_ordering_ungrouped = @order.articles_for_ordering_ungrouped
+  - order_articles = @order.order_articles.sort_by { |a| a.article.name }
+  - unavailable_count = order_articles.count { |oa| swap_unavailable_name?(oa.article.name) }
+  .form-actions
+    = form.submit class: 'btn'
+  .well.well-small#swap-unavailable-summary
+    %strong
+      %span#swap-unavailable-open= unavailable_count
+      of
+      %span#swap-unavailable-total= unavailable_count
+    unavailable articles still need an available alternative chosen.
+    = link_to 'Show only unavailable', '#', id: 'swap-filter-unavailable', class: 'btn btn-small', 'data-active' => 'false'
+  %table.table.table-hover#swap-table
+    %th article
+    %th required
+    %th units
+    %th cases
+    %th filled
+    %th replace with
+    %th cheaper?
+    - for oa in order_articles
+      - unavailable = swap_unavailable_name?(oa.article.name)
+      - selected = articles_for_ordering_ungrouped.find { |a| a.id == oa.article_id } ? oa.article_id : nil
+      - cheaper = (articles_for_ordering[oa.article.article_category.name] || []).find { |a| a.name == oa.article.name && a.price < oa.article.price }
+      %tr{class: cycle('even', 'odd', name: 'articles') + ' ' + order_article_class(oa), data: { unavailable: unavailable.to_s }}
+        %td= oa.article.description
+        %td= "#{oa.quantity}..#{oa.quantity + oa.tolerance}"
+        %td= oa.article.unit
+        %td= oa.units
+        %td= order_article_match_text(oa)
+
+        - alternatives_for_oa = @swap_all ? articles_for_ordering_ungrouped : swap_alternatives_for(oa, articles_for_ordering_ungrouped)
+        %td= select_tag "order_articles[#{oa.id}][article_id]",
+          options_from_collection_for_select(alternatives_for_oa, :id, :description, selected),
+          include_blank: true,
+          class: 'input-xxlarge'
+
+        %td
+          = "#{number_to_currency(cheaper.price)} (#{number_to_currency(cheaper.price - oa.article.price)})" if cheaper
+
+  .form-actions
+    = form.submit class: 'btn'
+
+- content_for :javascript do
+  :javascript
+    $(function() {
+      var unavailableRe = /unavailable/i;
+      var rows = $('#swap-table tr[data-unavailable="true"]');
+
+      // count unavailable articles whose chosen alternative is blank or itself unavailable
+      function updateCount() {
+        var open = 0;
+        rows.each(function() {
+          var text = $(this).find('select option:selected').text();
+          if (!$.trim(text) || unavailableRe.test(text)) { open++; }
+        });
+        $('#swap-unavailable-open').text(open);
+        $('#swap-unavailable-summary').toggleClass('swap-all-resolved', open === 0);
+      }
+      $('#swap-table').on('change', 'select', updateCount);
+      updateCount();
+
+      // toggle between all rows and only the unavailable ones
+      $('#swap-filter-unavailable').on('click', function() {
+        var active = $(this).data('active') !== true;
+        $(this).data('active', active).toggleClass('active', active)
+          .text(active ? 'Show all' : 'Show only unavailable');
+        $('#swap-table tr[data-unavailable="false"]').toggle(!active);
+        return false;
+      });
+    });

@@ -201,6 +201,102 @@ ranks by that, over it the split ships (green segment) and the rest counts
 towards the whole case. The email could not be rendered from the sandbox; it
 shares the partial and helpers with the page, which was verified.
 
+## Swap page (orders role)
+
+`/f/orders/:id/swap` is now a Vue page (`swap_app.js`); `?classic=1` and the
+"swap all" page (`/swap_all`) still render the old table, which moved to
+`app/views/orders/_swap_classic.html.haml`. The JSON layer is
+`SwapController` (`GET /f/swap/:id/data`, `PUT /f/swap/:id`) with
+`SwapSerializer`: the order's articles (amounts, cases, households, whether
+the supplier still lists it) plus every available article of the supplier.
+Matching and scoring happen in the browser.
+
+* One card per order article: name (with an "Unavailable" chip when the
+  supplier flagged it), origin and manufacturer, price and pack, a muted line
+  with wanted / households / cases / shortfall, and a "Replace with" select.
+* **Similarity score** drives the picker. Names are cleaned ("UNAVAILABLE!"
+  and punctuation dropped, lower-cased) and split into product words and
+  pack/size specs ("11#", "22/25#", "12x3#", "L/XL"); grade codes such as
+  FCY, HH or V/F are ignored and plurals are stemmed ("strawberries" =
+  "strawberry"). Product words are compared front to back with weights 1, ½,
+  ¼…: words in the common prefix count fully, a later word found elsewhere in
+  the other name counts half, so "APPLES GALA F/XF 080/88CT" (85%) and
+  "APPLES GALA POUCH BAG 12x2#" (75%) always outrank "APPLES SUNRISE BAGGED
+  FCY 12x3#" (63%) for "APPLES GALA BAGGED FCY 12x3#" even though the latter
+  shares the pack. Specs and character bigrams of the words only nudge the
+  word score up by at most 15%. A different first word ("YAMS BAGGED 12x3#")
+  cuts the score to 40%. The origin only nudges the result: a different
+  origin costs at most 8% of the name score, so "PEPPERS RED 22/25#" from
+  Mexico still beats "PEPPERS ORANGE HH L/XL 11# FCY" from BC for "PEPPERS
+  RED HH L/XL 11# FCY". Supplier and manufacturer are ignored on purpose.
+  Candidates flagged unavailable themselves stay listed but are forced red at
+  the bottom.
+* The "Replace with" control is a dropdown drawn by the page (`sw-picker`),
+  not a native `<select>`: native popups ignore option colours on macOS and
+  iOS. Closed it looks like a select; open it lists the current article first
+  ("Keep this article"), then the candidates best match first, each row tinted
+  from red (≤30%) through amber to green (≥90%) with name, origin,
+  manufacturer, price, pack, price difference and the score. Once a different
+  article is chosen the button and a "NN% match" chip take that colour, with
+  chips for what differs (unit, case size, origin, price).
+* Candidates are every available article with the same product word (first
+  word, stemmed), whatever the unit: unit changes are handled by the
+  conversion chips and prompt below. "Show all articles" on a card lifts the
+  product-word rule for one row (this replaces the separate swap-all page for
+  most cases).
+* **Price difference** is shown as a bold chip once an article is chosen
+  ("$3.26 cheaper" / "$0.34 more"), and each card carries a green "X (origin) is $Y
+  cheaper · Use it" hint for the cheapest same-product alternative before
+  anything is chosen (the classic "cheaper?" column), followed by whether the
+  current demand would fill that article's case ("demand fills 1 case of 22",
+  "1 case filled, 4 more needed for a case of 12", "16 more needed for a
+  case of 22"), using the order line's own case maths with amounts converted
+  when the unit changes. The same chip appears under the picker once a
+  different article is chosen. Picker rows show the price difference as a
+  chip beside the score.
+* **Unit conversion.** Units are parsed ("3LB" = 3 × lb, "2kg" = 2000 × g,
+  "L" = 1000 × ml, "CT" = 1 × ct). An article whose unit is a whole fraction
+  of the current one (3LB → LB is ×3, 2kg → 500g is ×4) is offered as a
+  candidate with a blue "×3" chip; choosing it shows "amounts ×3: 1×3LB
+  becomes 3×LB" and a ticked box "Multiply everyone's amounts by 3". The
+  price difference then compares 3 × the new price with the old one. Prices
+  are always compared for the same amount whenever both units share a base,
+  even when member amounts cannot be converted: a per-LB article at $25.50 is
+  "$3.19 per .125 LB" next to a $3.19 eighth-pound article, i.e. the same
+  price. Same-base articles are listed as candidates regardless of whether
+  the amounts convert; only the amounts multiplier needs a whole factor.
+* **Asking for a conversion.** When no whole-number conversion exists (a 3LB
+  bag to a CT article, an eighth-pound pack to a per-pound one) the card shows
+  an amber prompt: "How should members' amounts be converted from 3LB to CT?
+  1×3LB = [ 80/12 ] ×CT". The box is prefilled with the unit ratio when the
+  bases match (0.125 for .125 LB → LB); across bases it is prefilled with the
+  case ratio "new case size / old case size" (80/12 for 12×3LB → 80×CT) on the
+  assumption that a case of each holds the same amount, with a note saying so.
+  It accepts decimals and fractions ("1/8"), and empty means keep the numbers. As you type, an example is built from the real
+  member amounts (sent as numbers only, no names): "Example: 1×3LB becomes
+  8×CT. Members' amounts 1→8, 1→8, 2→16. Extra: 1→8." plus "Rounded to whole
+  units." and a red "N members would end up with 0 and be dropped" when a
+  fractional factor rounds someone away. The server applies the same rounding
+  to each member's amount, extra and queue records and removes rows that end
+  at zero. The same panel can be opened on any changed row with the "Custom
+  conversion…" link (prefilled with the automatic factor, or 1 for the same
+  unit) and overrides the automatic conversion while open; "Use the automatic
+  conversion" closes it. Typing is debounced (250 ms) and the candidate lists
+  are cached per row, since rescoring 700 articles for 50 rows on every
+  keystroke made the input lag. Saving
+  sends `{article_id, factor}`; the server multiplies every member's amount,
+  tolerance and their queue records in place (so who-ordered-first is kept),
+  recomputes the order article and the ordergroups' totals. Going the other
+  way (LB → 3LB) or across bases (CT → LB) cannot be converted and is
+  flagged red under "Show all articles".
+* Summary banner "N of M unavailable articles still need an available
+  alternative chosen" (red until done, then green), search, and All /
+  Unavailable / Changed filters. Sticky footer with "Undo all" and "Update
+  order"; only changed rows are sent. Per-row errors from the server (e.g.
+  the article is already in the order) are shown on the card.
+* Verified: JSON load and save with curl (a swap and the swap back), desktop
+  and 390px screenshots, the filter and the count in headless Firefox.
+
 ## Files
 
 New, self-contained (drop-in for the custom-rebuild branch):
@@ -215,6 +311,10 @@ app/views/ordering/index.html.haml
 app/views/ordering/_legacy_switch.html.haml
 app/views/dashboard/show.html.haml
 app/views/dashboard/_legacy_switch.html.haml
+app/controllers/swap_controller.rb
+app/serializers/swap_serializer.rb
+app/assets/javascripts/swap_app.js
+app/assets/stylesheets/swap_app.scss
 app/assets/javascripts/ordering_app.js
 app/assets/javascripts/dashboard_app.js
 app/assets/stylesheets/ordering_app.scss

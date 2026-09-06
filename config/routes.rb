@@ -75,6 +75,11 @@ Foodsoft::Application.routes.draw do
       get :data, on: :member
     end
 
+    # Modern (Vue) swap page JSON layer, :id is the order id. See SwapController.
+    resources :swap, only: [:update], controller: :swap do
+      get :data, on: :member
+    end
+
     # Modern (Vue) dashboard and its JSON layer. See DashboardController.
     resource :dashboard, only: [:show], controller: :dashboard do
       get :data

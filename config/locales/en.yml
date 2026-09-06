@@ -1724,6 +1724,7 @@ en:
       msg2: "%{count} (%{units}) using tolerance"
       msg4: "%{count} (%{units}) left over"
     swap:
+      title: Swap articles in %{name}
       updated_order: The order has been updated with any substitutions
       order_closed: You cannot change an order after it is closed.  Make any changes by editing the article on %{url}
   pages:
