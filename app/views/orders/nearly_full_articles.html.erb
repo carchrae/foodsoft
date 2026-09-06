@@ -16,7 +16,7 @@
 <p><%= link_to_ordering(@order, class: 'btn btn-primary btn-large', host: 'food.bowenlift.com', port: false) do %>Edit Your Order<% end %></p>
 
 <div style="max-width:640px;">
-  <% @order.nearly_full_order_articles.each do |order_article| %>
+  <% @order.nearly_full_order_articles.sort_by { |oa| -CaseFill.new(oa).percent }.each do |order_article| %>
     <%= render partial: 'orders/case_report_item', locals: { order_article: order_article, mode: 'fill', goa: goa_for.call(order_article) } %>
   <% end %>
 </div>

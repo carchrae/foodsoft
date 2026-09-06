@@ -194,8 +194,12 @@ green border, "N extra / case filled" chips and a full green bar for cases
 filled with extras; a "supplier may ship 12 of 24" chip for splittable
 articles (same split sizes as the ordering page); a one-line explanation with
 the shortfall in red or the extras in green; and "you ordered 2, up to 4" when
-the reader's group is on the item. The email could not be rendered from the
-sandbox; it shares the partial and helpers with the page, which was verified.
+the reader's group is on the item. Fullness, "to fill" and the ranking use the
+same split-case rules as the ordering page via `app/models/case_fill.rb` (a
+plain Ruby class): below the split amount a card works towards "a ½ case" and
+ranks by that, over it the split ships (green segment) and the rest counts
+towards the whole case. The email could not be rendered from the sandbox; it
+shares the partial and helpers with the page, which was verified.
 
 ## Files
 

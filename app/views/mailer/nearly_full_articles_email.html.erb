@@ -30,7 +30,7 @@
 <p>Check the most up to date report here:
   <%= link_to 'Current Case Report', nearly_full_url(@order) %>
 </p>
-<% @order.nearly_full_order_articles.each do |order_article| %>
+<% @order.nearly_full_order_articles.sort_by { |oa| -CaseFill.new(oa).percent }.each do |order_article| %>
   <%= render partial: 'orders/case_report_item', locals: { order_article: order_article, mode: 'fill', goa: goa_for.call(order_article) } %>
 <% end %>
 
