@@ -178,10 +178,20 @@ $da-tap: 44px;
     .bad { color: $da-red; font-weight: 600; }
     .ok { color: $da-green-dark; font-weight: 600; }
   }
+  // group total, same header + amount treatment as "Your order" below it
+  .da-group-total {
+    margin-top: 8px;
+    .da-label { display: block; margin-bottom: 1px; }
+    strong { font-size: 20px; line-height: 1.1; }
+    small { font-size: 12px; color: $da-muted; margin-left: 4px; span + span:before { content: " · "; } }
+    .ok { color: $da-green-dark; font-weight: 600; }
+    .bad { color: $da-red; font-weight: 600; }
+  }
   .da-order-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
   .da-mine {
     min-width: 0;
-    strong { font-size: 18px; display: block; line-height: 1.1; }
+    .da-label { display: block; margin-bottom: 1px; }
+    strong { font-size: 20px; display: block; line-height: 1.1; color: $da-green-dark; }
     small { display: block; font-size: 12px; }
     &.none { color: $da-muted; font-style: italic; font-size: 14px; }
   }

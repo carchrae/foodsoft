@@ -75,10 +75,12 @@ articles are tagged with their order id and stock flag on the client.
   warning (threshold copied from the classic page, see decisions), links to the
   account statement and the wiki "Payments" page.
 * Notice board: the wiki `Main_Page`, which the classic sidebar also shows.
-* Current orders as cards: closing countdown, pickup, note, your order amount,
-  the same badges as the classic page (items filled, cases to fill, full cases,
-  co-op total vs supplier total, minimum order, splits), and Order / Edit / View
-  buttons. Two or three columns on desktop.
+* Current orders as cards: closing countdown, pickup, note, one muted line of
+  case figures (cases to fill, full cases, splits; the item count was dropped
+  on request), then two matching blocks with a small-caps header and a large
+  amount: "Group total" ($X, "of $Y" supplier total and the minimum-order
+  status beside it) and "Your order" (in green, with who saved it and when),
+  and an Order button. Two or three columns on desktop.
 * Tasks: waiting for your answer (Accept / Decline), your upcoming tasks (Mark
   done), help wanted (Take this task). Buttons POST to the existing
   `TasksController` actions and refresh the data. The test user has no tasks, so
@@ -103,6 +105,8 @@ articles are tagged with their order id and stock flag on the client.
 * Case progress is painted behind the steppers as one horizontal bar per case:
   complete cases are solid green, the partial case fills from faint red to
   yellow and snaps to green when it completes. Capped at six bars.
+* On wide cards (768px and up, also inside the desktop columns) the "You get"
+  sentence spans the full width of the card under the steppers.
 * **Splittable cases** (flag `splittable_cases`, on by default; set it to
   `false` in `app_config.yml` to turn off). Articles whose note contains
   "splittable" can ship as a fraction of a case. The split size is fixed by

@@ -63,10 +63,10 @@
     order: 'Order',
     orderAll: 'Order from all at once',
     view: 'View',
-    itemsFilled: function (n) { return n + (n === 1 ? ' item' : ' items'); },
     casesToFill: function (n) { return n + (n === 1 ? ' case' : ' cases') + ' to fill'; },
     fullCases: function (n) { return n + ' full ' + (n === 1 ? 'case' : 'cases'); },
-    coopTotal: function (a, b) { return 'co-op ' + a + (b ? ' of ' + b : ''); },
+    groupTotal: 'Group total',
+    ofSupplier: function (b) { return 'of ' + b; },
     minMet: function (m) { return m + ' minimum met'; },
     minShort: function (m) { return m + ' minimum not met'; },
     splits: function (n) { return n + ' splits'; },
@@ -223,22 +223,26 @@
         return diff < 0 ? 'past' : (diff < 2 * 86400000 ? 'soon' : '');
       },
 
+      // first stats line: case figures (the item count is deliberately left out)
       badges: function (o) {
-        var s = o.stats || {}, out = [], self = this;
-        if (s.items_filled != null) out.push({ text: T.itemsFilled(s.items_filled), kind: 'info' });
+        var s = o.stats || {}, out = [];
         if (s.cases_to_fill) out.push({ text: T.casesToFill(s.cases_to_fill), kind: 'warn' });
         if (s.full_cases != null) out.push({ text: T.fullCases(s.full_cases), kind: 'info' });
-        if (s.coop_total != null) {
-          var other = (s.supplier_total != null && s.supplier_total !== s.coop_total) ? self.money(s.supplier_total) : null;
-          out.push({ text: T.coopTotal(self.money(s.coop_total), other), kind: 'dark' });
-        }
-        if (s.min_order_value != null) {
-          out.push(s.min_order_met
-            ? { text: T.minMet(self.money(s.min_order_value)), kind: 'ok' }
-            : { text: T.minShort(self.money(s.min_order_value)), kind: 'bad' });
-        }
         if (s.splits != null) out.push({ text: T.splits(s.splits), kind: 'info' });
         return out;
+      },
+      // second stats block: the group total, laid out like "Your order"
+      groupTotal: function (o) {
+        var s = o.stats || {};
+        if (s.coop_total == null) return null;
+        var t = { amount: this.money(s.coop_total), notes: [] };
+        if (s.supplier_total != null && s.supplier_total !== s.coop_total) t.notes.push({ text: T.ofSupplier(this.money(s.supplier_total)) });
+        if (s.min_order_value != null) {
+          t.notes.push(s.min_order_met
+            ? { text: T.minMet(this.money(s.min_order_value)), kind: 'ok' }
+            : { text: T.minShort(this.money(s.min_order_value)), kind: 'bad' });
+        }
+        return t;
       }
     },
 
@@ -294,9 +298,15 @@
       '        <span v-if="o.pickup_human">{{ T.pickup }} <strong>{{ o.pickup_human }}</strong></span>' +
       '      </p>' +
       '      <div class="da-note" v-if="o.note_html" v-html="o.note_html"></div>' +
-      '      <p class="da-stats"><span v-for="(b, i) in badges(o)" :key="i" :class="b.kind">{{ b.text }}</span></p>' +
+      '      <p class="da-stats" v-if="badges(o).length"><span v-for="(b, i) in badges(o)" :key="i" :class="b.kind">{{ b.text }}</span></p>' +
+      '      <div class="da-group-total" v-if="groupTotal(o)">' +
+      '        <span class="da-label">{{ T.groupTotal }}</span>' +
+      '        <strong>{{ groupTotal(o).amount }}</strong>' +
+      '        <small v-if="groupTotal(o).notes.length"><span v-for="(n, i) in groupTotal(o).notes" :key="i" :class="n.kind">{{ n.text }}</span></small>' +
+      '      </div>' +
       '      <div class="da-order-foot">' +
       '        <div class="da-mine" v-if="o.my_order">' +
+      '          <span class="da-label">{{ T.yourOrder }}</span>' +
       '          <strong>{{ money(o.my_order.price) }}</strong>' +
       '          <small>{{ T.savedBy(o.my_order.updated_by, o.my_order.updated_on_human) }}</small>' +
       '        </div>' +

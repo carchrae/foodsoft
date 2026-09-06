@@ -558,7 +558,7 @@ $oa-tap: 44px;
     padding-left: 16px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "main controls" "line controls";
+    grid-template-areas: "main controls" "line line";
     column-gap: 20px;
     row-gap: 6px;
   }
@@ -568,6 +568,7 @@ $oa-tap: 44px;
   .oa .oa-article-side { display: contents; }
   .oa .oa-controls { grid-area: controls; align-self: start; justify-content: flex-start; gap: 10px 20px; }
   .oa .oa-controls.has-progress { margin: 0 -8px; padding: 6px 8px 8px; }
-  .oa .oa-line { grid-area: line; align-self: end; justify-self: start; margin-top: 0; display: block; min-height: 0; }
-  .oa .oa-outcome { text-align: left; width: auto; }
+  // the "You get" hint runs the full width of the card under the steppers
+  .oa .oa-line { grid-area: line; align-self: end; justify-self: stretch; margin-top: 0; display: block; min-height: 0; }
+  .oa .oa-outcome { text-align: left; width: 100%; }
 }
