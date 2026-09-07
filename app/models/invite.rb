@@ -26,7 +26,7 @@ class Invite < ApplicationRecord
 
   # Custom validation: check that email does not already belong to a registered user.
   def email_not_already_registered
-    unless User.find_by_email(self.email).nil?
+    unless User.find_by_email_case_insensitive(self.email).nil?
       errors.add(:email, I18n.t('invites.errors.already_member'))
     end
   end

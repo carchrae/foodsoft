@@ -1,0 +1,35 @@
+- title t '.title'
+
+- if @created.any?
+  %p= t '.created_intro'
+  %table.table.table-striped
+    %thead
+      %tr
+        %th= MemberSignup.human_attribute_name(:first_name)
+        %th= MemberSignup.human_attribute_name(:email)
+        %th= MemberSignup.human_attribute_name(:group_name)
+        %th= t '.welcome_email'
+    %tbody
+      - @created.each do |signup|
+        %tr
+          %td= link_to signup.full_name, [:admin, signup.user]
+          %td= signup.user.email
+          %td= link_to signup.ordergroup.name, [:admin, signup.ordergroup]
+          %td
+            - if signup.welcome_email_error
+              %span.label.label-important= t '.email_failed', error: signup.welcome_email_error
+            - else
+              %span.label.label-success= t '.email_sent'
+
+- if @failed.any?
+  .alert.alert-error
+    %h4= t '.failed_intro'
+    %ul
+      - @failed.each do |signup, message|
+        %li
+          %strong= signup.summary
+          = message
+
+.form-actions
+  = link_to t('.add_more'), new_admin_member_signup_path, class: 'btn btn-primary'
+  = link_to t('.all_users'), admin_users_path, class: 'btn'

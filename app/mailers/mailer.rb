@@ -25,6 +25,18 @@ class Mailer < ActionMailer::Base
          subject: I18n.t('mailer.reset_password.subject', username: show_user(user))
   end
 
+  # Welcomes a member whose account was just created for them by an admin, and
+  # links them to the page where they choose their own password.
+  # Assumes the reset password token has been set already.
+  def welcome_new_member(user)
+    @user = user
+    @link = new_password_url(id: @user.id, token: @user.reset_password_token)
+    @login_link = login_url
+
+    mail to: user,
+         subject: I18n.t('mailer.welcome_new_member.subject', foodcoop: FoodsoftConfig[:name])
+  end
+
   # Sends an invite email.
   def invite(invite)
     @invite = invite

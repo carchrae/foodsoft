@@ -45,6 +45,7 @@ SimpleNavigation::Configuration.run do |navigation|
     primary.item :admin, I18n.t('navigation.admin.title'), '#', if: Proc.new { current_user.role_admin? } do |subnav|
       subnav.item :admin_home, I18n.t('navigation.admin.home'), admin_root_path
       subnav.item :users, I18n.t('navigation.admin.users'), admin_users_path
+      subnav.item :member_signups, I18n.t('navigation.admin.member_signups'), new_admin_member_signup_path
       subnav.item :ordergroups, I18n.t('navigation.admin.ordergroups'), admin_ordergroups_path
       subnav.item :workgroups, I18n.t('navigation.admin.workgroups'), admin_workgroups_path
       subnav.item :mail_delivery_status, I18n.t('navigation.admin.mail_delivery_status'), admin_mail_delivery_status_index_path

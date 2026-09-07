@@ -12,6 +12,17 @@ en:
     currency:
       format:
         unit: $
+  activemodel:
+    attributes:
+      member_signup:
+        address: Home address
+        description: Ordergroup description
+        email: Email
+        first_name: First name
+        group_name: Ordergroup name
+        household_size: People in household
+        last_name: Last name
+        phone: Phone
   activerecord:
     attributes:
       article:
@@ -342,6 +353,37 @@ en:
       index:
         destroy_all: Delete all email problems
         title: Email problems
+    member_signups:
+      create:
+        add_more: Set up another member
+        all_users: All users
+        created_intro: 'These accounts were created:'
+        email_failed: 'not sent: %{error}'
+        email_sent: sent
+        failed_intro: 'These rows could not be created:'
+        nothing_selected: No rows were ticked, so nothing was created.
+        please_fix: Please correct the problems below before creating the accounts.
+        title: New members set up
+        welcome_email: Welcome email
+      household_description:
+        one: Household of 1 person
+        other: Household of %{count} people
+      new:
+        hint_header: You can include the header row from the spreadsheet, or leave it out.
+        hint_review: Nothing is created until you check the values on the next screen.
+        hint_rows: Paste one row per new member; several rows at once is fine.
+        intro: Paste a row from the membership sign-up spreadsheet to set up a member's account and ordergroup. They get an email telling them their account is ready, with a link to choose their own password.
+        placeholder: "Paste rows from the sign-up spreadsheet here\u2026"
+        submit: Read the rows
+        title: Set up a new member
+      preview:
+        back: Paste different rows
+        nothing_found: Nothing could be read from that text. Copy whole rows from the spreadsheet and paste them here.
+        intro: Check the details below, correct anything that came out wrong, and untick any row you do not want to create. Ordergroups are named after the member; rename one if your coop does it differently.
+        pasted_row: 'Pasted:'
+        submit: Create accounts and send welcome emails
+        title: Check the new members
+        unnamed: (no name found)
     messagegroups:
       destroy:
         error: 'Message group could not be deleted: %{error}'
@@ -1449,6 +1491,26 @@ en:
 
 
         Kind regards from %{foodcoop}.
+    welcome_new_member:
+      subject: Your %{foodcoop} account is ready
+      text: |
+        Hi %{user},
+
+        Welcome to %{foodcoop}! Your account is set up and ready to use.
+
+        Your login is your email address: %{email}
+        Your ordergroup is called "%{group}".
+
+        To pick a password and get started, follow this link:
+        %{link}
+
+        The link expires on %{expires}. If it has run out by the time you get to
+        it, go to %{login_link} and use "Forgot password" to get a new one.
+
+        See you at the next order!
+
+
+        Kind regards from %{foodcoop}.
   message_threads:
     groupmessage_threads:
       show_message_threads: show all
@@ -1558,6 +1620,7 @@ en:
       finance: Finances
       home: Overview
       mail_delivery_status: Email problems
+      member_signups: Set up a new member
       messagegroups: Message groups
       ordergroups: Ordergroups
       title: Administration

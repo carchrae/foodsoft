@@ -264,6 +264,12 @@ Foodsoft::Application.routes.draw do
         post :sudo, on: :member
       end
 
+      # Create accounts for new members from rows pasted out of the sign-up
+      # spreadsheet. See Admin::MemberSignupsController.
+      resources :member_signups, only: [:new, :create] do
+        post :preview, on: :collection
+      end
+
       resources :workgroups do
         get :memberships, on: :member
       end

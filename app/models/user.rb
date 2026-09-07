@@ -46,6 +46,7 @@ class User < ApplicationRecord
   validates_uniqueness_of :iban, :case_sensitive => false, :allow_blank => true
 
   before_validation :set_password
+  before_validation :normalize_email
   after_initialize do
     # does not seem like a nice place to set defaults
     settings.defaults['profile']  = {
@@ -116,6 +117,13 @@ class User < ApplicationRecord
       salt = [Array.new(6){rand(256).chr}.join].pack("m").chomp
       self.password_hash, self.password_salt = Digest::SHA1.hexdigest(password + salt), salt
     end
+  end
+
+  # Store email addresses in a single, comparable form: leading or trailing
+  # spaces from a copy-paste are dropped and the case is normalised, so
+  # "  Tom@Example.COM " and "tom@example.com" are the same account.
+  def normalize_email
+    self.email = email.strip.downcase if email.present?
   end
 
   # Returns true if the password argument matches the user's password.
@@ -210,8 +218,23 @@ class User < ApplicationRecord
     update_column :deleted_at, nil
   end
 
+  # Email addresses and nicknames are not case sensitive, so neither is logging
+  # in with them. Postgres compares strings case sensitively, hence the LOWER().
+  def self.find_by_login(login)
+    login = login.to_s.strip
+    return nil if login.blank?
+    where('LOWER(users.nick) = ?', login.downcase).first ||
+      find_by_email_case_insensitive(login)
+  end
+
+  def self.find_by_email_case_insensitive(email)
+    email = email.to_s.strip
+    return nil if email.blank?
+    where('LOWER(users.email) = ?', email.downcase).first
+  end
+
   def self.authenticate(login, password)
-    user = find_by_nick(login) || find_by_email(login)
+    user = find_by_login(login)
     if user && user.has_password(password)
       user
     else

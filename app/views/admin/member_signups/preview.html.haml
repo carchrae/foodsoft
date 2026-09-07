@@ -1,0 +1,44 @@
+- title t '.title'
+
+%p= t '.intro'
+
+= form_tag admin_member_signups_path do
+  = hidden_field_tag :paste, @paste
+  - @signups.each_with_index do |signup, i|
+    %fieldset
+      %legend
+        %label.checkbox.inline
+          = check_box_tag "signups[#{i}][selected]", '1', signup.selected
+          %strong= signup.summary.presence || t('.unnamed')
+      - if signup.errors.any?
+        .alert.alert-error
+          %ul
+            - signup.errors.full_messages.each do |message|
+              %li= message
+      .row-fluid
+        - [[:first_name, 4], [:last_name, 4], [:email, 4]].each do |attribute, span|
+          %div{class: "span#{span}"}
+            = label_tag "signups_#{i}_#{attribute}", MemberSignup.human_attribute_name(attribute)
+            = text_field_tag "signups[#{i}][#{attribute}]", signup.send(attribute),
+                             id: "signups_#{i}_#{attribute}", class: 'input-block-level'
+      .row-fluid
+        - [[:phone, 4], [:group_name, 4], [:household_size, 4]].each do |attribute, span|
+          %div{class: "span#{span}"}
+            = label_tag "signups_#{i}_#{attribute}", MemberSignup.human_attribute_name(attribute)
+            = text_field_tag "signups[#{i}][#{attribute}]", signup.send(attribute),
+                             id: "signups_#{i}_#{attribute}", class: 'input-block-level'
+      .row-fluid
+        - [[:address, 6], [:description, 6]].each do |attribute, span|
+          %div{class: "span#{span}"}
+            = label_tag "signups_#{i}_#{attribute}", MemberSignup.human_attribute_name(attribute)
+            = text_field_tag "signups[#{i}][#{attribute}]", signup.send(attribute),
+                             id: "signups_#{i}_#{attribute}", class: 'input-block-level'
+      - if signup.source.present?
+        %p.muted
+          %small
+            = t '.pasted_row'
+            = truncate(signup.source.reject(&:blank?).join(' | '), length: 300)
+
+  .form-actions
+    = submit_tag t('.submit'), class: 'btn btn-primary'
+    = link_to t('.back'), new_admin_member_signup_path, class: 'btn'

@@ -1,0 +1,16 @@
+- title t '.title'
+
+%p= t '.intro'
+
+%ul
+  %li= t '.hint_header'
+  %li= t '.hint_rows'
+  %li= t '.hint_review'
+
+= form_tag preview_admin_member_signups_path do
+  .control-group
+    = text_area_tag :paste, @paste, rows: 8, class: 'input-block-level', spellcheck: false,
+                    placeholder: t('.placeholder')
+  .form-actions
+    = submit_tag t('.submit'), class: 'btn btn-primary'
+    = link_to t('ui.or_cancel'), admin_root_path
