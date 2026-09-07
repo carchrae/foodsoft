@@ -1,0 +1,315 @@
+// Styles for the modern "copy order" page (order_copy_app.js). Scoped under
+// .oc so nothing leaks into the classic pages. Same palette as the other
+// modern pages.
+
+$oc-green: #78b74e;
+$oc-green-dark: #468847;
+$oc-green-bg: #dff0d8;
+$oc-red: #b94a48;
+$oc-red-bg: #f2dede;
+$oc-amber: #c09853;
+$oc-amber-bg: #fcf8e3;
+$oc-blue: #3a6ea5;
+$oc-blue-bg: #e8f0f7;
+$oc-ink: #333;
+$oc-muted: #777;
+$oc-line: #e5e5e5;
+$oc-radius: 10px;
+$oc-tap: 44px;
+$oc-footer-h: 64px;
+
+.oc {
+  color: $oc-ink;
+  padding-bottom: $oc-footer-h + 24px;
+  -webkit-tap-highlight-color: transparent;
+
+  *, *:before, *:after { box-sizing: border-box; }
+  h1, h2, h3 { line-height: 1.2; }
+  small, .muted { color: $oc-muted; }
+  .oc-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: $oc-muted; font-weight: 600; }
+
+  // ---- header ---------------------------------------------------------------------
+  .oc-head { padding: 8px 0 0; }
+  .oc-titlebar { display: flex; align-items: center; gap: 10px; }
+  .oc-back { flex: 0 0 auto; color: $oc-green-dark; font-weight: 600; text-decoration: none; padding: 6px 8px 6px 0; &:hover { text-decoration: underline; } }
+  .oc-title { flex: 1 1 auto; font-size: 20px; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .oc-classic { flex: 0 0 auto; font-size: 12px; color: $oc-muted; text-decoration: underline; white-space: nowrap; &:hover { color: $oc-green-dark; } }
+  .oc-intro { margin: 6px 0 10px; font-size: 13px; color: $oc-muted; }
+
+  .oc-card { background: #fff; border: 1px solid $oc-line; border-radius: $oc-radius; padding: 12px 14px; margin: 0 0 10px; }
+  .oc-alert { padding: 10px 12px; border-radius: $oc-radius; margin: 10px 0; border: 1px solid transparent; ul { margin: 4px 0 0 18px; } }
+  .oc-alert-danger { background: $oc-red-bg; color: $oc-red; border-color: darken($oc-red-bg, 8%); }
+  .oc-small-link { font-size: 12px; color: $oc-green-dark; }
+
+  // ---- the copied order --------------------------------------------------------------
+  .oc-source-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .oc-source-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 8px 0; }
+  .oc-stat {
+    background: $oc-green-bg; border-radius: 8px; padding: 8px 10px;
+    strong { display: block; font-size: 22px; line-height: 1.1; color: $oc-green-dark; }
+    small { font-size: 12px; color: $oc-green-dark; }
+    &.none { background: #f0f0f0; strong, small { color: $oc-muted; } }
+  }
+  .oc-source-meta { margin: 0; font-size: 13px; color: $oc-muted; span + span:before { content: " · "; } strong { color: $oc-ink; } }
+  .oc-unavailable {
+    margin: 10px 0 0; padding: 8px 10px; border-radius: 8px;
+    background: $oc-amber-bg; border: 1px solid darken($oc-amber-bg, 10%);
+    font-size: 13px;
+    strong { display: block; margin-bottom: 2px; color: darken($oc-amber, 25%); }
+    > small { display: block; margin-bottom: 6px; }
+  }
+  .oc-unavailable-row {
+    display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: flex-start;
+    padding: 6px 0; border-top: 1px solid darken($oc-amber-bg, 12%);
+  }
+  .oc-unavailable-name { flex: 1 1 220px; min-width: 0; span { font-weight: 600; } small { display: block; font-size: 11px; b { color: darken($oc-amber, 25%); } } }
+  .oc-suggestions { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 6px; }
+  .oc-suggestion {
+    display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px;
+    max-width: 100%; margin: 0; padding: 5px 10px;
+    border: 1px solid transparent; border-radius: 8px;
+    font: inherit; font-size: 12px; text-align: left; cursor: pointer; line-height: 1.3;
+    b { margin-right: 4px; }
+    small { color: inherit; opacity: 0.8; font-size: 11px; }
+    i { font-style: normal; font-weight: 700; font-size: 11px; }
+    &.selected { box-shadow: inset 0 0 0 2px rgba(0,0,0,0.35); }
+    &:hover { filter: brightness(0.96); }
+    em { font-style: normal; font-weight: 700; &.ok { color: $oc-green-dark; } &.warn { color: darken($oc-amber, 20%); } &.muted { opacity: 0.7; } }
+    .oc-sug-name { font-weight: 600; line-height: 1.3; }
+    .oc-sug-prices strong { font-size: 13px; }
+    .oc-sug-hist { opacity: 0.8; }
+    .oc-pricebox { padding: 2px 4px; margin: 2px -4px; text-align: left; }
+    .oc-pricechip { margin: 2px 0; background: rgba(255,255,255,0.75); &.ok { color: $oc-green-dark; } &.warn { color: darken($oc-amber, 20%); } &.bad { color: $oc-red; } &.muted { color: $oc-muted; } }
+    i { margin-top: 2px; }
+  }
+  // same rows as the unavailable box, for last time's articles and their alternatives
+  .oc-lasttime {
+    background: #f3f7fb; border-color: #cddceb;
+    strong { color: $oc-blue; }
+    .oc-unavailable-row { border-top-color: #dbe6f1; }
+    .oc-unavailable-name .oc-demand { margin-top: 4px; }
+    // the article as it was ordered last time: white card, green frame while it is in the new order
+    .oc-self { background: #fff; border-color: #bbb; color: $oc-ink; b { color: $oc-muted; text-transform: uppercase; font-size: 10px; letter-spacing: 0.04em; } &.selected { border-color: $oc-green-dark; box-shadow: inset 0 0 0 2px $oc-green-dark; } }
+    .oc-more { align-self: center; padding: 0; }
+    .oc-none { align-self: center; font-size: 12px; }
+    // an article that can no longer be ordered: greyed name and card
+    .oc-unavailable-row.gone .oc-unavailable-name > span { color: $oc-muted; text-decoration: line-through; }
+    .oc-self.gone { background: #f0f0f0; border-color: #ddd; color: $oc-muted; cursor: default; i { color: $oc-red; } }
+  }
+  .oc-replace { margin-left: 8px; padding: 0 6px; border-radius: 8px; background: rgba(255,255,255,0.75); color: $oc-blue; font-weight: 700; &:hover { background: #fff; } }
+  .oc-more-list { flex: 1 1 auto; }
+  .oc-modal-foot { margin: 12px 0 0; text-align: right; }
+
+  // ---- order details ------------------------------------------------------------------
+  .oc-details { padding: 0; }
+  .oc-details-toggle {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 12px 14px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer;
+    .oc-details-summary { flex: 1 1 auto; font-size: 13px; color: $oc-muted; }
+    .oc-caret { margin-left: auto; color: $oc-muted; }
+  }
+  .oc-form { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0 14px 14px; }
+  .oc-field {
+    display: flex; flex-direction: column; gap: 4px; margin: 0; font-size: 13px;
+    span { font-weight: 600; color: $oc-muted; }
+    input, select, textarea {
+      width: 100%; margin: 0; font-size: 15px; height: 40px; padding: 0 10px;
+      border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;
+      &:focus { outline: none; border-color: $oc-green; box-shadow: 0 0 0 2px rgba(120,183,78,0.25); }
+    }
+    textarea { height: auto; min-height: 40px; padding: 8px 10px; resize: none; overflow: hidden; line-height: 1.4; }
+  }
+
+  // ---- tabs -------------------------------------------------------------------------------
+  .oc-tabs {
+    display: flex; gap: 4px; margin: 4px 0 10px; border-bottom: 2px solid $oc-line;
+    button {
+      flex: 1 1 auto; margin: 0 0 -2px; padding: 10px 12px;
+      border: 0; border-bottom: 3px solid transparent; background: none; color: $oc-muted;
+      font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+      span { font-weight: 400; margin-left: 4px; }
+      &.active { color: $oc-green-dark; border-bottom-color: $oc-green; }
+      &:hover { color: $oc-ink; }
+    }
+  }
+  .oc-lasttime { margin-top: 0; }
+  .oc-row-side { flex: 1 1 100%; padding-left: 0; }
+
+  // ---- toolbar --------------------------------------------------------------------------
+  .oc-toolbar { position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid $oc-line; padding: 8px 0 6px; margin: 0 0 6px; }
+  .oc-toolbar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; & + & { margin-top: 8px; } }
+  // search box with its own clear button (Firefox has no native one)
+  .oc-searchwrap { position: relative; flex: 1 1 100%; display: flex; }
+  .oc-clear {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 28px; height: 28px; border: 0; border-radius: 50%; background: #e5e5e5; color: #555;
+    font-size: 18px; line-height: 1; cursor: pointer;
+    &:hover { background: #d5d5d5; }
+  }
+  .oc-more-search { margin: 6px 0 10px; }
+  .oc-search {
+    flex: 1 1 100%; height: 40px; margin: 0; padding: 0 36px 0 14px; width: 100%;
+    border: 1px solid #ccc; border-radius: 20px; font-size: 15px; -webkit-appearance: none;
+    &:focus { outline: none; border-color: $oc-green; box-shadow: 0 0 0 2px rgba(120,183,78,0.25); }
+  }
+  .oc-select { flex: 1 1 40%; height: 36px; margin: 0; border: 1px solid #ccc; border-radius: 18px; padding: 0 10px; font-size: 13px; background: #fff; }
+  .oc-filters {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    button {
+      height: 34px; padding: 0 12px;
+      border: 1px solid #ccc; border-radius: 17px; background: #fff; color: $oc-ink;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      span { font-weight: 400; color: $oc-muted; margin-left: 2px; }
+      &.active { background: $oc-green-dark; border-color: $oc-green-dark; color: #fff; span { color: rgba(255,255,255,0.8); } }
+    }
+  }
+  .oc-quick { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: $oc-muted; }
+  .oc-linkbtn { border: 0; background: none; color: $oc-green-dark; cursor: pointer; padding: 4px 0; font: inherit; font-size: 12px; text-decoration: underline; }
+
+  // ---- articles ---------------------------------------------------------------------------
+  .oc-empty { color: $oc-muted; padding: 16px 0; text-align: center; }
+  .oc-category { margin: 0 0 12px; }
+  .oc-category-head {
+    display: flex; align-items: center; gap: 10px; margin: 0 0 6px; padding: 6px 4px; cursor: pointer;
+    input { width: 18px; height: 18px; margin: 0; }
+    .oc-category-name { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: $oc-muted; font-weight: 600; }
+  }
+  .oc-list { display: flex; flex-direction: column; gap: 6px; }
+  .oc-item {
+    display: flex; gap: 10px; align-items: flex-start; margin: 0;
+    background: #fff; border: 1px solid $oc-line; border-left: 4px solid $oc-line;
+    border-radius: $oc-radius; padding: 10px 12px; cursor: pointer;
+    &.is-filled { border-left-color: $oc-green; }
+    &.is-partial { border-left-color: $oc-amber; }
+    &.is-none { border-left-color: #ccc; .oc-item-name strong { color: #666; } }
+    &.is-new { border-left-color: $oc-blue; }
+    &.selected { background: lighten($oc-green-bg, 7%); }
+    &.selected.is-none { background: #f7f7f7; }
+  }
+  .oc-check { flex: 0 0 auto; width: 22px; height: 22px; margin: 2px 0 0; cursor: pointer; }
+  .oc-item-main { flex: 1 1 auto; min-width: 0; }
+  .oc-item-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; strong { font-size: 15px; line-height: 1.25; } .oc-code { font-size: 11px; color: $oc-muted; } }
+  .oc-item-meta { font-size: 12px; color: $oc-muted; margin: 2px 0 0; span + span:before { content: " · "; } .oc-note { font-style: italic; } }
+  .oc-demand {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 6px 0 0; font-size: 12px; color: $oc-muted;
+    .strong { color: $oc-ink; font-weight: 700; font-size: 13px; }
+    .ok { color: $oc-green-dark; font-weight: 600; }
+    .warn { color: darken($oc-amber, 15%); font-weight: 600; }
+    .info { color: $oc-blue; }
+    .muted { color: $oc-muted; font-style: italic; }
+  }
+  .oc-fill {
+    flex: 0 0 90px; height: 8px; border-radius: 4px; background: #eee; overflow: hidden; display: inline-block;
+    span { display: block; height: 100%; &.ok { background: $oc-green; } &.warn { background: $oc-amber; } }
+  }
+  .oc-item { flex-wrap: wrap; }
+  .oc-item-side { flex: 1 1 100%; display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; padding-left: 32px; text-align: left; }
+  .oc-price { strong { display: block; font-size: 15px; } small { display: block; font-size: 11px; white-space: nowrap; } &.oc-pricebox { text-align: right; } }
+  // the whole price block is one control that opens the history dialog
+  .oc-pricebox {
+    display: block; width: 100%; margin: 0; padding: 4px 6px;
+    border: 1px dashed transparent; border-radius: 8px; background: none;
+    font: inherit; color: inherit; text-align: inherit; cursor: pointer;
+    &:hover, &:focus { border-color: rgba(0,0,0,0.25); background: rgba(255,255,255,0.6); outline: none; }
+  }
+  .oc-pricelink { display: block; font-size: 11px; color: $oc-blue; text-decoration: underline; margin-top: 2px; }
+  // "8% more than last time" under the price
+  .oc-pricechip {
+    display: inline-block; margin: 4px 0 0; padding: 0 8px; max-width: 100%;
+    border-radius: 10px; background: #eee; color: #555;
+    font-size: 11px; line-height: 20px; font-weight: 600; text-align: left; white-space: normal;
+    &.ok { background: $oc-green-bg; color: $oc-green-dark; }
+    &.warn { background: $oc-amber-bg; color: darken($oc-amber, 15%); }
+    &.bad { background: $oc-red-bg; color: $oc-red; }
+    &.muted { background: #f0f0f0; color: $oc-muted; font-weight: 400; }
+  }
+
+  // ---- price history dialog ------------------------------------------------------------------
+  .oc-modal-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.45); display: flex; align-items: flex-end; justify-content: center; }
+  .oc-modal {
+    background: #fff; width: 100%; max-width: 720px; max-height: 92vh; overflow: auto;
+    border-radius: $oc-radius $oc-radius 0 0; padding: 14px 16px 20px;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.25);
+    h3 { margin: 0; font-size: 17px; }
+  }
+  .oc-modal-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; > div { flex: 1 1 auto; min-width: 0; } }
+  .oc-modal-close { flex: 0 0 auto; width: 36px; height: 36px; border: 1px solid #ccc; border-radius: 50%; background: #fff; font-size: 20px; line-height: 1; cursor: pointer; }
+  .oc-modal-hint { font-size: 12px; color: $oc-muted; margin: 8px 0; }
+  .oc-price-summary {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
+    > div { background: #f5f5f5; border-radius: 8px; padding: 6px 10px; }
+    small { display: block; font-size: 11px; }
+    strong { display: block; font-size: 17px; line-height: 1.2; &.ok { color: $oc-green-dark; } &.bad { color: $oc-red; } }
+  }
+  .oc-table-wrap { overflow-x: auto; }
+  .oc-price-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+    th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: $oc-muted; padding: 4px 6px; border-bottom: 1px solid $oc-line; }
+    td { padding: 5px 6px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; small { font-size: 11px; } }
+    td.num { text-align: right; white-space: nowrap; }
+    td.bar { width: 26%; span { display: block; height: 8px; border-radius: 4px; background: $oc-green; } }
+    tr.current td { background: lighten($oc-green-bg, 7%); }
+    tr.muted td { color: $oc-muted; .bar span { background: #ddd; } }
+    .ok { color: $oc-green-dark; font-weight: 600; } .warn { color: darken($oc-amber, 15%); font-weight: 600; } .muted { color: $oc-muted; }
+  }
+  .oc-history {
+    margin-top: 0; text-align: right;
+    small { display: block; font-size: 11px; line-height: 1.3; }
+    .oc-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 22px; }
+    .oc-bars span { display: inline-block; width: 8px; background: $oc-green; border-radius: 2px 2px 0 0; min-height: 2px; &.zero { background: #ddd; height: 2px !important; } &.missing { background: transparent; border-bottom: 2px dotted #bbb; height: 2px !important; } }
+  }
+  .oc-chip {
+    display: inline-block; font-size: 11px; line-height: 20px; padding: 0 8px; border-radius: 10px; background: #eee; color: #555; white-space: nowrap;
+    &.info { background: $oc-blue-bg; color: $oc-blue; }
+    &.warn { background: $oc-amber-bg; color: darken($oc-amber, 15%); }
+    &.muted { background: #f0f0f0; color: $oc-muted; }
+  }
+
+  // ---- generic ---------------------------------------------------------------------------------
+  .oc-btn {
+    display: inline-block; height: $oc-tap; line-height: $oc-tap - 2px; padding: 0 18px;
+    border-radius: $oc-tap / 2; border: 1px solid #ccc; background: #fff; color: $oc-ink;
+    font-size: 15px; font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap;
+    &:hover { text-decoration: none; background: #f7f7f7; }
+    &:disabled { opacity: 0.5; cursor: default; }
+  }
+  .oc-btn-primary { background: $oc-green; border-color: darken($oc-green, 8%); color: #fff; &:hover { background: darken($oc-green, 5%); } }
+  .oc-state { padding: 40px 12px; text-align: center; }
+  .oc-spinner { display: inline-block; width: 28px; height: 28px; border: 3px solid $oc-line; border-top-color: $oc-green; border-radius: 50%; animation: oc-spin 0.8s linear infinite; }
+  @keyframes oc-spin { to { transform: rotate(360deg); } }
+
+  .oc-footer {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; min-height: $oc-footer-h; margin: 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 14px; background: #fff; border-top: 1px solid $oc-line; box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+  }
+  .oc-footer-info { min-width: 0; strong { display: block; font-size: 15px; } small { display: block; font-size: 12px; } }
+  .oc-toast {
+    position: fixed; left: 50%; bottom: $oc-footer-h + 16px; transform: translateX(-50%); z-index: 40;
+    padding: 10px 16px; border-radius: 20px; background: rgba(50,50,50,0.95); color: #fff; font-size: 14px;
+    &.error { background: $oc-red; } &.ok { background: $oc-green-dark; }
+  }
+}
+
+@media (min-width: 768px) {
+  .oc .oc-source-grid { grid-template-columns: repeat(4, 1fr); }
+  .oc .oc-modal-backdrop { align-items: center; padding: 20px; }
+  .oc .oc-modal { border-radius: $oc-radius; }
+  .oc .oc-price-summary { grid-template-columns: repeat(5, 1fr); }
+  .oc .oc-form { grid-template-columns: repeat(4, 1fr); }
+  .oc .oc-field-wide { grid-column: 1 / -1; }
+  .oc .oc-toolbar-row { flex-wrap: nowrap; }
+  .oc .oc-searchwrap { flex: 1 1 auto; }
+  .oc .oc-select { flex: 0 0 220px; }
+  .oc .oc-quick { margin-left: auto; }
+  .oc .oc-list { display: grid; grid-template-columns: 1fr; gap: 6px; }
+  .oc .oc-item { flex-wrap: nowrap; }
+  .oc .oc-item-side { flex: 0 0 auto; display: block; min-width: 150px; padding-left: 0; text-align: right; }
+  .oc .oc-suggestions { flex: 2 1 400px; }
+  .oc .oc-row-side { flex: 0 0 190px; }
+  .oc .oc-unavailable-name { flex: 1 1 200px; }
+  .oc .oc-history { margin-top: 6px; }
+}
+@media (min-width: 1100px) {
+  .oc .oc-list { grid-template-columns: 1fr 1fr; }
+}

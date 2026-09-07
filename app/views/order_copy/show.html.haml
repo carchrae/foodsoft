@@ -1,0 +1,14 @@
+-# Modern "copy order" page. Rendered client-side by order_copy_app.js from the
+-# JSON at data-url (OrderCopyController); the classic copy is OrdersController#new.
+- title "New order from #{@source.name}", false
+- content_for :head do
+  :javascript
+    document.documentElement.className += ' fs-modern';
+#order-copy-app{data: {url: data_order_copy_path(@source)}}
+  .oc-boot
+    %p.muted Loading #{@source.name}…
+    %noscript
+      .alert.alert-danger
+        This page needs JavaScript.
+        = link_to 'Use the classic copy page instead', new_order_path(order_id: @source.id, supplier_id: @source.supplier_id)
+= render 'ordering/vue_runtime', boot_selector: '.oc-boot', fallback_url: "#{new_order_path(order_id: @source.id, supplier_id: @source.supplier_id)}"

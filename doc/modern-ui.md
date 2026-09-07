@@ -360,13 +360,12 @@ classic copy, but shows what each article did last time so the coordinator
 can decide what to keep.
 
 * Top card for the copied order: households that ordered, articles with and
-  without demand, total, closing and pickup dates, and an amber list of
-  articles from that order that can no longer be ordered (with their demand).
+  without demand, total, closing and pickup dates.
 * Order details in a collapsible card (collapsed on phones): opens, boxfill
   (when the coop uses it), closes, pickup date, end action, member note and
   supplier note, prefilled like the classic page from the copied order and
   `Order#init_dates`; a closing/boxfill time that has already passed is not
-  reused. Native date/time inputs.
+  reused. Native date/time inputs; the two note fields grow with their text.
 * Every available article of the supplier, grouped by category, as a tickable
   card: name, code, note, origin, manufacturer, unit × case, prices
   (net / coop / supplier, like the classic table), and a demand line from the
@@ -377,11 +376,57 @@ can decide what to keep.
   articles not in the last order. A mini bar chart per article shows
   households over the supplier's last six finished orders with "ordered in 4
   of last 6 · avg 5 households".
-* Search (name/code/origin/note), category picker, sort (most wanted first or
-  by name), filters All / Had demand / Nobody ordered / Not in last order, and
+* Search (name/code/origin/note), category picker, sort (by name, the
+  default, or most wanted first within a category; categories are always
+  alphabetical), filters All / Had demand / Nobody ordered / Not in last order, and
   quick selection: as last order (the default, like classic), only with
   demand, all, none, and all/none of the currently shown. Category headers
   tick a whole category.
+* **Two tabs** under the order details: "Last time & alternatives" (default)
+  and "All available articles" (the catalogue with its toolbar, filters and
+  cards, described below).
+* **Last time's articles and their alternatives** (first tab). A blue box
+  lists every article of the copied order, sorted by name, with pack, grower,
+  origin, its demand line (households, wanted (+extra), cases, delivered…)
+  and the same price block as the cards (price, coop and supplier price, the
+  price-history chip and the six-order history line). On the
+  right the article itself comes first as a white card labelled "last time"
+  ("✓ added · remove" while it is in the new order, "+ add" otherwise); an
+  article the supplier no longer lists is greyed and struck through, its card
+  says "no longer available" and it is not pre-selected. Then up to three
+  similar available articles (same product word, scored and tinted like the
+  swap picker via the shared `article_match.js`, one per name and unit,
+  cheapest first on ties) with pack, grower, origin, price and the difference
+  for the same amount ("$0.14 cheaper", "$1.00 more", "units differ"), plus
+  the same price details as the article cards (coop and supplier price, the
+  price-history chip and the six-order history line). Tap
+  adds or removes an alternative; "⇄ replace" (available articles only) adds
+  it and drops the last-time article. Chosen alternatives always stay
+  visible, so a pick from the "show N more…" dialog (up to 30 candidates)
+  takes the place of the lowest-ranked unchosen card; the dialog closes on a
+  pick (add or replace). The dialog has a search
+  box: empty shows the namesakes, typing searches every available article by
+  name, grower, origin or code and scores the matches against the last-time
+  article. All search boxes on the modern copy and swap pages carry a clear
+  button (Firefox has no native one). Articles are grouped by
+  product word first so each one only scores its namesakes; results are
+  cached per article. The article cards further down are unchanged.
+* **Price history.** Under each price a chip says "8% more than last time
+  ($5.99, 11 Jul)", "12% less than last time…", "same as last time" or "seen
+  N prices before" (amber up to 10% more, red above, green when cheaper).
+  "Last time" is the price in force before the current one across every
+  listing of the same name and unit that the supplier ever had (deleted
+  entries included, since each sync creates new article rows; siblings
+  created in the same sync do not count). Clicking the chip opens a dialog
+  (`GET /f/order_copy/:id/prices/:article_id`) with now / last time / 12-month
+  low, high and average, and the full series (newest first, up to 80 rows):
+  date, price, bar, change against the previous same-unit row, pack, the
+  listing's name when it differs, "current" / "old listing", and how many
+  orders used that price. The per-article summary on the page only scans the
+  last 18 months so the payload stays small. On every card the whole price
+  block (price, coop/supplier price, chip and a "price history ›" link) is
+  the control that opens the dialog, so it stays reachable inside the
+  tappable alternative cards.
 * Fixed footer with "N selected · with demand / nobody ordered / new" and
   Create order. Validation errors from the model (no articles, closes before
   opens…) are listed at the top; success goes to the new order's page.
@@ -407,6 +452,7 @@ app/views/dashboard/show.html.haml
 app/views/dashboard/_legacy_switch.html.haml
 app/controllers/swap_controller.rb
 app/serializers/swap_serializer.rb
+app/assets/javascripts/article_match.js       (name similarity, units, tints; shared by swap and copy pages)
 app/assets/javascripts/swap_app.js
 app/assets/stylesheets/swap_app.scss
 app/controllers/order_copy_controller.rb

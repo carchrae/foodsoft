@@ -22,7 +22,9 @@
 //= require recurring_select
 //= require ordering_app
 //= require dashboard_app
+//= require article_match
 //= require swap_app
+//= require order_copy_app
 //= require order_manage_app
 
 $.fn.select2.defaults.set('theme', 'bootstrap');
