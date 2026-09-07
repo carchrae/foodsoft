@@ -28,10 +28,15 @@ class Mailer < ActionMailer::Base
   # Welcomes a member whose account was just created for them by an admin, and
   # links them to the page where they choose their own password.
   # Assumes the reset password token has been set already.
-  def welcome_new_member(user)
+  def welcome_new_member(user, referral = nil)
     @user = user
     @link = new_password_url(id: @user.id, token: @user.reset_password_token)
     @login_link = login_url
+    # Who they said they knew in the group, so we can point them at that person.
+    @referral = referral.presence
+    @mailing_list_url = FoodsoftConfig[:mailing_list_url].presence
+    # Optional: subscribing by email, for people without a Google account.
+    @mailing_list_email = FoodsoftConfig[:mailing_list_subscribe].presence
 
     mail to: user,
          subject: I18n.t('mailer.welcome_new_member.subject', foodcoop: FoodsoftConfig[:name])

@@ -29,6 +29,12 @@ default: &defaults
   # documentation URL for the apples&pears work system
   applepear_url: https://github.com/foodcoops/foodsoft/wiki/%C3%84pfel-u.-Birnen
 
+  # Mailing list new members are asked to join, in the welcome email sent from
+  # Administration -> Set up a new member. Leave unset to leave it out of the email.
+  #mailing_list_url: https://groups.google.com/g/example/about
+  # The mailing_list_subscribe address below, when set, is offered in that
+  # email as a way to subscribe without a Google account.
+
   # custom foodsoft software URL (used in footer)
   #foodsoft_url: https://github.com/foodcoops/foodsoft
 

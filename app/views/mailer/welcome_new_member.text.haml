@@ -1,1 +1,8 @@
-= raw t '.text', user: show_user(@user), foodcoop: FoodsoftConfig[:name], email: @user.email, group: @user.ordergroup_name, link: @link, login_link: @login_link, expires: I18n.l(@user.reset_password_expires)
+-# Each block ends with one newline, so joining with another gives a blank line
+-# between paragraphs, whichever of the optional blocks are present.
+- parts = [t('.text', user: show_user(@user), foodcoop: FoodsoftConfig[:name], email: @user.email, group: @user.ordergroup_name, link: @link, login_link: @login_link, expires: I18n.l(@user.reset_password_expires))]
+- parts << t('.referral', referral: @referral) if @referral
+- parts << t('.mailing_list', url: @mailing_list_url) if @mailing_list_url
+- parts << t('.mailing_list_by_email', email: @mailing_list_email) if @mailing_list_url && @mailing_list_email
+- parts << t('.signoff', foodcoop: FoodsoftConfig[:name])
+= raw parts.join("\n")

@@ -15,7 +15,7 @@ class MemberSignup
   WELCOME_TOKEN_DAYS = 14     # longer than a password reset: people are slow to read welcome mail
 
   ATTRIBUTES = [:first_name, :last_name, :email, :phone, :address,
-                :household_size, :group_name, :description]
+                :household_size, :group_name, :description, :referral]
   attr_accessor(*ATTRIBUTES)
 
   # Whether the admin ticked this row on the preview screen.
@@ -30,6 +30,7 @@ class MemberSignup
   validates :email, presence: true, format: {with: EMAIL_FORMAT}
   validates :group_name, presence: true, length: {in: 1..GROUP_NAME_LIMIT}
   validates :description, length: {maximum: DESCRIPTION_LIMIT}
+  validates :referral, length: {maximum: 1000}
   validate :email_is_free
   validate :group_name_is_free
 
@@ -75,7 +76,7 @@ class MemberSignup
     @user.reset_password_expires = Time.now.advance(days: WELCOME_TOKEN_DAYS)
     @user.save!
     I18n.with_locale(@user.locale) do
-      Mailer.welcome_new_member(@user).deliver_now
+      Mailer.welcome_new_member(@user, referral).deliver_now
     end
     true
   rescue => error
@@ -145,6 +146,9 @@ class MemberSignup
   HEADER_PATTERNS = [
     [:email,          [/e-?mail/i]],
     [:phone,          [/\bphone\b/i, /\bmobile\b/i, /\bcell\b/i]],
+    # Before :last_name: the referral question ends "first and last name please",
+    # which /\blast\s*name\b/ would happily claim.
+    [:referral,       [/who do you know/i, /\brefer(red|ral)\b/i]],
     [:first_name,     [/\bfirst\s*name\b/i, /\bgiven\s*name\b/i]],
     [:last_name,      [/\blast\s*name\b/i, /\bsurname\b/i, /\bfamily\s*name\b/i]],
     [:full_name,      [/\bfull\s*name\b/i, /\byour\s*name\b/i, /\A\s*name\s*\z/i]],
@@ -188,6 +192,11 @@ class MemberSignup
       .map { |i| [i, address_score(row[i])] }
       .select { |_i, score| score >= 3 }
     mapping[:address] = scored.max_by { |i, score| [score, i] }.first if scored.any?
+    # Whoever referred them is named further down the form than they are, so of
+    # the cells that read like a name the last one left is the best guess.
+    mapping[:referral] = row.each_index.select do |i|
+      !mapping.values.include?(i) && name_like?(row[i])
+    end.last
     mapping.reject { |_k, v| v.nil? }
   end
 
@@ -239,7 +248,8 @@ class MemberSignup
       email: cell.call(:email),
       phone: cell.call(:phone),
       address: cell.call(:address),
-      household_size: cell.call(:household_size)
+      household_size: cell.call(:household_size),
+      referral: cell.call(:referral)
     )
     signup.source = row
     signup.group_name = suggested_group_name([first_name, last_name].reject(&:blank?).join(' '))

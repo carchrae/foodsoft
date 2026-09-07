@@ -21,6 +21,10 @@
             - else
               %span.label.label-success= t '.email_sent'
 
+  - if FoodsoftConfig[:mailing_list_url].present?
+    .alert.alert-info
+      = t '.mailing_list_reminder_html', url: link_to(FoodsoftConfig[:mailing_list_url], FoodsoftConfig[:mailing_list_url])
+
 - if @failed.any?
   .alert.alert-error
     %h4= t '.failed_intro'

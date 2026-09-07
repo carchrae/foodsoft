@@ -23,6 +23,7 @@ en:
         household_size: People in household
         last_name: Last name
         phone: Phone
+        referral: Who they know in the group
   activerecord:
     attributes:
       article:
@@ -361,6 +362,7 @@ en:
         email_failed: 'not sent: %{error}'
         email_sent: sent
         failed_intro: 'These rows could not be created:'
+        mailing_list_reminder_html: 'The welcome email asks them to join the mailing list themselves, which is the only way it can be done — a Google Group cannot be subscribed to on someone''s behalf. If you would rather not wait, a group manager can add them at %{url} under Members → Add members.'
         nothing_selected: No rows were ticked, so nothing was created.
         please_fix: Please correct the problems below before creating the accounts.
         title: New members set up
@@ -381,6 +383,7 @@ en:
         nothing_found: Nothing could be read from that text. Copy whole rows from the spreadsheet and paste them here.
         intro: Check the details below, correct anything that came out wrong, and untick any row you do not want to create. Ordergroups are named after the member; rename one if your coop does it differently.
         pasted_row: 'Pasted:'
+        referral_hint: Quoted back to them in the welcome email, which asks them to make this person their go-to for questions. Leave blank to leave it out.
         submit: Create accounts and send welcome emails
         title: Check the new members
         unnamed: (no name found)
@@ -1492,6 +1495,36 @@ en:
 
         Kind regards from %{foodcoop}.
     welcome_new_member:
+      mailing_list: |
+        Please also join our mailing list. Orders, pickups, swaps and everything
+        else are announced there, so it is the main way to keep up with what the
+        group is doing:
+
+          %{url}
+
+        Open that page and click "Join group".
+      mailing_list_by_email: |
+        If you would rather not use a Google account, you can subscribe by email
+        instead: send an empty message from this address to
+
+          %{email}
+
+        and reply to the confirmation that comes back. Either way works, you only
+        need to do one of them.
+      referral: |
+        When you applied you told us who you know in the group:
+
+          %{referral}
+
+        Please get in touch with them and ask whether they will be your go-to
+        person while you find your feet. Everyone here learned the ropes from
+        somebody, and having one person to ask makes the first few orders much
+        easier.
+      signoff: |
+        See you at the next order!
+
+
+        Kind regards from %{foodcoop}.
       subject: Your %{foodcoop} account is ready
       text: |
         Hi %{user},
@@ -1506,11 +1539,6 @@ en:
 
         The link expires on %{expires}. If it has run out by the time you get to
         it, go to %{login_link} and use "Forgot password" to get a new one.
-
-        See you at the next order!
-
-
-        Kind regards from %{foodcoop}.
   message_threads:
     groupmessage_threads:
       show_message_threads: show all

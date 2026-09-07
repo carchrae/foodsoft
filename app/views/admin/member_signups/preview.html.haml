@@ -33,6 +33,12 @@
             = label_tag "signups_#{i}_#{attribute}", MemberSignup.human_attribute_name(attribute)
             = text_field_tag "signups[#{i}][#{attribute}]", signup.send(attribute),
                              id: "signups_#{i}_#{attribute}", class: 'input-block-level'
+      .row-fluid
+        .span12
+          = label_tag "signups_#{i}_referral", MemberSignup.human_attribute_name(:referral)
+          = text_area_tag "signups[#{i}][referral]", signup.referral, rows: 2,
+                          id: "signups_#{i}_referral", class: 'input-block-level'
+          %span.help-block= t '.referral_hint'
       - if signup.source.present?
         %p.muted
           %small
