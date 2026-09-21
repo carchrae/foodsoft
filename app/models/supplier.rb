@@ -67,6 +67,14 @@ class Supplier < ApplicationRecord
     return [updated_article_pairs, outlisted_articles, new_articles]
   end
 
+  # Which supplier specific spreadsheet importer applies, as far as we can tell
+  # from the supplier alone - used to say so on the upload page. The name is
+  # only a hint (it still covers 'Purity (was Horizon)'); a catalogue is also
+  # recognised from the uploaded file, see {FoodsoftFile.horizon_file?}.
+  def custom_importer
+    'horizon' if name.to_s =~ /horizon/i
+  end
+
   # Synchronise articles with spreadsheet.
   #
   # @param file [File] Spreadsheet file to parse
@@ -78,7 +86,10 @@ class Supplier < ApplicationRecord
     updated_article_pairs, outlisted_articles, new_articles = [], [], []
     articles_by_order_number = articles.undeleted.group_by(&:order_number)
     order_numbers_from_file = Set.new
-    if (name ==='Horizon')
+    # The name match is only a shortcut; what decides is the catalogue layout
+    # in the file, so a renamed supplier - or a second one on the same
+    # catalogue - keeps the duplicate handling below.
+    if custom_importer || FoodsoftFile.horizon_file?(file, options)
       FoodsoftFile::parseHorizon file, options do |status, new_attrs, line|
         # if there are duplicates in the file, we just take the first one
         if (order_numbers_from_file.add?(new_attrs[:order_number]).nil?)

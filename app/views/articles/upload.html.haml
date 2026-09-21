@@ -1,5 +1,10 @@
 - title t('.title', supplier: @supplier.name)
 
+- if @supplier.custom_importer == 'horizon'
+  .alert.alert-info
+    %h4= t '.custom_importer.horizon.title'
+    = t '.custom_importer.horizon.text'
+
 %p= t '.text_1', supplier: @supplier.name
 
 %table.table.table-bordered
@@ -67,6 +72,9 @@
       %td= t '.sample.juices'
 
 %p= t '.text_2'
+
+- unless @supplier.custom_importer
+  %p.muted= t '.custom_importer.autodetect'
 
 = form_for :articles, :url => parse_upload_supplier_articles_path(@supplier),
    :html => { multipart: true, class: "form-horizontal" } do |f|

@@ -92,4 +92,15 @@ describe Supplier do
     end
   end
 
+  describe 'custom importer' do
+    it 'is used for the catalogue supplier, whatever it is called now' do
+      expect(build(:supplier, name: 'Horizon').custom_importer).to eq 'horizon'
+      expect(build(:supplier, name: 'Purity (was Horizon)').custom_importer).to eq 'horizon'
+    end
+
+    it 'is not used for an ordinary supplier' do
+      expect(build(:supplier, name: 'Nuttyfarm').custom_importer).to be_nil
+    end
+  end
+
 end

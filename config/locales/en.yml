@@ -604,6 +604,11 @@ en:
           other: There are %{count} articles to add.
         title: Add new ...
     upload:
+      custom_importer:
+        autodetect: A supplier catalogue with a header row we recognise (for example the Horizon / Purity Life catalogue) is detected from the file itself and imported with its own column mapping.
+        horizon:
+          text: 'This supplier uses the Horizon / Purity Life catalogue, which has its own column mapping, so the column order shown below does not apply. Columns are found by their header labels (Code, Brand Name, SKU Description, Catalogue Description, Case Pack, Unit Size, Unit Price, P (PST), T (GST)), so inserted or moved columns are no problem. Tax is taken from the PST and GST columns, and articles are filed under Grocery. If a label we need is missing, the upload stops with an error instead of importing shifted values.'
+          title: This supplier has its own importer
       fields:
         reserved: "(Reserved)"
         status: Status (x=skip)
