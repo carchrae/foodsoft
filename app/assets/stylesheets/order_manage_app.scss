@@ -18,6 +18,10 @@ $om-tap: 44px;
 
 .om {
   color: $om-ink;
+  // every modern page: at most 1000px wide, centred
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
   padding-bottom: 24px;
   -webkit-tap-highlight-color: transparent;
 

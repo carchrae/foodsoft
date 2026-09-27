@@ -22,6 +22,10 @@ $da-tap: 44px;
 
 .da {
   color: $da-ink;
+  // every modern page: at most 1000px wide, centred
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
   padding-bottom: 24px;
   -webkit-tap-highlight-color: transparent;
 
@@ -143,6 +147,23 @@ $da-tap: 44px;
   .da-wiki-links { margin-bottom: 10px; ul { margin: 4px 0 0 18px; } }
   a.da-row-title { color: $da-ink; &:hover { color: $da-green-dark; text-decoration: none; } }
 
+  // ---- layout: phones get one column in this order; desktop splits it in two ----
+  .da-body { display: flex; flex-direction: column; }
+  .da-side, .da-main { display: contents; }
+  .da-o-tasks { order: 1; }
+  .da-o-hero { order: 2; }
+  .da-o-search { order: 3; }
+  .da-o-notice { order: 4; }
+  .da-o-orders { order: 5; }
+  .da-o-messages { order: 6; }
+  .da-o-finished { order: 7; }
+  .da-o-closed { order: 8; }
+  .da-o-apples { order: 9; }
+  .da-o-tx { order: 10; }
+  .da-o-links { order: 11; }
+  .da-o-tasks { margin-top: 8px; }
+  .da-o-hero { margin-top: 10px; }
+
   // ---- orders ------------------------------------------------------------------------
   .da-grid { display: grid; grid-template-columns: 1fr; gap: 10px; .da-card { margin: 0; } }
   .da-order {
@@ -159,41 +180,95 @@ $da-tap: 44px;
     &.urgent { background: $da-red-bg; color: $da-red; }
     &.past { background: #f0f0f0; color: $da-muted; }
   }
-  .da-order-meta { margin: 4px 0 6px; font-size: 13px; color: $da-muted; span + span:before { content: " · "; } strong { color: $da-ink; font-weight: 600; } }
+  .da-order-meta { margin: 6px 0 0; font-size: 13px; color: $da-muted; span + span:before { content: " · "; } strong { color: $da-ink; font-weight: 600; } }
   .da-note {
     background: $da-amber-bg;
     border-left: 3px solid $da-amber;
     padding: 6px 10px;
-    margin: 6px 0;
+    margin: 6px 0 0;
     font-size: 13px;
     white-space: pre-line;
     border-radius: 0 6px 6px 0;
     a { word-break: break-all; }
   }
-  // one muted line of figures instead of a wall of chips
+  // case figures, inside the group box
   .da-stats {
-    margin: 6px 0 0; font-size: 12px; color: $da-muted; line-height: 1.5;
+    margin: 2px 0 0; font-size: 12px; color: $da-muted; line-height: 1.5;
     span + span:before { content: " · "; color: $da-muted; }
     .warn { color: darken($da-amber, 15%); font-weight: 600; }
     .bad { color: $da-red; font-weight: 600; }
     .ok { color: $da-green-dark; font-weight: 600; }
   }
-  // group total, same header + amount treatment as "Your order" below it
+  // the group's aggregate figures: a quiet box, smaller than "Your order"
   .da-group-total {
-    margin-top: 8px;
+    flex: 1 1 100%;
+    background: $da-bg;
+    border-radius: 6px;
+    padding: 6px 10px;
     .da-label { display: block; margin-bottom: 1px; }
-    strong { font-size: 20px; line-height: 1.1; }
+    strong { font-size: 15px; line-height: 1.2; }
     small { font-size: 12px; color: $da-muted; margin-left: 4px; span + span:before { content: " · "; } }
     .ok { color: $da-green-dark; font-weight: 600; }
     .bad { color: $da-red; font-weight: 600; }
   }
-  .da-order-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+  .da-order-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 10px; }
   .da-mine {
     min-width: 0;
     .da-label { display: block; margin-bottom: 1px; }
-    strong { font-size: 20px; display: block; line-height: 1.1; color: $da-green-dark; }
+    strong { font-size: 26px; display: block; line-height: 1.1; color: $da-green-dark; }
     small { display: block; font-size: 12px; }
     &.none { color: $da-muted; font-style: italic; font-size: 14px; }
+  }
+
+  // ---- item search ----------------------------------------------------------------
+  // input and Clear button share one row, never wider than the column
+  .da-searchbar { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 420px; }
+  .da-search-field { position: relative; flex: 1 1 auto; min-width: 0; }
+  .da-search-hint { margin: 4px 2px 0; font-size: 12px; color: $da-muted; }
+  // bootstrap 2 makes search inputs content-box, which pushed width: 100% past the edge
+  .da-search {
+    display: block; width: 100%; height: $da-tap; margin: 0;
+    box-sizing: border-box; -webkit-appearance: none; appearance: none;
+    padding: 0 36px 0 14px; border: 1px solid #ccc; border-radius: $da-tap / 2;
+    font-size: 16px; background: #fff; box-shadow: none;
+    &:focus { border-color: $da-green; outline: 0; }
+  }
+  .da-search::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+  .da-spinner-small { width: 16px; height: 16px; border-width: 2px; vertical-align: middle; }
+  .da-search-field .da-spinner-small { position: absolute; right: 14px; top: 14px; }
+  .da-search-clear { flex: 0 0 auto; padding: 0 16px; }
+  .da-results {
+    margin: 8px 0 0; padding: 4px 14px;
+    h4 { margin: 10px 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: $da-muted; }
+  }
+  .da-hit {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+    padding: 8px 0; border-top: 1px solid $da-line;
+    color: $da-ink; text-decoration: none;
+    &:hover { text-decoration: none; }
+    &.is-mine { border-left: 3px solid $da-green; padding-left: 8px; }
+  }
+  .da-results h4 + .da-hit { border-top: 0; }
+  a.da-hit:hover .da-hit-title { color: $da-green-dark; }
+  .da-hit-past .da-hit-title { font-weight: 400; }
+  .da-hit-main { flex: 1 1 220px; min-width: 0; }
+  .da-hit-title { font-weight: 600; color: $da-ink; small { font-weight: 400; } }
+  a.da-hit-title:hover { color: $da-green-dark; text-decoration: none; }
+  .da-hit-side { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  // same look as the note on the ordering page's item card
+  .da-hit-note { font-size: 13px; color: #555; margin-top: 2px; font-style: italic; white-space: pre-line; }
+  .da-hit-mine { font-size: 13px; font-weight: 600; color: $da-green-dark; white-space: nowrap; }
+  // quick edit: the ordering page's own item card (.oa .oa-article), full width under the hit
+  .da-quickedit { flex: 1 1 100%; min-width: 0; max-width: 460px; }
+  .da-quickedit-foot {
+    display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 14px;
+    margin-top: 8px;
+  }
+  .da-quickedit-credit { margin-right: auto; font-size: 13px; font-weight: 600; }
+  .da-autosave {
+    font-size: 13px; color: $da-muted;
+    &.saved { color: $da-green-dark; font-weight: 600; }
+    &.credit, &.error { color: $da-red; font-weight: 600; }
   }
 
   // ---- tasks ------------------------------------------------------------------------------
@@ -240,11 +315,23 @@ $da-tap: 44px;
     position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 40;
     padding: 10px 16px; border-radius: 20px; background: rgba(50,50,50,0.95); color: #fff; font-size: 14px;
     &.error { background: $da-red; }
+    &.ok { background: $da-green-dark; }
   }
 }
 
 @media (min-width: 768px) {
-  .da .da-grid { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 12px; }
+  // account, tasks and shortcuts on the left; orders on the right, one per row
+  .da .da-body { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 0 24px; align-items: start; }
+  .da .da-side { display: block; min-width: 0; }
+  .da .da-main { display: block; min-width: 0; }
+  .da .da-o-hero { margin-top: 0; }
+  .da .da-o-tasks { margin-top: 18px; }
+  .da .da-side .da-list { padding: 0 10px; }
+  .da .da-main > .da-section:first-child { margin-top: 0; }
+  .da .da-grid { gap: 12px; }
+  // wide cards: group figures on the left, your order and the button on the right
+  .da .da-group-total { flex: 1 1 260px; }
+  .da .da-mine { margin-left: auto; text-align: right; }
   .da .da-linkgroup .da-label { flex: 0 0 auto; margin-right: 6px; }
   .da .da-section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 }

@@ -95,6 +95,7 @@ Foodsoft::Application.routes.draw do
     # Modern (Vue) dashboard and its JSON layer. See DashboardController.
     resource :dashboard, only: [:show], controller: :dashboard do
       get :data
+      get :search
     end
 
     resources :group_order_articles

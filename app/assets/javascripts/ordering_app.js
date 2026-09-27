@@ -265,9 +265,199 @@
     return (s || '').toString().toLowerCase();
   }
 
+  // ---- one item card ----------------------------------------------------------
+  // Shared by the ordering page and the dashboard's quick edit (dashboard_app.js,
+  // via window.FoodsoftOrdering). Edits the article it is given in place and
+  // emits "change" with it after every edit; saving is up to the parent.
+  var ArticleCard = {
+    props: {
+      a: { type: Object, required: true },
+      cfg: { type: Object, required: true }
+    },
+    emits: ['change'],
+
+    data: function () { return { T: T }; },
+
+    computed: {
+      d: function () { return derive(this.a, this.cfg); }
+    },
+
+    methods: {
+      money: function (v) {
+        if (v == null || !isFinite(v)) return '—';
+        var unit = this.cfg.currency_unit || '';
+        if (window.I18n && typeof I18n.toCurrency === 'function') {
+          return I18n.toCurrency(v, { unit: unit, precision: 2 });
+        }
+        return (v < 0 ? '-' : '') + unit + Math.abs(v).toFixed(2);
+      },
+
+      // ---- editing --------------------------------------------------------
+      autoTolerance: function (a) {
+        if (a.unit_quantity <= 1 || !(a.price > 0) || a.stockit) return 0;
+        return Math.floor((this.cfg.auto_tolerance_value || 0) / a.price);
+      },
+
+      maxQuantity: function (a) {
+        if (a.stockit) return a.quantity_available + a.used_quantity;
+        return a.max_quantity == null ? null : a.max_quantity;
+      },
+
+      setQuantity: function (a, value) {
+        var q = clamp(toInt(value, a.quantity), a.min_quantity || 0, this.maxQuantity(a));
+        var auto = this.autoTolerance(a);
+        // encourage a range: first amount gets a small tolerance for free,
+        // removing the amount takes the automatic tolerance away again
+        if (a.quantity === 0 && q > 0 && a.tolerance === 0) a.tolerance = Math.max(auto, a.min_tolerance || 0);
+        if (a.quantity !== 0 && q === 0 && a.tolerance === auto) a.tolerance = a.min_tolerance || 0;
+        a.quantity = q;
+        this.$emit('change', a);
+      },
+
+      setTolerance: function (a, value) {
+        a.tolerance = Math.max(toInt(value, a.tolerance), a.min_tolerance || 0);
+        this.$emit('change', a);
+      },
+
+      // "Up to" is amount + tolerance; it can never be below the amount
+      setMax: function (a, value) {
+        var max = Math.max(toInt(value, a.quantity + a.tolerance), a.quantity);
+        this.setTolerance(a, max - a.quantity);
+      },
+
+      // One bar per case behind the steppers: complete cases are green, the
+      // partial case fills from faint red towards yellow. Capped so bars stay legible.
+      caseBars: function (a, d) {
+        if (d.progress == null || a.stockit) return [];
+        var bars = [], full = d.fullCases, i;
+        var hasPartial = d.progress != null && d.progress < 1 && d.progress > 0;
+        var maxFull = hasPartial || d.partialShips ? 5 : 6;
+        for (i = 0; i < Math.min(full, maxFull); i++) bars.push({ full: true, style: null });
+        if (d.partialShips) {
+          // partial case that ships (completed with extra, or as a supplier fraction)
+          bars.push({ full: true, style: null });
+        } else if (hasPartial) {
+          var pct = Math.round(d.progress * 100), bg;
+          if (d.servedFraction) {
+            // green up to the shipping split, then the usual fill towards the full case
+            var g = Math.round(d.servedFraction * 100);
+            bg = 'linear-gradient(90deg, rgba(120, 183, 78, 0.30) 0%, rgba(120, 183, 78, 0.30) ' + g + '%, rgba(214, 72, 54, 0.16) ' + g + '%, rgba(236, 196, 48, 0.32) ' + pct + '%, transparent ' + pct + '%)';
+          } else {
+            bg = 'linear-gradient(90deg, rgba(214, 72, 54, 0.16) 0%, rgba(236, 196, 48, 0.32) ' + pct + '%, transparent ' + pct + '%)';
+          }
+          bars.push({ full: false, style: { backgroundImage: bg } });
+        }
+        if (bars.length === 0) bars.push({ full: false, style: null });
+        return bars;
+      },
+
+      showsRange: function (a) {
+        return a.unit_quantity > 1 && !a.stockit;
+      },
+
+      // One plain sentence about what the member would receive right now.
+      // Only numbers are interpolated, so the HTML is safe.
+      outcomeHtml: function (a, d) {
+        var want = a.quantity, got = d.qUsed, waiting = d.qUnused, extra = d.tUsed;
+        // "a case", or "a ½ case" when the supplier ships fractions and that is the target
+        var filling = d.targetFraction ? 'a ' + formatCases(d.targetFraction) + ' case' : 'a case';
+        var filled = d.fractional && d.units % 1 !== 0 ? 'the ' + formatCases(d.units % 1) + ' case' : 'the case';
+        if (want === 0) return extra > 0 ? T.outcomeRangeUsed(extra, filled) : T.outcomeRangeOnly;
+        if (extra > 0) return T.outcomeExtra(got + extra, want, extra, filled);
+        if (waiting === 0) return T.outcomeAll(want);
+        if (got === 0) return T.outcomeNone(d.missing, filling);
+        return T.outcomePartial(got, want, waiting, d.missing, filling);
+      },
+
+      // "1 CT", "3 CT"; "1×500g", "3×500g" when the unit starts with a number
+      unitsLabel: function (n, unit) {
+        return n + (/^\d/.test(unit || '') ? '\u00d7' : ' ') + unit;
+      },
+
+      caseLabel: function (a, d) {
+        if (a.unit_quantity <= 1) return null;
+        return d.units > 0 ? T.filled(d.units) : T.noCase;
+      },
+
+      splitHint: function (a) {
+        if (!this.cfg.splittable_cases || !a.split_fraction || a.unit_quantity <= 1 || a.stockit) return null;
+        return T.shipsFraction(a.split_fraction);
+      },
+
+      articleClass: function (a, d) {
+        var mine = a.quantity + a.tolerance > 0;
+        return {
+          'is-mine': mine,
+          // green only when everything the member asked for is covered
+          'is-covered': mine && d.qUnused === 0,
+          'is-short': mine && d.qUnused > 0,
+          'missing-few': d.missing === 1,
+          'missing-many': d.missing > 1,
+          'missing-none': d.missing === 0 && d.units > 0
+        };
+      }
+    },
+
+    template:
+      '<article class="oa-article" :id="\'article-\' + a.id" :class="articleClass(a, d)">' +
+      '  <div class="oa-article-main">' +
+      '    <div class="oa-article-info">' +
+      '      <div class="oa-article-name">{{ a.name }}<small v-if="a.origin"> ({{ a.origin }})</small></div>' +
+      '      <div class="oa-article-sub">' +
+      '        <span v-if="a.manufacturer">{{ a.manufacturer }}</span>' +
+      '        <span v-if="a.supplier">{{ a.supplier }}</span>' +
+      '        <span v-if="a.unit_quantity > 1">{{ T.caseOf }} {{ a.unit_quantity }}</span>' +
+      '        <span v-if="a.deposit > 0">{{ money(a.deposit) }} {{ T.deposit }}</span>' +
+      '        <span v-if="a.stockit">{{ a.quantity_available }} {{ T.inStock }}</span>' +
+      '      </div>' +
+      '      <div class="oa-article-note" v-if="a.note">{{ a.note }}</div>' +
+      '    </div>' +
+      '    <div class="oa-article-aside">' +
+      '      <div class="oa-article-price">{{ money(a.price) }} <span class="oa-per">{{ T.perUnit }} {{ a.unit }}</span></div>' +
+      '      <div class="oa-status" v-if="!a.stockit && a.unit_quantity > 1">' +
+      '        <span class="oa-chip" :class="d.units > 0 && d.extra === 0 ? \'ok\' : (d.units > 0 ? \'warn\' : \'muted\')">{{ caseLabel(a, d) }}</span>' +
+      '        <span class="oa-chip warn" v-if="d.missing > 0">{{ T.toFill(d.missing) }}</span>' +
+      '        <span class="oa-chip ok" v-if="d.extra > 0">{{ T.extra(d.extra) }}</span>' +
+      '      </div>' +
+      '    </div>' +
+      '  </div>' +
+
+      '  <div class="oa-article-side">' +
+      '    <div class="oa-controls" :class="{ \'has-progress\': d.progress != null }">' +
+      '      <div class="oa-cases" aria-hidden="true"><div class="oa-case" v-for="(c, i) in caseBars(a, d)" :key="i" :class="c.full ? \'full\' : \'partial\'" :style="c.style"></div></div>' +
+      '      <div class="oa-stepper">' +
+      '        <label :for="\'q_\' + a.id">{{ showsRange(a) ? T.atLeast : T.amount }} <span class="oa-units" v-if="a.quantity > 0">{{ unitsLabel(a.quantity, a.unit) }}</span></label>' +
+      '        <div class="oa-stepper-row">' +
+      '          <button type="button" class="oa-step" aria-label="less" :disabled="a.quantity <= (a.min_quantity || 0)" @click="setQuantity(a, a.quantity - 1)">&minus;</button>' +
+      '          <input :id="\'q_\' + a.id" class="oa-num" type="number" inputmode="numeric" pattern="[0-9]*" :min="a.min_quantity || 0" :max="maxQuantity(a)" :value="a.quantity" @change="setQuantity(a, $event.target.value)" @keydown.enter.prevent="$event.target.blur()">' +
+      '          <button type="button" class="oa-step" aria-label="more" :disabled="maxQuantity(a) != null && a.quantity >= maxQuantity(a)" @click="setQuantity(a, a.quantity + 1)">+</button>' +
+      '        </div>' +
+      '        <div class="oa-stepper-price" :class="{ \'is-zero\': !(a.price * a.quantity) }">{{ money(a.price * a.quantity) }}</div>' +
+      '      </div>' +
+      '      <div class="oa-stepper" v-if="showsRange(a)">' +
+      '        <label :for="\'m_\' + a.id">{{ T.upTo }} <span class="oa-units" v-if="a.quantity + a.tolerance > 0">{{ unitsLabel(a.quantity + a.tolerance, a.unit) }}</span></label>' +
+      '        <div class="oa-stepper-row">' +
+      '          <button type="button" class="oa-step" aria-label="less" :disabled="a.tolerance <= (a.min_tolerance || 0)" @click="setTolerance(a, a.tolerance - 1)">&minus;</button>' +
+      '          <input :id="\'m_\' + a.id" class="oa-num" type="number" inputmode="numeric" pattern="[0-9]*" :min="a.quantity + (a.min_tolerance || 0)" :value="a.quantity + a.tolerance" @change="setMax(a, $event.target.value)" @keydown.enter.prevent="$event.target.blur()">' +
+      '          <button type="button" class="oa-step" aria-label="more" @click="setTolerance(a, a.tolerance + 1)">+</button>' +
+      '        </div>' +
+      '        <div class="oa-stepper-price" :class="{ \'is-zero\': !(a.price * (a.quantity + a.tolerance)) }">{{ money(a.price * (a.quantity + a.tolerance)) }}</div>' +
+      '      </div>' +
+      '    </div>' +
+      '    <div class="oa-line" :class="{ \'is-empty\': a.quantity + a.tolerance === 0 }">' +
+      '      <div class="oa-outcome" v-if="a.quantity + a.tolerance > 0" v-html="outcomeHtml(a, d)"></div>' +
+      '    </div>' +
+      '  </div>' +
+      '</article>'
+  };
+
+  window.FoodsoftOrdering = { ArticleCard: ArticleCard, derive: derive, T: T };
+
   // ---- the component --------------------------------------------------------
 
   var OrderingApp = {
+    components: { 'oa-article-card': ArticleCard },
+
     props: {
       dataUrl: { type: String, required: true },
       celebrateUrl: { type: String, default: null }   // gif shown when every item has some extra
@@ -450,8 +640,26 @@
         this.state = 'loading';
         fetch(this.dataUrl, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
           .then(function (r) { return self.parseResponse(r); })
-          .then(function (json) { self.apply(json); self.dirty = false; self.state = 'ready'; })
+          .then(function (json) {
+            self.apply(json); self.dirty = false; self.state = 'ready';
+            self.$nextTick(function () { self.scrollToHashArticle(); });
+          })
           .catch(function (err) { self.fail(err); });
+      },
+
+      // #article-123 (from the dashboard search) scrolls that item to just below
+      // the sticky toolbar and flashes it; only on the first load
+      scrollToHashArticle: function () {
+        if (this._hashDone) return;
+        this._hashDone = true;
+        var m = /^#article-(\d+)$/.exec(window.location.hash || '');
+        var target = m && document.getElementById('article-' + m[1]);
+        if (!target) return;
+        var toolbar = document.querySelector('.oa-toolbar');
+        var offset = (toolbar ? toolbar.getBoundingClientRect().height : 0) + 6;
+        window.scrollTo(0, target.getBoundingClientRect().top + window.pageYOffset - offset);
+        target.classList.add('oa-flash');
+        setTimeout(function () { target.classList.remove('oa-flash'); }, 2500);
       },
 
       parseResponse: function (r) {
@@ -647,73 +855,10 @@
         window.location.href = this.urls.legacy;
       },
 
-      // ---- editing --------------------------------------------------------
-      autoTolerance: function (a) {
-        if (a.unit_quantity <= 1 || !(a.price > 0) || a.stockit) return 0;
-        return Math.floor((this.cfg.auto_tolerance_value || 0) / a.price);
-      },
-
-      maxQuantity: function (a) {
-        if (a.stockit) return a.quantity_available + a.used_quantity;
-        return a.max_quantity == null ? null : a.max_quantity;
-      },
-
-      setQuantity: function (a, value) {
-        var q = clamp(toInt(value, a.quantity), a.min_quantity || 0, this.maxQuantity(a));
-        var auto = this.autoTolerance(a);
-        // encourage a range: first amount gets a small tolerance for free,
-        // removing the amount takes the automatic tolerance away again
-        if (a.quantity === 0 && q > 0 && a.tolerance === 0) a.tolerance = Math.max(auto, a.min_tolerance || 0);
-        if (a.quantity !== 0 && q === 0 && a.tolerance === auto) a.tolerance = a.min_tolerance || 0;
-        a.quantity = q;
-        this.markDirty(a);
-      },
-
-      setTolerance: function (a, value) {
-        a.tolerance = Math.max(toInt(value, a.tolerance), a.min_tolerance || 0);
-        this.markDirty(a);
-      },
-
-      // "Up to" is amount + tolerance; it can never be below the amount
-      setMax: function (a, value) {
-        var max = Math.max(toInt(value, a.quantity + a.tolerance), a.quantity);
-        this.setTolerance(a, max - a.quantity);
-      },
-
       snapshotFill: function () {
         var snap = {}, d = this.derived;
         this.allArticles.forEach(function (a) { if (d[a.id].missing > 0) snap[a.id] = true; });
         return snap;
-      },
-
-      // One bar per case behind the steppers: complete cases are green, the
-      // partial case fills from faint red towards yellow. Capped so bars stay legible.
-      caseBars: function (a, d) {
-        if (d.progress == null || a.stockit) return [];
-        var bars = [], full = d.fullCases, i;
-        var hasPartial = d.progress != null && d.progress < 1 && d.progress > 0;
-        var maxFull = hasPartial || d.partialShips ? 5 : 6;
-        for (i = 0; i < Math.min(full, maxFull); i++) bars.push({ full: true, style: null });
-        if (d.partialShips) {
-          // partial case that ships (completed with extra, or as a supplier fraction)
-          bars.push({ full: true, style: null });
-        } else if (hasPartial) {
-          var pct = Math.round(d.progress * 100), bg;
-          if (d.servedFraction) {
-            // green up to the shipping split, then the usual fill towards the full case
-            var g = Math.round(d.servedFraction * 100);
-            bg = 'linear-gradient(90deg, rgba(120, 183, 78, 0.30) 0%, rgba(120, 183, 78, 0.30) ' + g + '%, rgba(214, 72, 54, 0.16) ' + g + '%, rgba(236, 196, 48, 0.32) ' + pct + '%, transparent ' + pct + '%)';
-          } else {
-            bg = 'linear-gradient(90deg, rgba(214, 72, 54, 0.16) 0%, rgba(236, 196, 48, 0.32) ' + pct + '%, transparent ' + pct + '%)';
-          }
-          bars.push({ full: false, style: { backgroundImage: bg } });
-        }
-        if (bars.length === 0) bars.push({ full: false, style: null });
-        return bars;
-      },
-
-      showsRange: function (a) {
-        return a.unit_quantity > 1 && !a.stockit;
       },
 
       // ---- formatting -----------------------------------------------------
@@ -724,48 +869,6 @@
           return I18n.toCurrency(v, { unit: unit, precision: 2 });
         }
         return (v < 0 ? '-' : '') + unit + Math.abs(v).toFixed(2);
-      },
-
-      // One plain sentence about what the member would receive right now.
-      // Only numbers are interpolated, so the HTML is safe.
-      outcomeHtml: function (a, d) {
-        var want = a.quantity, got = d.qUsed, waiting = d.qUnused, extra = d.tUsed;
-        // "a case", or "a ½ case" when the supplier ships fractions and that is the target
-        var filling = d.targetFraction ? 'a ' + formatCases(d.targetFraction) + ' case' : 'a case';
-        var filled = d.fractional && d.units % 1 !== 0 ? 'the ' + formatCases(d.units % 1) + ' case' : 'the case';
-        if (want === 0) return extra > 0 ? T.outcomeRangeUsed(extra, filled) : T.outcomeRangeOnly;
-        if (extra > 0) return T.outcomeExtra(got + extra, want, extra, filled);
-        if (waiting === 0) return T.outcomeAll(want);
-        if (got === 0) return T.outcomeNone(d.missing, filling);
-        return T.outcomePartial(got, want, waiting, d.missing, filling);
-      },
-
-      // "500g" for one, "3×500g" for more
-      unitsLabel: function (n, unit) {
-        return n === 1 ? unit : n + '\u00d7' + unit;
-      },
-
-      caseLabel: function (a, d) {
-        if (a.unit_quantity <= 1) return null;
-        return d.units > 0 ? T.filled(d.units) : T.noCase;
-      },
-
-      splitHint: function (a) {
-        if (!this.cfg.splittable_cases || !a.split_fraction || a.unit_quantity <= 1 || a.stockit) return null;
-        return T.shipsFraction(a.split_fraction);
-      },
-
-      articleClass: function (a, d) {
-        var mine = a.quantity + a.tolerance > 0;
-        return {
-          'is-mine': mine,
-          // green only when everything the member asked for is covered
-          'is-covered': mine && d.qUnused === 0,
-          'is-short': mine && d.qUnused > 0,
-          'missing-few': d.missing === 1,
-          'missing-many': d.missing > 1,
-          'missing-none': d.missing === 0 && d.units > 0
-        };
       }
     },
 
@@ -854,56 +957,7 @@
       '    </section>' +
       '    <section class="oa-category" v-for="group in og.categories" :key="og.order.id + \'-\' + group.name">' +
       '      <h2 class="oa-category-title">{{ group.name }} <small>{{ group.articles.length }}</small></h2>' +
-      '      <article class="oa-article" v-for="a in group.articles" :key="a.id" :class="articleClass(a, derived[a.id])">' +
-      '        <div class="oa-article-main">' +
-      '          <div class="oa-article-info">' +
-      '            <div class="oa-article-name">{{ a.name }}<small v-if="a.origin"> ({{ a.origin }})</small></div>' +
-      '            <div class="oa-article-sub">' +
-      '              <span v-if="a.manufacturer">{{ a.manufacturer }}</span>' +
-      '              <span v-if="a.supplier">{{ a.supplier }}</span>' +
-      '              <span v-if="a.unit_quantity > 1">{{ T.caseOf }} {{ a.unit_quantity }}</span>' +
-      '              <span v-if="a.deposit > 0">{{ money(a.deposit) }} {{ T.deposit }}</span>' +
-      '              <span v-if="a.stockit">{{ a.quantity_available }} {{ T.inStock }}</span>' +
-      '            </div>' +
-      '            <div class="oa-article-note" v-if="a.note">{{ a.note }}</div>' +
-      '          </div>' +
-      '          <div class="oa-article-aside">' +
-      '            <div class="oa-article-price">{{ money(a.price) }} <span class="oa-per">{{ T.perUnit }} {{ a.unit }}</span></div>' +
-      '            <div class="oa-status" v-if="!a.stockit && a.unit_quantity > 1">' +
-      '              <span class="oa-chip" :class="derived[a.id].units > 0 && derived[a.id].extra === 0 ? \'ok\' : (derived[a.id].units > 0 ? \'warn\' : \'muted\')">{{ caseLabel(a, derived[a.id]) }}</span>' +
-      '              <span class="oa-chip warn" v-if="derived[a.id].missing > 0">{{ T.toFill(derived[a.id].missing) }}</span>' +
-      '              <span class="oa-chip ok" v-if="derived[a.id].extra > 0">{{ T.extra(derived[a.id].extra) }}</span>' +
-      '            </div>' +
-      '          </div>' +
-      '        </div>' +
-
-      '        <div class="oa-article-side">' +
-      '          <div class="oa-controls" :class="{ \'has-progress\': derived[a.id].progress != null }">' +
-      '            <div class="oa-cases" aria-hidden="true"><div class="oa-case" v-for="(c, i) in caseBars(a, derived[a.id])" :key="i" :class="c.full ? \'full\' : \'partial\'" :style="c.style"></div></div>' +
-      '            <div class="oa-stepper">' +
-      '              <label :for="\'q_\' + a.id">{{ showsRange(a) ? T.atLeast : T.amount }} <span class="oa-units" v-if="a.quantity > 0">{{ unitsLabel(a.quantity, a.unit) }}</span></label>' +
-      '              <div class="oa-stepper-row">' +
-      '                <button type="button" class="oa-step" aria-label="less" :disabled="a.quantity <= (a.min_quantity || 0)" @click="setQuantity(a, a.quantity - 1)">&minus;</button>' +
-      '                <input :id="\'q_\' + a.id" class="oa-num" type="number" inputmode="numeric" pattern="[0-9]*" :min="a.min_quantity || 0" :max="maxQuantity(a)" :value="a.quantity" @change="setQuantity(a, $event.target.value)" @keydown.enter.prevent="$event.target.blur()">' +
-      '                <button type="button" class="oa-step" aria-label="more" :disabled="maxQuantity(a) != null && a.quantity >= maxQuantity(a)" @click="setQuantity(a, a.quantity + 1)">+</button>' +
-      '              </div>' +
-      '              <div class="oa-stepper-price" :class="{ \'is-zero\': a.quantity === 0 }">{{ money(a.price * a.quantity) }}</div>' +
-      '            </div>' +
-      '            <div class="oa-stepper" v-if="showsRange(a)">' +
-      '              <label :for="\'m_\' + a.id">{{ T.upTo }} <span class="oa-units" v-if="a.quantity + a.tolerance > 0">{{ unitsLabel(a.quantity + a.tolerance, a.unit) }}</span></label>' +
-      '              <div class="oa-stepper-row">' +
-      '                <button type="button" class="oa-step" aria-label="less" :disabled="a.tolerance <= (a.min_tolerance || 0)" @click="setTolerance(a, a.tolerance - 1)">&minus;</button>' +
-      '                <input :id="\'m_\' + a.id" class="oa-num" type="number" inputmode="numeric" pattern="[0-9]*" :min="a.quantity + (a.min_tolerance || 0)" :value="a.quantity + a.tolerance" @change="setMax(a, $event.target.value)" @keydown.enter.prevent="$event.target.blur()">' +
-      '                <button type="button" class="oa-step" aria-label="more" @click="setTolerance(a, a.tolerance + 1)">+</button>' +
-      '              </div>' +
-      '              <div class="oa-stepper-price" :class="{ \'is-zero\': a.quantity + a.tolerance === 0 }">{{ money(a.price * (a.quantity + a.tolerance)) }}</div>' +
-      '            </div>' +
-      '          </div>' +
-      '          <div class="oa-line" :class="{ \'is-empty\': a.quantity + a.tolerance === 0 }">' +
-      '            <div class="oa-outcome" v-if="a.quantity + a.tolerance > 0" v-html="outcomeHtml(a, derived[a.id])"></div>' +
-      '          </div>' +
-      '        </div>' +
-      '      </article>' +
+      '      <oa-article-card v-for="a in group.articles" :key="a.id" :a="a" :cfg="cfg" @change="markDirty"></oa-article-card>' +
       '    </section>' +
       '    </template>' +
       '    <p class="oa-empty" v-if="rows.length === 0">{{ orders.length ? T.noMatch : T.noOpenOrders }}</p>' +

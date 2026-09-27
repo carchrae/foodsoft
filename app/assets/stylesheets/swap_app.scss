@@ -17,6 +17,10 @@ $sw-footer-h: 64px;
 
 .sw {
   color: $sw-ink;
+  // every modern page: at most 1000px wide, centred
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
   padding-bottom: $sw-footer-h + 24px;
   -webkit-tap-highlight-color: transparent;
 
@@ -271,4 +275,10 @@ $sw-footer-h: 64px;
   .sw .sw-card-head { grid-column: 1; grid-row: 1; }
   .sw .sw-meta { grid-column: 1; grid-row: 2; margin-bottom: 0; }
   .sw .sw-replace { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+// the fixed footer spans the screen; on wide screens its contents line up with
+// the page, which is at most 1000px wide and centred
+@media (min-width: 1030px) {
+  .sw .sw-footer { padding-left: calc(50% - 486px); padding-right: calc(50% - 486px); }
 }

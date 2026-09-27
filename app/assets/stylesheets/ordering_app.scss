@@ -25,6 +25,10 @@ $oa-tap: 44px;
 
 .oa {
   color: $oa-ink;
+  // every modern page: at most 1000px wide, centred
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
   padding-bottom: $oa-footer-h + 24px;
   -webkit-tap-highlight-color: transparent;
 
@@ -223,7 +227,10 @@ $oa-tap: 44px;
     &.is-covered:nth-of-type(even) { background: #f0f6ea; }
     &.is-short { border-left-color: $oa-amber; background: #fffaf0; }
     &.is-short:nth-of-type(even) { background: #faf3e3; }
+    // the item a dashboard search linked to
+    &.oa-flash { animation: oa-flash 2.5s ease-out; }
   }
+  @keyframes oa-flash { 0%, 40% { box-shadow: inset 0 0 0 2px $oa-green; background: #fffbe0; } }
   .oa-article-main { flex: 1 1 260px; min-width: 0; display: flex; gap: 6px 12px; align-items: flex-start; }
   .oa-article-info { flex: 1 1 auto; min-width: 0; }
   .oa-article-aside { flex: 0 0 220px; width: 220px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
@@ -278,7 +285,8 @@ $oa-tap: 44px;
     font-size: 14px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    &.is-zero { color: #bbb; font-weight: 400; }
+    // no "$0.00"; the row grows when an amount appears
+    &.is-zero { display: none; }
   }
   .oa-households { margin-top: -4px; }
   .oa-stepper {
@@ -476,35 +484,6 @@ $oa-tap: 44px;
 .oa .oa-line.is-empty { visibility: hidden; }
 .oa .oa-outcome { text-align: center; width: 100%; }
 
-// ---- two columns of cards on a full desktop, one column below that ----------------------
-@media (min-width: 1100px) {
-  .oa .oa-category {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    padding: 0 8px 8px;
-    background: $oa-bg;
-  }
-  .oa .oa-category-title { grid-column: 1 / -1; margin: 0 -8px; }
-  .oa .oa-article {
-    margin: 0;
-    border: 1px solid $oa-line;
-    border-left-width: 4px;
-    border-radius: 8px;
-    background: #fff;
-    // cards are distinct on their own, no alternating shade
-    &:nth-of-type(even) { background: #fff; }
-    &.is-covered, &.is-covered:nth-of-type(even) { background: #fbfdf8; }
-    &.is-short, &.is-short:nth-of-type(even) { background: #fffaf0; }
-  }
-  // a little more compact so the steppers leave room for the info column
-  .oa .oa-step { width: 40px; height: 40px; font-size: 20px; }
-  .oa .oa-num { width: 48px; height: 40px; font-size: 17px; }
-  .oa .oa-stepper-row { border-radius: 20px; }
-  .oa .oa-controls { gap: 10px 14px; }
-  .oa .oa-line { min-height: 1.5em; }
-}
-
 // ---- layout tweaks -------------------------------------------------------------
 @media (max-width: 767px) {
   // bootstrap 2 pads the body by 20px on phones; let the list run edge to edge
@@ -552,23 +531,56 @@ $oa-tap: 44px;
   .oa .oa-filters { flex: 0 1 auto; }
   .oa .oa-toolbar .oa-jump { flex: 0 0 260px; height: 40px; border-radius: 20px; }
   .oa .oa-category-title { top: 57px; }
-  // wide card: info on the left with the "You get" sentence pinned bottom-left,
-  // steppers on the right (also used inside the two desktop columns)
+  // wide row: info on the left with the "You get" sentence under it, steppers
+  // on the right spanning both; one item per row at every desktop width, so the
+  // row is only as tall as the taller side
   .oa .oa-article {
-    padding-left: 16px;
+    padding: 6px 12px 6px 16px;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: "main controls" "line line";
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: "main controls" "line controls";
     column-gap: 20px;
-    row-gap: 6px;
+    row-gap: 2px;
   }
   .oa .oa-article-main { grid-area: main; align-items: center; min-height: 0; }
   .oa .oa-article-aside { width: auto; flex: 0 0 auto; max-width: 45%; justify-content: center; gap: 6px; }
   .oa .oa-article-price { font-size: 18px; .oa-per { font-size: 12px; } }
   .oa .oa-article-side { display: contents; }
-  .oa .oa-controls { grid-area: controls; align-self: start; justify-content: flex-start; gap: 10px 20px; }
-  .oa .oa-controls.has-progress { margin: 0 -8px; padding: 6px 8px 8px; }
-  // the "You get" hint runs the full width of the card under the steppers
+  // full row height so the case shading does too; the steppers sit centred in it
+  .oa .oa-controls { grid-area: controls; align-self: stretch; align-items: center; justify-content: flex-start; gap: 10px 20px; }
+  // the shading reaches to 2px from the row's top and bottom edges (row padding is 6px)
+  .oa .oa-controls.has-progress { margin: -4px -8px; padding: 1px 8px; }
   .oa .oa-line { grid-area: line; align-self: end; justify-self: stretch; margin-top: 0; display: block; min-height: 0; }
+  .oa .oa-line.is-empty { display: none; }
   .oa .oa-outcome { text-align: left; width: 100%; }
+  // steppers a third lower than the phone's 44px tap height; widths stay the same
+  .oa .oa-step { height: round($oa-tap * 2 / 3); font-size: 18px; }
+  .oa .oa-num { height: round($oa-tap * 2 / 3); font-size: 16px; }
+  .oa .oa-stepper-row { border-radius: round($oa-tap / 3); }
+}
+
+// ---- the item card embedded elsewhere (dashboard quick edit) ------------------------
+// Always the stacked phone layout: the host column is narrower than the page.
+.oa.oa-embed { padding-bottom: 0; margin: 0; }
+.oa.oa-embed .oa-article {
+  display: flex;
+  border: 1px solid $oa-line;
+  border-left-width: 4px;
+  border-radius: 8px;
+  margin: 0;
+  padding: 10px 12px 12px;
+}
+.oa.oa-embed .oa-article-main { min-height: 0; align-items: flex-start; }
+.oa.oa-embed .oa-article-aside { flex: 0 0 35%; width: 35%; max-width: none; justify-content: flex-start; }
+.oa.oa-embed .oa-article-side { display: block; flex-basis: 100%; }
+.oa.oa-embed .oa-controls { justify-content: flex-start; gap: 10px 24px; }
+.oa.oa-embed .oa-controls.has-progress { margin: 0; padding: 6px 6px 8px; }
+.oa.oa-embed .oa-line { min-height: 1.5em; margin-top: 4px; }
+.oa.oa-embed .oa-outcome { text-align: center; }
+
+// the fixed footer spans the screen; on wide screens its contents line up with
+// the page, which is at most 1000px wide and centred
+@media (min-width: 1030px) {
+  .oa .oa-footer { padding-left: calc(50% - 488px); padding-right: calc(50% - 488px); }
 }

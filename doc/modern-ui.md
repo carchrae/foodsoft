@@ -69,18 +69,62 @@ identical there. `GET /f/ordering/all` returns one `OrderingSerializer`
 snapshot per open order plus `funds.available_funds_without_open_orders`;
 articles are tagged with their order id and stock flag on the client.
 
+## Page width
+
+Every modern page (dashboard `.da`, ordering `.oa`, swap `.sw`, copy order
+`.oc`, order management `.om`) is at most 1000px wide and centred. The fixed
+footers (ordering, swap, copy order) still span the screen, but from 1030px up
+their contents are padded in to line up with the page.
+
 ## What the modern dashboard does
 
 * Greeting, ordergroup, credit card with balance breakdown and the low-credit
   warning (threshold copied from the classic page, see decisions), links to the
   account statement and the wiki "Payments" page.
 * Notice board: the wiki `Main_Page`, which the classic sidebar also shows.
-* Current orders as cards: closing countdown, pickup, note, one muted line of
-  case figures (cases to fill, full cases, splits; the item count was dropped
-  on request), then two matching blocks with a small-caps header and a large
-  amount: "Group total" ($X, "of $Y" supplier total and the minimum-order
-  status beside it) and "Your order" (in green, with who saved it and when),
-  and an Order button. Two or three columns on desktop.
+* Current orders as cards: name and closing countdown, then the order note,
+  then closing and pickup times. The group's aggregate figures sit together in
+  one quiet grey "Group total" box: the total, "of $Y" supplier total, the
+  minimum-order status and the case figures (cases to fill, full cases,
+  splits; the item count was dropped on request). "Your order" is the larger
+  green figure (with who saved it and when), next to the Order button. One
+  order per row at every width; on desktop the group box sits left and your
+  order and the button sit right.
+* Layout: on desktop (768px and up) two columns, as on the classic home page:
+  credit, tasks, apple points, recent transactions and shortcuts on the left
+  (280–380px wide);
+  notice board, current orders, messages, unsettled and settled orders on the
+  right. On phones it is one column with tasks first, then credit, notice
+  board, orders and the rest (the column wrappers use `display: contents` and
+  each section's `order`).
+* Item search (top of the orders column, at most 420px wide; after the credit
+  card on phones), with a hint underneath that you can order from the results.
+  `GET /f/dashboard/search?q=` (`DashboardSearchSerializer`) matches article
+  name or manufacturer, first in the open orders, then in the 20 most recent
+  finished/settled orders. Open hits show your amount, "Go to item" (the
+  modern ordering page with `#article-<id>`, which scrolls to that item and
+  flashes it) and "Order"/"Change", which opens the ordering page's own item
+  card under the hit: At least and Up to steppers, case bars and chips, the
+  "You get" sentence, with the credit left, a Saving…/Saved status and a
+  Done button beneath. There is no Save button: each change saves itself
+  0.8 s after the last click, one save at a time (a change made during a save
+  goes out right after it, with the new lock version), and Done or a new
+  search sends a change that is still waiting. Leaving the page with an
+  unsaved change asks first. The card
+  is the `ArticleCard` component in `ordering_app.js`, exported as
+  `window.FoodsoftOrdering.ArticleCard` (ordering_app is required before
+  dashboard_app) and styled by `.oa.oa-embed`, which always uses the stacked
+  phone layout. Each save PUTs the whole order snapshot, loaded when the card
+  opened, to `OrderingController#update` with its lock version (the update
+  zeroes any article left out); a larger order is refused below the minimum
+  balance, a smaller one is always allowed. Recent hits show what you got and
+  link to your group order.
+* The "your order was saved" email (`GroupOrder#save_ordering!`, used by the
+  classic form, the ordering page and the dashboard quick edit) goes out 10
+  minutes after the last save (`GroupOrder::ORDER_SAVED_EMAIL_DELAY`, was 30
+  seconds). `UserNotifier.enqueue_in` drops the pending email and queues a
+  new one on every save, so a run of edits sends a single email. In
+  development `enqueue_in` still shortens every delay to 1 second.
 * Tasks: waiting for your answer (Accept / Decline), your upcoming tasks (Mark
   done), help wanted (Take this task). Buttons POST to the existing
   `TasksController` actions and refresh the data. The test user has no tasks, so
@@ -105,8 +149,8 @@ articles are tagged with their order id and stock flag on the client.
 * Case progress is painted behind the steppers as one horizontal bar per case:
   complete cases are solid green, the partial case fills from faint red to
   yellow and snaps to green when it completes. Capped at six bars.
-* On wide cards (768px and up, also inside the desktop columns) the "You get"
-  sentence spans the full width of the card under the steppers.
+* On wide rows (768px and up) the "You get" sentence sits under the item
+  info, beside the steppers (it spanned the card while cards were two to a row).
 * **Splittable cases** (flag `splittable_cases`, on by default; set it to
   `false` in `app_config.yml` to turn off). Articles whose note contains
   "splittable" can ship as a fraction of a case. The split size is fixed by
@@ -155,12 +199,20 @@ articles are tagged with their order id and stock flag on the client.
   prompt and "Try the new…" button otherwise. The dashboard gained a "Settled
   orders" section (last five closed orders, your amount, link to the archive) so
   nothing from that page is lost.
-* Stepper labels include the current amount and unit ("At least 2×454g",
-  "Up to 3×454g"). The category picker is hidden when an order has a single
+* Stepper labels include the current amount and unit, also for one ("At
+  least 1 CT", "Up to 3 CT"; "1×454g" when the unit starts with a number). The category picker is hidden when an order has a single
   category. On desktop the unit price is larger and vertically centred.
-* Article cards are one column up to 1100px and two columns on a full desktop.
+* Article cards are one item per row at every width (the two-column grid on
+  a full desktop was dropped).
   From 768px each card uses the wide layout (info left with the "You get"
-  sentence bottom-left, steppers right); phones keep the stacked layout.
+  sentence under it, steppers right and vertically centred, 6px top and bottom
+  padding); phones keep the stacked layout.
+  On desktop the steppers are 29px tall (two thirds of the 44px phone tap
+  height); phones keep 44px.
+  The case shading behind the steppers fills the row's height to within 2px
+  of its top and bottom, with the steppers centred in it.
+  A $0 amount under a stepper is not shown at all (no line reserved); the row
+  grows when the first amount goes in.
 * Compact header on phones for the modern pages only: the modern views add an
   `fs-modern` class to `<html>` from `<head>`, and CSS in `ordering_app.scss`
   shrinks the logo, puts the user menu / Help / Feedback on the same row,
