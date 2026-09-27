@@ -85,6 +85,11 @@ class GroupOrder < ApplicationRecord
   end
 
 
+  # The "your order was saved" email waits this long after the *last* save:
+  # UserNotifier.enqueue_in drops the pending email and queues a new one on
+  # every save, so a burst of edits (e.g. dashboard autosave) sends one email.
+  ORDER_SAVED_EMAIL_DELAY = 10.minutes
+
   # Save GroupOrder and updates group_order_articles/quantities accordingly
   def save_ordering!
     transaction do
@@ -92,7 +97,7 @@ class GroupOrder < ApplicationRecord
       save_group_order_articles
       update_price!
       UserNotifier.queue_order_updated_email(
-          delay: 30.second, group_order_id: id,
+          delay: ORDER_SAVED_EMAIL_DELAY, group_order_id: id,
           message: 'Your order has been saved.  Here is a copy for your records.')
     end
   end
