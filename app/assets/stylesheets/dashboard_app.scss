@@ -212,6 +212,9 @@ $da-tap: 44px;
     .bad { color: $da-red; font-weight: 600; }
   }
   .da-order-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 10px; }
+  // "Your order" and the Order button stay on one line; on phones they span the card
+  .da-order-act { flex: 1 1 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+  .da-order-act .da-btn { flex: 0 0 auto; }
   .da-mine {
     min-width: 0;
     .da-label { display: block; margin-bottom: 1px; }
@@ -329,9 +332,19 @@ $da-tap: 44px;
   .da .da-side .da-list { padding: 0 10px; }
   .da .da-main > .da-section:first-child { margin-top: 0; }
   .da .da-grid { gap: 12px; }
-  // wide cards: group figures on the left, your order and the button on the right
-  .da .da-group-total { flex: 1 1 260px; }
-  .da .da-mine { margin-left: auto; text-align: right; }
+  // two-column order card: name, note, times and the group box on the left;
+  // "Your order" with the Order button in the right column, level with the group box
+  .da .da-order {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 20px;
+    align-items: start;
+    > * { grid-column: 1; }
+    .da-order-foot { display: contents; }
+  }
+  .da .da-group-total { grid-column: 1; margin-top: 10px; }
+  .da .da-order-act { grid-column: 2; grid-row: 1 / span 4; align-self: end; flex: 0 0 auto; }
+  .da .da-mine { text-align: right; }
   .da .da-linkgroup .da-label { flex: 0 0 auto; margin-right: 6px; }
   .da .da-section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
 }

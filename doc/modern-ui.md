@@ -89,8 +89,11 @@ their contents are padded in to line up with the page.
   minimum-order status and the case figures (cases to fill, full cases,
   splits; the item count was dropped on request). "Your order" is the larger
   green figure (with who saved it and when), next to the Order button. One
-  order per row at every width; on desktop the group box sits left and your
-  order and the button sit right.
+  order per row at every width. On desktop each card has two columns: name,
+  note, times and the group box on the left, "Your order" with the Order
+  button to its right in the right column, level with the bottom of the group
+  box. On phones the group box comes first and your order and the button share
+  the line below it.
 * Layout: on desktop (768px and up) two columns, as on the classic home page:
   credit, tasks, apple points, recent transactions and shortcuts on the left
   (280–380px wide);

@@ -684,13 +684,16 @@
       '            <small v-if="groupTotal(o).notes.length"><span v-for="(n, i) in groupTotal(o).notes" :key="i" :class="n.kind">{{ n.text }}</span></small></div>' +
       '          <p class="da-stats" v-if="badges(o).length"><span v-for="(b, i) in badges(o)" :key="i" :class="b.kind">{{ b.text }}</span></p>' +
       '        </div>' +
-      '        <div class="da-mine" v-if="o.my_order">' +
-      '          <span class="da-label">{{ T.yourOrder }}</span>' +
-      '          <strong>{{ money(o.my_order.price) }}</strong>' +
-      '          <small>{{ T.savedBy(o.my_order.updated_by, o.my_order.updated_on_human) }}</small>' +
+      // your amount with the Order button always to its right
+      '        <div class="da-order-act">' +
+      '          <div class="da-mine" v-if="o.my_order">' +
+      '            <span class="da-label">{{ T.yourOrder }}</span>' +
+      '            <strong>{{ money(o.my_order.price) }}</strong>' +
+      '            <small>{{ T.savedBy(o.my_order.updated_by, o.my_order.updated_on_human) }}</small>' +
+      '          </div>' +
+      '          <div class="da-mine none" v-else>{{ T.notOrdered }}</div>' +
+      '          <a class="da-btn da-btn-primary" :href="orderUrl(o)" v-if="o.urls.order">{{ T.order }}</a>' +
       '        </div>' +
-      '        <div class="da-mine none" v-else>{{ T.notOrdered }}</div>' +
-      '        <a class="da-btn da-btn-primary" :href="orderUrl(o)" v-if="o.urls.order">{{ T.order }}</a>' +
       '      </div>' +
       '    </article>' +
       '    </div>' +
