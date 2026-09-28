@@ -15,7 +15,8 @@ and remain the default.
 * One preference for all modern pages, in the browser only:
   `localStorage["foodsoft.ui"]`, `"modern"` or `"legacy"`. (Earlier per-page
   keys are still read and are cleaned up on the next choice.)
-* Each classic page shows a small "Try the new mobile-friendly …" button. Clicking it
+* Each classic page shows a slim call-out, "Party like it isn't Y2K." with a
+  small "Try the modern interface" button. Clicking it
   stores `"modern"` and opens the modern page.
 * A tiny script in the `<head>` of the classic page redirects to the modern page
   when the stored value is `"modern"`, before the heavy classic table renders.
@@ -179,7 +180,7 @@ their contents are padded in to line up with the page.
   and asks people to avoid doing this at the last minute because other members need
   time to react and fill the cases. Boxfill minimums are respected.
 * The classic ordering page, home page and orders overview show an alert with a
-  large "Try the new mobile-friendly look" button at the top (the earlier
+  "Try the modern interface" button at the top (the earlier
   first-visit dialog was dropped). Both modern pages carry a small "Classic
   view" link at the top.
 * Dashboard: the greeting is gone; the ordergroup name sits in the top bar. The

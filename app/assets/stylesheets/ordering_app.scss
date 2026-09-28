@@ -19,8 +19,8 @@ $oa-tap: 44px;
 // "Try the new look" call-out on the classic pages
 .fs-switch-alert {
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px;
-  .btn i { margin-right: 6px; }
-  .fs-switch-hint { color: #3a6ea5; font-size: 14px; }
+  padding-top: 6px; padding-bottom: 6px;
+  .fs-switch-hint { color: #3a6ea5; font-size: 14px; font-weight: 600; }
 }
 
 .oa {
