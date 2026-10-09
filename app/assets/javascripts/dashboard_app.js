@@ -666,7 +666,7 @@
       '      <a class="da-btn da-btn-small da-btn-primary da-orderall" :href="d.urls.ordering_all" v-if="d.open_orders.length > 1 && d.urls.ordering_all">{{ T.orderAll }}</a></h2>' +
       '    <p class="da-empty" v-if="!d.open_orders.length">{{ T.noOpenOrders }}</p>' +
       '    <div class="da-grid">' +
-      '    <article class="da-card da-order" v-for="o in d.open_orders" :key="o.id" :class="{ \'is-ordered\': o.my_order }">' +
+      '    <article class="da-card da-order" v-for="o in d.open_orders" :key="o.id" :class="{ \'is-ordered\': o.my_order, \'has-note\': o.note_html }">' +
       '      <div class="da-order-head">' +
       '        <h3>{{ o.name }}</h3>' +
       '        <span class="da-closing" v-if="closing(o)" :class="closing(o).level">{{ closing(o).text }}</span>' +
