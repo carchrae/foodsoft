@@ -14,6 +14,8 @@
       %th= heading_helper Article, :article_category
   %tbody
     - articles_map = @supplier.articles.map{ |a| [a.id, a] }.to_h
+    -# one option list for the whole table: a sync can touch every article
+    - category_options = ArticleCategory.order(:name).map {|a| [ a.name, a.id ] }
     - articles.sort_by { |a, b| a.errors.empty? ? ((article_in_open_order.include? a.id ) ? 0 : 1) : -1 }.each do |changed_article, attrs|
       - unless changed_article.new_record?
         - article = articles_map[changed_article.id]
@@ -60,8 +62,14 @@
             .input-prepend
               %span.add-on= t 'number.currency.format.unit'
               = form.text_field 'supplier_price', class: 'input-mini', style: 'width: 45px'
-          %td{:style => highlight_new(attrs, :article_category)}= form.select :article_category_id, ArticleCategory.all.map {|a| [ a.name, a.id ] },
-            {include_blank: true}, class: 'input-small'
+          %td{:style => highlight_new(attrs, :article_category)}
+            -# the matched category as text (with a hidden field so it is still
+            -# posted); the long dropdown only when there is nothing to match
+            - if changed_article.article_category
+              = changed_article.article_category.name
+              = form.hidden_field 'article_category_id'
+            - else
+              = form.select :article_category_id, category_options, {include_blank: true}, class: 'input-small'
       - unless changed_article.errors.empty?
         %tr.alert
           %td(colspan=11)= changed_article.errors.full_messages.join(', ')
