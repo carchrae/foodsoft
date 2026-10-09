@@ -40,11 +40,9 @@
                 - if order.note
                   .span= order.note.gsub(URI::DEFAULT_PARSER.make_regexp(['http','https']), '<a href="\0">\0</a>').html_safe
               %div.row-fluid
-                - count = order.order_articles.ordered.count
-                - not_filled_count = order.order_articles.map{ |oa| oa.missing_units>0 ? 1 : 0 }.sum
+                - not_filled_count = order.articles_short_of_case_count
                 - cases = order.order_articles.ordered.sum(:units_to_order)
                 - effort = order.split_effort
-                .badge.badge-info= "#{count} #{'items'.pluralize{count}} filled"
                 .badge.badge-warning= "#{not_filled_count} #{'case'.pluralize{not_filled_count}} to fill" if not_filled_count>0
                 .badge.badge-info= "#{cases} full #{'case'.pluralize{cases}}"
                 - supplier_order_sum = order.supplier.sum_on_pickup_date(order.pickup, :gross)

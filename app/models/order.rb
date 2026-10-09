@@ -374,8 +374,33 @@ class Order < ApplicationRecord
     end
   end
 
+  # How many articles are short of a full case (OrderArticle#missing_units > 0),
+  # counted in SQL instead of loading every order article (1000+ on big orders).
+  # Mirrors OrderArticle#_missing_units: missing = unit_quantity - (quantity % unit_quantity + tolerance),
+  # which is positive exactly when 0 < quantity % unit_quantity + tolerance < unit_quantity.
+  # The case size comes from the article_price once the order is finished, else the article;
+  # NULLIF keeps a zero case size out of the modulo (Ruby rescues that case to 0, i.e. not short).
+  def articles_short_of_case_count
+    uq = 'NULLIF(COALESCE(article_prices.unit_quantity, articles.unit_quantity), 0)'
+    filled = "(order_articles.quantity % #{uq}) + order_articles.tolerance"
+    OrderArticle.unscoped
+                .joins(:article)
+                .joins('LEFT JOIN article_prices ON article_prices.id = order_articles.article_price_id')
+                .where(order_id: id)
+                .where("#{filled} > 0 AND #{filled} < #{uq}")
+                .count
+  end
+
+  # Number of (article, ordergroup) pairs with a quantity, i.e. how many lines
+  # need splitting out at pickup. One COUNT over the order's group order
+  # articles; the previous one-COUNT-per-order-article version took seconds on
+  # big orders (1000+ articles) and ran on every dashboard load.
   def split_effort
-    @split_effort ||= order_articles.map { |oa| oa.group_order_articles.where.not(quantity: 0).count }.sum
+    @split_effort ||= GroupOrderArticle.unscoped
+                                       .joins(:order_article)
+                                       .where(order_articles: {order_id: id})
+                                       .where.not(quantity: 0)
+                                       .count
   end
 
   def round_up_in_cent(amount)

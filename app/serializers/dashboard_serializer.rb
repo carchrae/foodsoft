@@ -188,9 +188,7 @@ class DashboardSerializer
     supplier_total = safely(nil) { order.stockit? ? nil : order.supplier.sum_on_pickup_date(order.pickup, :gross) }
     min_order_value = safely(0) { order.stockit? ? 0 : order.supplier.min_order_quantity.to_s.sub('$', '').to_f }
     {
-      items_filled: safely(nil) { ordered.count },
-      # note: Relation#count ignores a block on Rails 4.2, hence to_a
-      cases_to_fill: safely(nil) { order.order_articles.to_a.count { |oa| oa.missing_units > 0 } },
+      cases_to_fill: safely(nil) { order.articles_short_of_case_count },
       full_cases: safely(nil) { ordered.sum(:units_to_order) },
       coop_total: safely(nil) { money(order.sum(:gross)) },
       supplier_total: money(supplier_total),
