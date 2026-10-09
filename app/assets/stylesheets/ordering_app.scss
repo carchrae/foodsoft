@@ -413,7 +413,19 @@ $oa-tap: 44px;
   }
   .oa-btn-danger { background: $oa-red; border-color: darken($oa-red, 8%); color: #fff; &:hover { background: darken($oa-red, 6%); } }
   .oa-btn.oa-cancel { flex: 0 0 auto; color: $oa-red; border-color: transparent; padding: 0 10px; &:hover { border-color: $oa-red; background: #fff; } }
-  &.is-dirty .oa-save:not(:disabled) { box-shadow: 0 0 0 3px rgba($oa-green, 0.3); }
+  &.is-dirty .oa-save:not(:disabled):not(.is-saving) { box-shadow: 0 0 0 3px rgba($oa-green, 0.3); }
+  // while saving the button stays green (not greyed out) and shows a small spinner
+  .oa-save.is-saving { cursor: progress; opacity: 0.85; }
+  .oa-btn-spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    margin-right: 8px;
+    vertical-align: -2px;
+    border: 2px solid rgba(#fff, 0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: oa-spin 0.8s linear infinite;
+  }
 
   .oa-modal-backdrop {
     position: fixed; left: 0; top: 0; right: 0; bottom: 0;

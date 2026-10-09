@@ -82,7 +82,6 @@
     saving: 'Saving…',
     saved: 'Saved',
     unsaved: 'Unsaved changes',
-    savedToast: 'Your order was saved.',
     lowCredit: function (min) { return 'Not enough credit to place this order (minimum ' + min + ').'; },
     staleTitle: 'Someone else in your group saved this order in the meantime.',
     staleBody: 'Reload to see their changes. Your unsaved changes here will be lost.',
@@ -754,9 +753,8 @@
             .catch(function (err) { err = err || {}; err.orderName = entry.order.name; throw err; });
         };
 
-        var lastJson = null;
         pending.reduce(function (chain, entry) {
-          return chain.then(function () { return saveOne(entry).then(function (json) { lastJson = json; }); });
+          return chain.then(function () { return saveOne(entry); });
         }, Promise.resolve())
           .then(function () {
             // credit changed on the server; refresh combined funds quietly
@@ -764,7 +762,7 @@
             self.dirty = false;
             self.saving = false;
             self.fillSnapshot = self.filter === 'fill' ? self.snapshotFill() : null;
-            self.notify('ok', (lastJson && lastJson.notice) || T.savedToast);
+            // no toast: the button itself goes from spinning to the disabled "Saved" state
           })
           .catch(function (err) {
             self.saving = false;
@@ -988,8 +986,8 @@
       '      </div>' +
       '    </div>' +
       '    <div class="oa-actions">' +
-      '      <button type="button" class="oa-btn oa-btn-primary oa-save" :disabled="!canSave" @click="save()">' +
-      '        <span v-if="saving">{{ T.saving }}</span><span v-else-if="dirty">{{ T.save }}</span><span v-else>{{ T.saved }}</span>' +
+      '      <button type="button" class="oa-btn oa-btn-primary oa-save" :class="{ \'is-saving\': saving }" :disabled="!canSave && !saving" @click="save()">' +
+      '        <span v-if="saving"><span class="oa-btn-spinner"></span>{{ T.saving }}</span><span v-else-if="dirty">{{ T.save }}</span><span v-else>{{ T.saved }}</span>' +
       '      </button>' +
       '    </div>' +
       '  </footer>' +

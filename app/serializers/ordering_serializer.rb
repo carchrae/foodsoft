@@ -130,7 +130,7 @@ class OrderingSerializer
 
   def article_json(order_article, d)
     article = order_article.article
-    boxfill = @order.boxfill?
+    boxfill = boxfill?
     {
       id: order_article.id,
       name: article.name,
@@ -157,6 +157,12 @@ class OrderingSerializer
       # fraction of a case the supplier will ship for this article, nil if only whole cases
       split_fraction: split_fraction_for(article),
     }
+  end
+
+  # Order#boxfill? reads FoodsoftConfig (a cache store hit) each call; once per snapshot is enough.
+  def boxfill?
+    @boxfill = !!@order.boxfill? unless defined?(@boxfill)
+    @boxfill
   end
 
   def split_fraction_for(article)

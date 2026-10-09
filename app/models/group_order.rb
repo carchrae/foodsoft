@@ -102,6 +102,47 @@ class GroupOrder < ApplicationRecord
     end
   end
 
+  # Like save_ordering!, but only touches the articles whose requested quantity
+  # or tolerance differs from what is stored for this group order. On large
+  # orders (1000+ articles) save_group_order_articles creates and immediately
+  # destroys a GroupOrderArticle for every untouched article and re-saves every
+  # OrderArticle, which takes 10+ seconds. Skipping untouched articles is safe:
+  # OrderArticle#update_results! only changes when one of its own
+  # group_order_articles changed. Used by the modern (Vue) ordering page.
+  def save_ordering_changes!
+    transaction do
+      save!
+      save_changed_group_order_articles
+      update_price!
+      UserNotifier.queue_order_updated_email(
+          delay: ORDER_SAVED_EMAIL_DELAY, group_order_id: id,
+          message: 'Your order has been saved.  Here is a copy for your records.')
+    end
+  end
+
+  def save_changed_group_order_articles
+    attrs = group_order_articles_attributes || {}
+    existing = group_order_articles.to_a.index_by(&:order_article_id)
+    wanted = lambda do |order_article_id|
+      q = attrs.fetch(order_article_id.to_s, {})
+      [q[:quantity].to_i, q[:tolerance].to_i]
+    end
+    changed_ids = (attrs.keys.map(&:to_i) | existing.keys).select do |order_article_id|
+      goa = existing[order_article_id]
+      wanted.call(order_article_id) != [goa ? goa.quantity : 0, goa ? goa.tolerance : 0]
+    end
+    return if changed_ids.empty?
+
+    # Only articles of this order; unknown ids in the request are ignored.
+    order.order_articles.where(id: changed_ids).each do |order_article|
+      quantity, tolerance = wanted.call(order_article.id)
+      goa = existing[order_article.id] ||
+            group_order_articles.where(order_article_id: order_article.id).first_or_create
+      goa.update_quantities(quantity, tolerance)
+      order_article.update_results!
+    end
+  end
+
   def ordergroup_name
     ordergroup ? ordergroup.name : I18n.t('model.group_order.stock_ordergroup_name', :user => updated_by.try(:name) || '?')
   end

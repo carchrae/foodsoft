@@ -28,10 +28,11 @@ class OrderingController < ApplicationController
   # Snapshots for all open orders (soonest closing first) plus funds that
   # exclude every open order, so the page can compute credit from its own totals.
   def all
-    orders = Order.open_reverse.includes([:supplier, :order_articles]).to_a
+    orders = Order.open_reverse.includes(:supplier).to_a
     snapshots = orders.map do |order|
       group_order = order.group_orders.where(ordergroup_id: @ordergroup.id).first ||
                     order.group_orders.build(ordergroup: @ordergroup, updated_by: current_user)
+      group_order.order = order # share the loaded order, see #serializer
       OrderingSerializer.new(order, group_order, view_context).as_json
     end
     render json: {
@@ -58,10 +59,11 @@ class OrderingController < ApplicationController
       @group_order.lock_version = params[:lock_version].to_i
     end
     @group_order.group_order_articles_attributes = articles_attributes
-    @group_order.save_ordering!
+    # only writes the articles that changed; see GroupOrder#save_ordering_changes!
+    @group_order.save_ordering_changes!
 
     # re-read everything so the snapshot reflects the saved state
-    @order = Order.includes([:supplier, :order_articles]).find(@order.id)
+    @order = Order.includes(:supplier).find(@order.id)
     @group_order = GroupOrder.find(@group_order.id)
     render json: serializer.as_json.merge(saved: true, notice: I18n.t('group_orders.update.notice'))
   rescue ActiveRecord::StaleObjectError
@@ -74,6 +76,10 @@ class OrderingController < ApplicationController
   private
 
   def serializer
+    # Share the one loaded Order between the group order and the serializer, so
+    # Order#articles_grouped_by_category (1000+ rows on big orders) is memoized
+    # across GroupOrder#load_data and the category listing instead of loaded twice.
+    @group_order.order = @order
     OrderingSerializer.new(@order, @group_order, view_context, stock_order: stock_order?)
   end
 
@@ -103,7 +109,8 @@ class OrderingController < ApplicationController
   end
 
   def ensure_open_order
-    @order = Order.includes([:supplier, :order_articles]).find(params[:id])
+    # no order_articles include: the serializer loads them with the article data it needs
+    @order = Order.includes(:supplier).find(params[:id])
     unless @order.open?
       respond_closed(I18n.t('group_orders.errors.closed'))
     end
