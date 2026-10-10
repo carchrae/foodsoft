@@ -70,6 +70,7 @@
     byArticle: 'Articles',
     showUnordered: 'Show items nobody is getting',
     unorderedCount: function (n) { return n + ' hidden'; },
+    ofOffered: function (n) { return 'of ' + n + ' offered'; },
     nothing: 'Nothing matches.',
     // summary
     wanted: function (q, t) { return t > 0 ? q + ' + ' + t : String(q); },
@@ -335,7 +336,11 @@
         self.state = self.d ? 'ready' : 'loading';
         fetch(self.dataUrl, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
           .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-          .then(function (json) { self.d = json; self.state = 'ready'; })
+          .then(function (json) {
+            // a new order nobody has ordered from yet: list what it offers instead of nothing
+            if (!(json.articles || []).some(function (a) { return a.ordered; })) self.showUnordered = true;
+            self.d = json; self.state = 'ready';
+          })
           .catch(function (e) { self.state = 'error'; self.errorMessage = T.loadFailed + ' (' + e.message + ')'; });
       },
 
@@ -458,7 +463,7 @@
       '    <div class="om-note" v-if="order.note"><span class="om-label">{{ T.note }}</span>{{ order.note }}</div>' +
       '    <div class="om-tiles">' +
       '      <div class="om-tile" :title="d.stats.ordergroup_names.join(\', \')"><span class="om-label">{{ T.households }}</span><strong>{{ d.stats.ordergroups }}</strong></div>' +
-      '      <div class="om-tile"><span class="om-label">{{ T.articles }}</span><strong>{{ d.stats.articles_ordered }}</strong></div>' +
+      '      <div class="om-tile"><span class="om-label">{{ T.articles }}</span><strong>{{ d.stats.articles_ordered }} <small class="om-of">{{ T.ofOffered(articles.length) }}</small></strong></div>' +
       '      <div class="om-tile"><span class="om-label">{{ T.net }}</span><strong>{{ money(d.stats.net_sum) }}</strong></div>' +
       '      <div class="om-tile"><span class="om-label">{{ T.gross }}</span><strong>{{ money(d.stats.gross_sum) }}</strong></div>' +
       '    </div>' +

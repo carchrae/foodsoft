@@ -1,0 +1,14 @@
+-# Modern "edit order" page: order_copy_app.js in edit mode, rendered by
+-# OrdersController#edit; ?classic=1 shows the classic form (orders/edit).
+- title t('orders.edit.title', name: @order.name), false
+- content_for :head do
+  :javascript
+    document.documentElement.className += ' fs-modern';
+#order-copy-app{data: {url: data_order_copy_path(@order, mode: 'edit')}}
+  .oc-boot
+    %p.muted Loading #{@order.name}…
+    %noscript
+      .alert.alert-danger
+        This page needs JavaScript.
+        = link_to 'Use the classic edit page instead', edit_order_path(@order, classic: 1)
+= render 'ordering/vue_runtime', boot_selector: '.oc-boot', fallback_url: edit_order_path(@order, classic: 1)

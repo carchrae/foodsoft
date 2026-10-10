@@ -66,6 +66,7 @@
     toFill: function (n) { return n + ' to fill'; },
     extra: function (n) { return n + ' extra'; },
     amount: 'Amount',
+    order: 'Order',
     atLeast: 'At least',
     upTo: 'Up to',
     outcomeAll: function (n) { return 'You get <b class="oa-ok">all ' + n + '</b>.'; },
@@ -275,10 +276,12 @@
     },
     emits: ['change'],
 
-    data: function () { return { T: T }; },
+    // opened: the steppers stay once shown, even when the amount goes back to 0
+    data: function () { return { T: T, opened: false }; },
 
     computed: {
-      d: function () { return derive(this.a, this.cfg); }
+      d: function () { return derive(this.a, this.cfg); },
+      showSteppers: function () { return this.opened || this.a.quantity + this.a.tolerance > 0; }
     },
 
     methods: {
@@ -311,6 +314,12 @@
         if (a.quantity !== 0 && q === 0 && a.tolerance === auto) a.tolerance = a.min_tolerance || 0;
         a.quantity = q;
         this.$emit('change', a);
+      },
+
+      // "Order" button: reveal the steppers with one unit already ordered
+      startOrder: function (a) {
+        this.opened = true;
+        this.setQuantity(a, a.quantity + 1);
       },
 
       setTolerance: function (a, value) {
@@ -398,7 +407,7 @@
     },
 
     template:
-      '<article class="oa-article" :id="\'article-\' + a.id" :class="articleClass(a, d)">' +
+      '<article class="oa-article" :id="\'article-\' + a.id" :class="[articleClass(a, d), { \'is-unordered\': !showSteppers }]">' +
       '  <div class="oa-article-main">' +
       '    <div class="oa-article-info">' +
       '      <div class="oa-article-name">{{ a.name }}<small v-if="a.origin"> ({{ a.origin }})</small></div>' +
@@ -408,13 +417,14 @@
       '        <span v-if="a.unit_quantity > 1">{{ T.caseOf }} {{ a.unit_quantity }}</span>' +
       '        <span v-if="a.deposit > 0">{{ money(a.deposit) }} {{ T.deposit }}</span>' +
       '        <span v-if="a.stockit">{{ a.quantity_available }} {{ T.inStock }}</span>' +
+      '        <span class="oa-article-note" v-if="a.note">{{ a.note }}</span>' +
       '      </div>' +
-      '      <div class="oa-article-note" v-if="a.note">{{ a.note }}</div>' +
       '    </div>' +
       '    <div class="oa-article-aside">' +
       '      <div class="oa-article-price">{{ money(a.price) }} <span class="oa-per">{{ T.perUnit }} {{ a.unit }}</span></div>' +
+      '      <button type="button" class="oa-order-btn oa-order-aside" v-if="!showSteppers" :disabled="maxQuantity(a) === 0" @click="startOrder(a)">{{ T.order }}</button>' +
       '      <div class="oa-status" v-if="!a.stockit && a.unit_quantity > 1">' +
-      '        <span class="oa-chip" :class="d.units > 0 && d.extra === 0 ? \'ok\' : (d.units > 0 ? \'warn\' : \'muted\')">{{ caseLabel(a, d) }}</span>' +
+      '        <span class="oa-chip" v-if="d.units > 0" :class="d.extra === 0 ? \'ok\' : \'warn\'">{{ caseLabel(a, d) }}</span>' +
       '        <span class="oa-chip warn" v-if="d.missing > 0">{{ T.toFill(d.missing) }}</span>' +
       '        <span class="oa-chip ok" v-if="d.extra > 0">{{ T.extra(d.extra) }}</span>' +
       '      </div>' +
@@ -424,7 +434,8 @@
       '  <div class="oa-article-side">' +
       '    <div class="oa-controls" :class="{ \'has-progress\': d.progress != null }">' +
       '      <div class="oa-cases" aria-hidden="true"><div class="oa-case" v-for="(c, i) in caseBars(a, d)" :key="i" :class="c.full ? \'full\' : \'partial\'" :style="c.style"></div></div>' +
-      '      <div class="oa-stepper">' +
+      '      <button type="button" class="oa-order-btn" v-if="!showSteppers" :disabled="maxQuantity(a) === 0" @click="startOrder(a)">{{ T.order }}</button>' +
+      '      <div class="oa-stepper" v-if="showSteppers">' +
       '        <label :for="\'q_\' + a.id">{{ showsRange(a) ? T.atLeast : T.amount }} <span class="oa-units" v-if="a.quantity > 0">{{ unitsLabel(a.quantity, a.unit) }}</span></label>' +
       '        <div class="oa-stepper-row">' +
       '          <button type="button" class="oa-step" aria-label="less" :disabled="a.quantity <= (a.min_quantity || 0)" @click="setQuantity(a, a.quantity - 1)">&minus;</button>' +
@@ -433,7 +444,7 @@
       '        </div>' +
       '        <div class="oa-stepper-price" :class="{ \'is-zero\': !(a.price * a.quantity) }">{{ money(a.price * a.quantity) }}</div>' +
       '      </div>' +
-      '      <div class="oa-stepper" v-if="showsRange(a)">' +
+      '      <div class="oa-stepper" v-if="showSteppers && showsRange(a)">' +
       '        <label :for="\'m_\' + a.id">{{ T.upTo }} <span class="oa-units" v-if="a.quantity + a.tolerance > 0">{{ unitsLabel(a.quantity + a.tolerance, a.unit) }}</span></label>' +
       '        <div class="oa-stepper-row">' +
       '          <button type="button" class="oa-step" aria-label="less" :disabled="a.tolerance <= (a.min_tolerance || 0)" @click="setTolerance(a, a.tolerance - 1)">&minus;</button>' +

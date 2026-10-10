@@ -98,6 +98,8 @@ class OrdersController < ApplicationController
   # editing finished orders is done in FinanceController
   def edit
     @order = Order.includes(:articles).find(params[:id])
+    # the modern page (order_copy_app.js in edit mode); ?classic=1 keeps the form below
+    render 'order_copy/edit' unless params[:classic]
   end
 
   # Update an existing order.

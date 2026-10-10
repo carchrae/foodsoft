@@ -6,6 +6,10 @@
 // data-url (OrderCopySerializer) carries the copied order and its demand, the
 // supplier's available articles with a short demand history, and the defaults
 // for the new order. Creating POSTs to OrderCopyController#create.
+//
+// The same page edits an order (data "mode": "edit", OrdersController#edit):
+// only the catalogue, the order's own articles and demand count as "last
+// time", the wording comes from T_EDIT and saving PATCHes the order.
 (function () {
   'use strict';
 
@@ -62,6 +66,13 @@
     newChip: 'new',
     noneChip: 'nobody ordered',
     notOffered: 'not in last order',
+    include: 'Include',
+    includeAll: 'Include all',
+    allIncluded: 'All included',
+    catCount: function (sel, n) { return sel + ' of ' + n + ' included'; },
+    included: 'Included',
+    inThisOrder: 'in the new order',
+    notInThisOrder: 'not in the new order',
     wanted: function (q, extra) { return 'wanted ' + q + (extra ? ' (+' + extra + ' extra)' : ''); },
     cases: function (n, size) { return fmtUnits(n) + (Math.abs(n - 1) < 0.005 ? ' case' : ' cases') + (size > 1 ? ' of ' + size : ''); },
     shortOf: function (n) { return n + ' short of a case'; },
@@ -239,6 +250,28 @@
       '</div>'
   };
 
+  // the edit page's wording, over T
+  var T_EDIT = {
+    title: function (name) { return 'Edit ' + name; },
+    back: 'Back to the order',
+    classic: 'Classic edit',
+    intro: 'Include or leave out articles and change the dates. Each article shows the demand it has so far.',
+    lastOrder: 'This order so far',
+    withDemand: 'Ordered',
+    newOnes: 'Not in this order',
+    selLast: 'as saved',
+    notOffered: 'not in this order',
+    inThisOrder: 'in the order',
+    notInThisOrder: 'not in the order',
+    create: 'Save changes',
+    creating: 'Saving…',
+    created: 'The order has been saved.',
+    saveError: 'Saving the order failed. Please try again.',
+    leave: 'Your changes have not been saved yet. Leave anyway?',
+    resetConfirm: 'Throw away your changes and go back to the order as it is saved?',
+    removeOrdered: function (names) { return 'Members have already ordered ' + names.join(', ') + '. Remove ' + (names.length === 1 ? 'it' : 'them') + ' from the order anyway? Their orders for ' + (names.length === 1 ? 'it' : 'these') + ' are deleted.'; }
+  };
+
   var OrderCopyApp = {
     components: { 'oc-alt': AltCard, 'oc-datetime': DateTimeField },
     directives: {
@@ -270,12 +303,14 @@
         altDialog: null,     // { a, available, list } while a last-time row's choice dialog is open
         altQuery: '',        // search in that dialog: empty shows the namesakes, text searches everything
         altSort: 'match',    // match | perlb (when notes carry a price per lb) | price (when they don't)
+        openCats: {},        // catalogue categories expanded by hand; all open while searching or filtering
         T: T
       };
     },
 
     computed: {
       cfg: function () { return (this.d && this.d.config) || {}; },
+      isEdit: function () { return !!(this.d && this.d.mode === 'edit'); },
       articles: function () {
         var out = [];
         if (!this.d) return out;
@@ -414,12 +449,16 @@
       },
 
       apply: function (json) {
+        var self = this;
+        if (json.mode === 'edit') {
+          Object.keys(T_EDIT).forEach(function (k) { self.T[k] = T_EDIT[k]; });
+          this.tab = 'all';
+        }
         this.d = json;
         this.applyDefaults();
         if (window.innerWidth < 768) this.detailsOpen = false;
         if (this.restoreDraft()) this.notify('ok', T.restored);
         // save only edits made from now on, not the watchers firing for the load itself
-        var self = this;
         this.$nextTick(function () { self._draftReady = true; });
       },
 
@@ -439,7 +478,7 @@
       },
 
       // ---- unsaved changes in localStorage, per copied order ------------------------------------
-      draftKey: function () { return 'foodsoft.orderCopy.' + this.d.source.id; },
+      draftKey: function () { return (this.isEdit ? 'foodsoft.orderEdit.' : 'foodsoft.orderCopy.') + this.d.source.id; },
       saveDraft: function () {
         if (!this._draftReady || this._created) return;
         try {
@@ -539,6 +578,14 @@
         return parts;
       },
 
+      // the catalogue rows' demand: last time's, or "not in last order" with the history average
+      catalogueDemand: function (a) {
+        if (a.in_source) return this.demandShort(a);
+        var parts = [{ text: T.notOffered, kind: 'muted' }], h = a.history;
+        if (h && h.ordered) parts.push({ text: 'avg ' + h.avg_households, title: T.avgOffered(h.avg_households) + ' (' + this.historyText(a) + ')', kind: 'muted' });
+        return parts;
+      },
+
       // 0..100 fill of the last case, for the small bar
       fillPercent: function (a) {
         var d = a.demand;
@@ -560,6 +607,13 @@
       },
 
       toggle: function (a) { this.selected[a.id] = !this.selected[a.id]; },
+
+      catOpen: function (c) { return !!(this.openCats[c.name] || this.query || this.filter !== 'all' || this.category); },
+      toggleCat: function (c) { this.openCats[c.name] = !this.catOpen(c); },
+      catSelectedCount: function (c) {
+        var sel = this.selected;
+        return c.articles.filter(function (a) { return sel[a.id]; }).length;
+      },
 
       categorySelected: function (c) {
         var sel = this.selected;
@@ -799,7 +853,7 @@
       nameWithMaker: nameWithMaker,
       pct: function (s) { return Math.round(s * 100); },
 
-      save: function () {
+      save: function (ignoreWarnings) {
         var self = this, token = document.querySelector('meta[name="csrf-token"]');
         var missing = [];
         if (!this.form.ends) missing.push(T.needEnds);
@@ -815,10 +869,11 @@
           end_action: this.form.end_action, note: this.form.note, supplier_note: this.form.supplier_note,
           article_ids: this.selectedList.map(function (a) { return a.id; })
         };
+        if (ignoreWarnings === true) order.ignore_warnings = true;
         this.saving = true;
         this.errors = [];
         fetch(this.d.urls.save, {
-          method: 'POST',
+          method: this.isEdit ? 'PATCH' : 'POST',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': token ? token.getAttribute('content') : '' },
           body: JSON.stringify({ order: order })
@@ -830,6 +885,11 @@
               self.clearDraft();
               self.notify('ok', T.created);
               window.location.href = res.json.url;
+            } else if (res.status === 422 && self.isEdit && ignoreWarnings !== true && res.json.ordered_ids && res.json.ordered_ids.length) {
+              // removing articles members already ordered: ask, then save again without the warning
+              var names = res.json.ordered_ids.map(function (id) { var a = self.articlesById[id]; return a ? a.name : '#' + id; });
+              self.saving = false;
+              if (window.confirm(self.T.removeOrdered(names))) self.save(true);
             } else if (res.status === 422) {
               self.errors = res.json.errors || [T.saveError];
               self.detailsOpen = true;
@@ -908,13 +968,13 @@
       '  </section>' +
 
       // ---- tabs ------------------------------------------------------------------------------------------
-      '  <div class="oc-tabs" role="tablist">' +
+      '  <div class="oc-tabs" role="tablist" v-if="!isEdit">' +
       '    <button type="button" role="tab" :class="{ active: tab === \'last\' }" :aria-selected="tab === \'last\' ? \'true\' : \'false\'" @click="tab = \'last\'">{{ T.tabLast }} <span>{{ lastTimeWithAlternatives.length }}</span></button>' +
       '    <button type="button" role="tab" :class="{ active: tab === \'all\' }" :aria-selected="tab === \'all\' ? \'true\' : \'false\'" @click="tab = \'all\'">{{ T.tabAll }} <span>{{ counts.all }}</span></button>' +
       '  </div>' +
 
       // ---- tab 1: last time and alternatives ----------------------------------------------------------------
-      '  <section v-show="tab === \'last\'">' +
+      '  <section v-if="!isEdit" v-show="tab === \'last\'">' +
       '    <div class="oc-unavailable oc-lasttime">' +
       '      <strong>{{ T.lastTimeTitle(lastTimeWithAlternatives.length) }}</strong>' +
       '      <small>{{ T.lastTimeHint(goneCount) }}</small>' +
@@ -981,46 +1041,30 @@
 
       // ---- articles ----------------------------------------------------------------------------------
       '  <p class="oc-empty" v-if="!visibleCategories.length">{{ T.noMatch }}</p>' +
-      '  <section class="oc-category" v-for="c in visibleCategories" :key="c.name">' +
-      '    <label class="oc-category-head">' +
-      '      <input type="checkbox" :checked="categorySelected(c)" @change="toggleCategory(c)">' +
-      '      <span class="oc-category-name">{{ c.name }}</span>' +
-      '      <small>{{ c.articles.length }}</small>' +
-      '    </label>' +
-      '    <div class="oc-list">' +
-      '      <label class="oc-item" v-for="a in c.articles" :key="a.id" :class="[\'is-\' + kind(a), { selected: selected[a.id] }]">' +
-      '        <input type="checkbox" class="oc-check" :checked="!!selected[a.id]" @change="toggle(a)">' +
-      '        <div class="oc-item-main">' +
-      '          <div class="oc-item-name">' +
-      '            <strong>{{ a.name }}</strong>' +
-      '            <span class="oc-chip info" v-if="!a.in_source">{{ T.newChip }}</span>' +
-      '            <small class="oc-code" v-if="a.order_number">{{ a.order_number }}</small>' +
-      '          </div>' +
-      '          <div class="oc-item-meta">' +
-      '            <span v-if="a.origin || a.manufacturer">{{ [a.origin, a.manufacturer].filter(Boolean).join(\' · \') }}</span>' +
-      '            <span v-if="cfg.stockit && a.quantity_available != null">{{ T.stock(a.quantity_available, a.unit) }}</span>' +
-      '            <span v-else>{{ a.unit }}<template v-if="a.unit_quantity > 1"> × {{ a.unit_quantity }}</template></span>' +
-      '            <span v-if="a.note" class="oc-note">{{ a.note }}</span>' +
-      '          </div>' +
-      '          <div class="oc-demand" v-if="a.in_source">' +
-      '            <span v-for="(p, i) in demandLine(a)" :key="i" :class="p.kind">{{ p.text }}</span>' +
-      '            <span class="oc-fill" v-if="a.demand.households > 0 && a.demand.unit_size > 1" :title="fillPercent(a) + \'% of a case\'"><span :style="{ width: fillPercent(a) + \'%\' }" :class="a.demand.units_to_order > 0 ? \'ok\' : \'warn\'"></span></span>' +
-      '          </div>' +
-      '          <div class="oc-demand" v-else><span class="muted">{{ T.notOffered }}</span></div>' +
-      '        </div>' +
-      '        <div class="oc-item-side">' +
-      '          <button type="button" class="oc-price oc-pricebox" @click.prevent.stop="openPrices(a)" :title="T.priceHistory"><strong>{{ money(a.price) }}</strong><small :title="T.prices">{{ money(a.fc_price) }} · {{ money(a.supplier_price) }}</small>' +
-      '            <span class="oc-pricechip" v-if="priceChip(a)" :class="priceChip(a).kind">{{ priceChip(a).text }}</span>' +
-      '            <span class="oc-pricelink">{{ T.priceHistoryLink }}</span>' +
-      '          </button>' +
-      '          <div class="oc-history" v-if="a.history && a.history.offered">' +
-      '            <span class="oc-bars"><span v-for="(b, i) in historyBars(a)" :key="i" :class="{ missing: b.missing, zero: b.n === 0 }" :style="{ height: b.height + \'%\' }" :title="b.title"></span></span>' +
-      '            <small>{{ T.history(a.history.ordered, a.history.offered, d.history.orders.length) }}<template v-if="a.history.ordered"> · {{ T.avg(a.history.avg_households) }}</template></small>' +
-      '          </div>' +
-      '        </div>' +
-      '      </label>' +
+      // same rows as the last-time tab; a big button on the right includes or leaves out the article
+      '  <div class="oc-unavailable oc-lasttime oc-catalogue" v-if="visibleCategories.length">' +
+      '    <template v-for="c in visibleCategories" :key="c.name">' +
+      '    <h4 class="oc-lt-category oc-cat-toggle" :class="{ open: catOpen(c) }">' +
+      '      <button type="button" class="oc-cat-open" :aria-expanded="catOpen(c) ? \'true\' : \'false\'" @click="toggleCat(c)"><span class="oc-caret">▸</span> {{ c.name }} <small>{{ T.catCount(catSelectedCount(c), c.articles.length) }}</small></button>' +
+      '      <button type="button" class="oc-include oc-include-all" :class="{ on: categorySelected(c) }" :aria-pressed="categorySelected(c) ? \'true\' : \'false\'" @click="toggleCategory(c)"><b>{{ categorySelected(c) ? \'✓ \' + T.allIncluded : \'+ \' + T.includeAll }}</b></button></h4>' +
+      '    <template v-if="catOpen(c)">' +
+      '    <div class="oc-unavailable-row" v-for="a in c.articles" :key="a.id" :class="[\'is-\' + kind(a), { selected: selected[a.id] }]">' +
+      '      <div class="oc-unavailable-name">' +
+      '        <span>{{ a.name }} <em class="oc-chip info" v-if="!a.in_source && !isEdit">{{ T.newChip }}</em><em class="oc-chip warn" v-if="a.gone">{{ T.gone }}</em></span>' +
+      '        <small class="oc-row-meta"><b class="oc-row-price">{{ money(a.price) }}</b>' +
+      '          · {{ a.unit_quantity + \'×\' + a.unit }}<template v-if="a.manufacturer"> · <b class="oc-maker">{{ a.manufacturer }}</b></template><template v-if="a.origin"> · {{ a.origin }}</template><template v-if="cfg.stockit && a.quantity_available != null"> · {{ T.stock(a.quantity_available, a.unit) }}</template><template v-if="a.order_number"> · {{ a.order_number }}</template><i class="oc-note" v-if="a.note"> · {{ a.note }}</i></small>' +
+      '      </div>' +
+      '      <div class="oc-row-stats">' +
+      '        <button type="button" class="oc-row-meta oc-row-change" @click.prevent.stop="openPrices(a)" :title="T.priceHistory + \' (\' + T.prices + \': \' + money(a.fc_price) + \' · \' + money(a.supplier_price) + \')\'">' +
+      '          <em v-if="shortChip(a)" :class="shortChip(a).kind">{{ shortChip(a).text }}</em><template v-else>{{ T.priceHistory }}</template> ›</button>' +
+      '        <div class="oc-demand oc-row-demand"><span v-for="(p, i) in catalogueDemand(a)" :key="i" :class="p.kind" :title="p.title">{{ p.text }}</span></div>' +
+      '      </div>' +
+      '      <button type="button" class="oc-include" :class="{ on: selected[a.id] }" :aria-pressed="selected[a.id] ? \'true\' : \'false\'" @click="toggle(a)">' +
+      '        <b>{{ selected[a.id] ? \'✓ \' + T.included : \'+ \' + T.include }}</b></button>' +
       '    </div>' +
-      '  </section>' +
+      '    </template>' +
+      '    </template>' +
+      '  </div>' +
 
       '  </template>' +
 
@@ -1030,7 +1074,7 @@
       '      <small>{{ T.selectedDetail(selectedStats.demand, selectedStats.none, selectedStats.fresh) }}</small>' +
       '    </div>' +
       '    <span class="oc-footer-actions"><button type="button" class="oc-btn" :disabled="saving" @click="resetAll">{{ T.reset }}</button>' +
-      '    <button type="button" class="oc-btn oc-btn-primary" :disabled="!canCreate" @click="save">{{ saving ? T.creating : T.create }}</button></span>' +
+      '    <button type="button" class="oc-btn oc-btn-primary" :disabled="!canCreate" @click="save()">{{ saving ? T.creating : T.create }}</button></span>' +
       '  </footer>' +
       '  </template>' +
 

@@ -80,6 +80,7 @@ Foodsoft::Application.routes.draw do
     get  'order_copy/:id/data', to: 'order_copy#data',   as: :data_order_copy
     get  'order_copy/:id/prices/:article_id', to: 'order_copy#prices', as: :prices_order_copy
     post 'order_copy/:id',      to: 'order_copy#create'
+    patch 'order_copy/:id',     to: 'order_copy#update'
 
     # Modern (Vue) swap page JSON layer, :id is the order id. See SwapController.
     resources :swap, only: [:update], controller: :swap do

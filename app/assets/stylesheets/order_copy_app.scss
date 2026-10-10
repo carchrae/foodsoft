@@ -101,6 +101,32 @@ $oc-footer-h: 64px;
     small { font-weight: 400; color: $oc-muted; margin-left: 4px; }
     + .oc-unavailable-row { border-top: 0; }
   }
+  // the catalogue tab: the same rows, with a big include button instead of a choice
+  .oc-catalogue {
+    margin-top: 0;
+    // a category heading expands its rows; the checkbox includes the whole category
+    .oc-cat-toggle {
+      display: flex; align-items: center; gap: 8px 12px; padding: 4px 0;
+      .oc-cat-open { flex: 1 1 auto; display: flex; align-items: baseline; gap: 6px; padding: 8px 0; border: 0; background: none; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; text-align: left; cursor: pointer; }
+      .oc-caret { display: inline-block; width: 12px; transition: transform 0.15s; }
+      &.open .oc-caret { transform: rotate(90deg); }
+      small { text-transform: none; letter-spacing: 0; }
+      // "Include all" on the right, like the rows' buttons but one line
+      .oc-include-all { text-transform: none; letter-spacing: 0; }
+    }
+    .oc-unavailable-name > span em.oc-chip { font-style: normal; font-weight: 600; vertical-align: 1px; }
+    .oc-unavailable-row.selected { background: rgba(255,255,255,0.6); }
+  }
+  // one line, the same size in the rows and the category headings
+  .oc-include {
+    flex: 0 0 auto; align-self: center; display: flex; align-items: center; justify-content: center; min-width: 130px; min-height: 32px; margin: 0 0 0 auto; padding: 2px 14px;
+    border: 1px solid #bbb; border-radius: 8px; background: #fff; color: $oc-muted;
+    font: inherit; line-height: 1.25; cursor: pointer;
+    b { font-size: 13px; white-space: nowrap; }
+    &:hover { border-color: $oc-green-dark; }
+    &:focus { outline: none; box-shadow: 0 0 0 2px rgba(70,136,71,0.3); }
+    &.on { background: $oc-green; border-color: darken($oc-green, 10%); color: #fff; small { color: rgba(255,255,255,0.9); } }
+  }
   // dense last-time rows: price first on the meta line, history bars inline after the demand
   .oc-lasttime .oc-unavailable-row { padding: 5px 0; align-items: center; }
   .oc-row-meta { margin: 1px 0; }
@@ -369,6 +395,7 @@ $oc-footer-h: 64px;
   .oc .oc-lasttime .oc-row-change { grid-area: change; align-self: start; text-align: right; white-space: nowrap; }
   .oc .oc-lasttime .oc-row-demand { grid-area: demand; }
   .oc .oc-lasttime .oc-choice { grid-area: choice; }
+  .oc .oc-lasttime .oc-unavailable-row > .oc-include { grid-area: choice; justify-self: end; }
 }
 
 @media (min-width: 768px) {
@@ -390,9 +417,6 @@ $oc-footer-h: 64px;
   .oc .oc-row-stats { flex: 0 1 340px; }
   .oc .oc-unavailable-name { flex: 1 1 200px; }
   .oc .oc-history { margin-top: 6px; }
-}
-@media (min-width: 1100px) {
-  .oc .oc-list { grid-template-columns: 1fr 1fr; }
 }
 
 // the fixed footer spans the screen; on wide screens its contents line up with

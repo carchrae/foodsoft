@@ -3,6 +3,9 @@
 # demand it saw, the supplier's available articles, a short demand history
 # across the supplier's recent orders, and the defaults for the new order.
 #
+# With edit: true it describes the order itself for the edit page: its own dates
+# and articles (those no longer available stay in their category), no last time.
+#
 # Plain Ruby; money values are floats in currency units.
 class OrderCopySerializer
   HISTORY_ORDERS = 6
@@ -15,9 +18,10 @@ class OrderCopySerializer
   # "1lb", "1 LB" and "LB" are one unit (same rule as article_match.js)
   UNIT_KEY = lambda { |unit| unit.to_s.downcase.gsub(/\s+/, '').sub(/\A1(?=[a-z#])/, '') }
 
-  def initialize(source, view)
+  def initialize(source, view, edit: false)
     @source = source
     @view = view
+    @edit = edit
   end
 
   # Full price history of one article and its namesakes (any unit), newest first,
@@ -55,10 +59,11 @@ class OrderCopySerializer
 
   def as_json(*)
     {
+      mode: (@edit ? 'edit' : 'copy'),
       source: source_json,
-      defaults: defaults_json,
+      defaults: (@edit ? own_dates_json : defaults_json),
       categories: categories_json,
-      unavailable: unavailable_json,
+      unavailable: (@edit ? [] : unavailable_json),
       history: {orders: history_orders.map { |o| {id: o.id, ends_human: @view.format_date(o.ends)} }},
       config: {
         currency_unit: FoodsoftConfig[:currency_unit] || '',
@@ -67,11 +72,11 @@ class OrderCopySerializer
       },
       end_actions: Order.end_actions.keys.map { |k| {value: k, label: I18n.t("activerecord.attributes.order.end_actions.#{k}")} },
       urls: {
-        data: @view.data_order_copy_path(@source),
+        data: @view.data_order_copy_path(@source, (@edit ? {mode: 'edit'} : {})),
         save: @view.order_copy_path(@source),
-        back: @view.orders_path,
+        back: (@edit ? @view.order_path(@source) : @view.orders_path),
         source: @view.order_path(@source),
-        legacy: @view.new_order_path(order_id: @source.id, supplier_id: @source.supplier_id),
+        legacy: (@edit ? @view.edit_order_path(@source, classic: 1) : @view.new_order_path(order_id: @source.id, supplier_id: @source.supplier_id)),
         prices: @view.prices_order_copy_path(@source, article_id: 0),
       },
     }
@@ -123,11 +128,37 @@ class OrderCopySerializer
     }
   end
 
+  # The edit page's form starts from the order as it is
+  def own_dates_json
+    {
+      starts: iso_local(@source.starts),
+      ends: iso_local(@source.ends),
+      boxfill: iso_local(@source.boxfill),
+      pickup: (@source.pickup ? @source.pickup.strftime('%Y-%m-%d') : nil),
+      end_action: @source.end_action,
+      note: @source.note.to_s,
+      supplier_note: @source.supplier_note.to_s,
+    }
+  end
+
   def categories_json
     demand = demand_by_article_id
     history = history_by_article_id
-    @source.articles_for_ordering.map do |name, articles|
+    groups = @source.articles_for_ordering.map do |name, articles|
       {name: name, articles: articles.map { |a| article_json(a, demand[a.id], history[a.id]) }}
+    end
+    add_gone_articles(groups, demand, history) if @edit
+    groups
+  end
+
+  # Editing: the order's articles that can no longer be ordered stay listed (and
+  # included) in their category, marked gone, so saving does not drop them silently
+  def add_gone_articles(groups, demand, history)
+    listed = groups.flat_map { |g| g[:articles].map { |a| a[:id] } }.to_set
+    source_order_articles.reject { |oa| listed.include?(oa.article_id) }.each do |oa|
+      name = oa.article.article_category&.name.to_s
+      group = groups.find { |g| g[:name] == name } || (groups << {name: name, articles: []}).last
+      group[:articles] << article_json(oa.article, demand[oa.article_id], history[oa.article_id]).merge(gone: true)
     end
   end
 

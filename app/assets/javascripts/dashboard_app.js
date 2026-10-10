@@ -506,6 +506,18 @@
       '    <div class="da-alert da-alert-warning" v-if="og && og.not_enough_apples">{{ T.notEnoughApples }}</div>' +
       '  </header>' +
 
+      // ---- shortcuts ------------------------------------------------------------------------------
+      '  <section class="da-section da-o-links" v-if="d.quick_links.length || d.wiki_links_html">' +
+      '    <h2>{{ T.quickLinks }}</h2>' +
+      '    <div class="da-card da-wiki da-wiki-links" v-if="d.wiki_links_html" v-html="d.wiki_links_html"></div>' +
+      '    <div class="da-links">' +
+      '      <div class="da-linkgroup" v-for="g in d.quick_links" :key="g.title">' +
+      '        <span class="da-label">{{ g.title }}</span>' +
+      '        <a class="da-chip link" v-for="l in g.items" :key="l.url" :href="l.url">{{ l.label }}</a>' +
+      '      </div>' +
+      '    </div>' +
+      '  </section>' +
+
       // ---- tasks ------------------------------------------------------------------------
       '  <section class="da-section da-o-tasks" v-if="hasTasks">' +
       '    <h2>{{ T.tasks }} <small><a :href="d.urls.tasks">{{ T.allTasks }}</a></small></h2>' +
@@ -575,18 +587,6 @@
       '          <div class="da-row-meta"><span>{{ tx.created_on_human }}</span><span>{{ tx.user }}</span><span v-if="tx.type">{{ tx.type }}</span></div>' +
       '        </div>' +
       '        <div class="da-row-side"><strong :class="tx.amount < 0 ? \'da-bad\' : \'da-ok\'">{{ money(tx.amount) }}</strong></div>' +
-      '      </div>' +
-      '    </div>' +
-      '  </section>' +
-
-      // ---- shortcuts ------------------------------------------------------------------------------
-      '  <section class="da-section da-o-links" v-if="d.quick_links.length || d.wiki_links_html">' +
-      '    <h2>{{ T.quickLinks }}</h2>' +
-      '    <div class="da-card da-wiki da-wiki-links" v-if="d.wiki_links_html" v-html="d.wiki_links_html"></div>' +
-      '    <div class="da-links">' +
-      '      <div class="da-linkgroup" v-for="g in d.quick_links" :key="g.title">' +
-      '        <span class="da-label">{{ g.title }}</span>' +
-      '        <a class="da-chip link" v-for="l in g.items" :key="l.url" :href="l.url">{{ l.label }}</a>' +
       '      </div>' +
       '    </div>' +
       '  </section>' +
