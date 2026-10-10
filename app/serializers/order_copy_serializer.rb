@@ -99,12 +99,19 @@ class OrderCopySerializer
     }
   end
 
-  # New order as OrdersController#new would prefill it when copying
+  # New order two weeks after the copied one: closing, boxfill and pickup move by
+  # the same whole number of fortnights (more than one when copying an old order,
+  # so the closing time is in the future), keeping their time of day. Without a
+  # closing time to go by, the order schedule fills in as on the classic page.
   def defaults_json
-    # like the classic copy, but a closing/boxfill time that already passed is not reused
-    future = ->(t) { t && t > Time.now ? t : nil }
     order = Order.new(supplier_id: @source.supplier_id, note: @source.note, supplier_note: @source.supplier_note,
-                      end_action: @source.end_action, ends: future.call(@source.ends), boxfill: future.call(@source.boxfill)).init_dates
+                      end_action: @source.end_action)
+    if (shift = fortnights_ahead(@source.ends))
+      order.ends = @source.ends + shift
+      order.boxfill = @source.boxfill + shift if @source.boxfill
+      order.pickup = @source.pickup + shift if @source.pickup
+    end
+    order.init_dates
     {
       starts: iso_local(order.starts),
       ends: iso_local(order.ends),
@@ -204,7 +211,7 @@ class OrderCopySerializer
     history = history_by_article_id
     source_order_articles.reject { |oa| available.include?(oa.article_id) }.map do |oa|
       a = oa.article
-      {id: a.id, name: a.name.to_s, unit: a.unit.to_s, unit_quantity: a.unit_quantity.to_i, origin: a.origin.to_s,
+      {id: a.id, name: a.name.to_s, category: a.article_category&.name.to_s, order_number: a.order_number.to_s, note: a.note.to_s, unit: a.unit.to_s, unit_quantity: a.unit_quantity.to_i, origin: a.origin.to_s,
        manufacturer: a.manufacturer.to_s, price: a.price.to_f.round(2),
        fc_price: (safe_money { a.fc_price }), supplier_price: (safe_money { a.supplier_price }),
        demand: demand[oa.article_id], history: history[a.id], prices: price_summaries[a.id]}
@@ -212,7 +219,7 @@ class OrderCopySerializer
   end
 
   def source_order_articles
-    @source_order_articles ||= @source.order_articles.includes(:article, :article_price, :group_order_articles).to_a
+    @source_order_articles ||= @source.order_articles.includes({article: :article_category}, :article_price, :group_order_articles).to_a
   end
 
   # What each article saw in the copied order
@@ -274,6 +281,14 @@ class OrderCopySerializer
       .distinct.count('group_order_articles.group_order_id')
   rescue StandardError
     nil
+  end
+
+  # 2.weeks, or 4.weeks, ... : the first two-week step that puts time in the future
+  def fortnights_ahead(time)
+    return nil unless time
+    n = 1
+    n += 1 while time + (2 * n).weeks <= Time.now
+    (2 * n).weeks
   end
 
   def iso_local(time)

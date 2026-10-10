@@ -66,42 +66,101 @@ $oc-footer-h: 64px;
     display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: flex-start;
     padding: 6px 0; border-top: 1px solid darken($oc-amber-bg, 12%);
   }
-  .oc-unavailable-name { flex: 1 1 220px; min-width: 0; span { font-weight: 600; } small { display: block; font-size: 11px; b { color: darken($oc-amber, 25%); } } }
-  .oc-suggestions { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 6px; }
-  .oc-suggestion {
-    display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px;
-    max-width: 100%; margin: 0; padding: 5px 10px;
-    border: 1px solid transparent; border-radius: 8px;
-    font: inherit; font-size: 12px; text-align: left; cursor: pointer; line-height: 1.3;
-    b { margin-right: 4px; }
-    small { color: inherit; opacity: 0.8; font-size: 11px; }
-    i { font-style: normal; font-weight: 700; font-size: 11px; }
-    &.selected { box-shadow: inset 0 0 0 2px rgba(0,0,0,0.35); }
-    &:hover { filter: brightness(0.96); }
-    em { font-style: normal; font-weight: 700; &.ok { color: $oc-green-dark; } &.warn { color: darken($oc-amber, 20%); } &.muted { opacity: 0.7; } }
-    .oc-sug-name { font-weight: 600; line-height: 1.3; }
-    .oc-sug-prices strong { font-size: 13px; }
-    .oc-sug-hist { opacity: 0.8; }
-    .oc-pricebox { padding: 2px 4px; margin: 2px -4px; text-align: left; }
-    .oc-pricechip { margin: 2px 0; background: rgba(255,255,255,0.75); &.ok { color: $oc-green-dark; } &.warn { color: darken($oc-amber, 20%); } &.bad { color: $oc-red; } &.muted { color: $oc-muted; } }
-    i { margin-top: 2px; }
-  }
+  .oc-unavailable-name { flex: 1 1 220px; min-width: 0; span { font-weight: 600; } small { display: block; font-size: 11px; b { color: darken($oc-amber, 25%); } } .oc-note { font-style: italic; font-size: 12px; } }
   // same rows as the unavailable box, for last time's articles and their alternatives
   .oc-lasttime {
     background: #f3f7fb; border-color: #cddceb;
     strong { color: $oc-blue; }
     .oc-unavailable-row { border-top-color: #dbe6f1; }
     .oc-unavailable-name .oc-demand { margin-top: 4px; }
-    // the article as it was ordered last time: white card, green frame while it is in the new order
-    .oc-self { background: #fff; border-color: #bbb; color: $oc-ink; b { color: $oc-muted; text-transform: uppercase; font-size: 10px; letter-spacing: 0.04em; } &.selected { border-color: $oc-green-dark; box-shadow: inset 0 0 0 2px $oc-green-dark; } }
-    .oc-more { align-self: center; padding: 0; }
-    .oc-none { align-self: center; font-size: 12px; }
     // an article that can no longer be ordered: greyed name and card
     .oc-unavailable-row.gone .oc-unavailable-name > span { color: $oc-muted; text-decoration: line-through; }
-    .oc-self.gone { background: #f0f0f0; border-color: #ddd; color: $oc-muted; cursor: default; i { color: $oc-red; } }
   }
-  .oc-replace { margin-left: 8px; padding: 0 6px; border-radius: 8px; background: rgba(255,255,255,0.75); color: $oc-blue; font-weight: 700; &:hover { background: #fff; } }
-  .oc-more-list { flex: 1 1 auto; }
+  // a last-time row's choice: looks like a select, opens the choice dialog
+  .oc-choice {
+    flex: 1 1 100%; display: flex; align-items: center; gap: 8px; min-width: 0; margin: 2px 0 0; padding: 6px 10px;
+    border: 1px solid #bbb; border-radius: 8px; background: #fff; color: $oc-ink;
+    font: inherit; font-size: 12px; text-align: left; cursor: pointer; line-height: 1.3;
+    &:hover { border-color: $oc-blue; }
+    &:focus { outline: none; border-color: $oc-blue; box-shadow: 0 0 0 2px rgba(60,120,180,0.25); }
+    .oc-choice-body { flex: 1 1 auto; min-width: 0; b { display: block; font-size: 13px; } small { display: block; font-size: 11px; color: $oc-muted; } }
+    // a chosen alternative's name stays on one line, clipped
+    .oc-choice-body b.oc-choice-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .oc-note { font-style: italic; }
+    em { font-style: normal; font-weight: 700; &.ok { color: $oc-green-dark; } &.warn { color: darken($oc-amber, 20%); } &.muted { opacity: 0.7; } }
+    .oc-caret { flex: 0 0 auto; color: $oc-muted; }
+    &.is-self { border-color: $oc-green-dark; b { color: $oc-green-dark; } }
+    // "2 cheaper alternatives (up to $1.18 less)" under "Same as last time"
+    .oc-choice-body small.oc-cheaper { color: darken($oc-amber, 20%); font-weight: 700; &:before { content: "$ "; } }
+    &.is-none { background: #f6f6f6; border-style: dashed; b { color: $oc-muted; } }
+  }
+  // category heading between the last-time rows
+  .oc-lt-category {
+    margin: 10px 0 0; padding: 4px 0 2px; border-bottom: 2px solid #cddceb;
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: $oc-blue;
+    small { font-weight: 400; color: $oc-muted; margin-left: 4px; }
+    + .oc-unavailable-row { border-top: 0; }
+  }
+  // dense last-time rows: price first on the meta line, history bars inline after the demand
+  .oc-lasttime .oc-unavailable-row { padding: 5px 0; align-items: center; }
+  .oc-row-meta { margin: 1px 0; }
+  .oc-unavailable-name .oc-maker { font-size: inherit; font-weight: 700; color: #000; }
+  .oc-unavailable-name .oc-row-price { display: inline; margin: 0; font-size: 13px; color: $oc-ink; }
+  .oc-row-meta em { margin-right: 2px; font-style: normal; font-weight: 700; &.ok { color: $oc-green-dark; } &.warn { color: darken($oc-amber, 20%); } &.bad { color: $oc-red; } &.muted { color: $oc-muted; font-weight: 400; } }
+  .oc-row-stats { flex: 1 1 100%; min-width: 0; .oc-row-change {
+    // the change since last time; the whole thing opens the price history
+    display: inline-block; margin: 0 0 2px; padding: 1px 8px; border: 1px solid #b8c8d8; border-radius: 6px;
+    background: linear-gradient(#fff, #eef3f8); box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+    font: inherit; font-size: 11px; line-height: 18px; color: $oc-blue; text-align: left; white-space: nowrap; cursor: pointer;
+    em { margin: 0; }
+    &:hover { border-color: $oc-blue; background: $oc-blue-bg; }
+    &:focus { outline: none; box-shadow: 0 0 0 2px rgba(60,120,180,0.25); }
+    &:active { box-shadow: inset 0 1px 2px rgba(0,0,0,0.12); }
+  } }
+  .oc-demand.oc-row-demand {
+    flex: 1 1 100%; margin: 0; gap: 0; font-size: 12px; line-height: 1.4;
+    .strong { font-size: 12px; }
+    > span + span:before { content: " · "; color: $oc-muted; font-weight: 400; }
+  }
+  // inline price that opens the history dialog: "$6.26 ▼ 12% since 29 Aug ›"
+  .oc-opt-price {
+    display: inline; margin: 0; padding: 0 2px; border: 0; border-radius: 4px; background: none;
+    font: inherit; color: inherit; cursor: pointer;
+    strong { color: $oc-ink; font-size: 13px; }
+    &:hover, &:focus { background: rgba(0,0,0,0.06); outline: none; }
+    em { font-style: normal; font-weight: 700; &.ok { color: $oc-green-dark; } &.warn { color: darken($oc-amber, 20%); } &.bad { color: $oc-red; } &.muted { color: $oc-muted; font-weight: 400; } }
+  }
+  // the article being replaced, under the dialog title: price first, then pack, grower, origin and note
+  .oc-dialog-item { margin-top: 2px; font-size: 12px; color: $oc-muted; i { font-style: italic; color: $oc-ink; } }
+  .oc-dialog-demand { margin-top: 2px; > span:first-child + span:before { content: " "; } }
+  // sort buttons above the choice dialog's options
+  .oc-sortbar {
+    display: flex; align-items: center; gap: 4px; margin: 0 0 6px; font-size: 12px; color: $oc-muted;
+    button { padding: 2px 10px; border: 1px solid #ccc; border-radius: 12px; background: #fff; font: inherit; color: $oc-ink; cursor: pointer;
+             &.active { background: $oc-green-bg; border-color: $oc-green-dark; color: $oc-green-dark; font-weight: 600; } }
+  }
+  // the choice dialog: one compact row per option
+  .oc-opts { display: flex; flex-direction: column; gap: 3px; }
+  .oc-opt {
+    display: flex; align-items: center; gap: 10px; padding: 4px 8px;
+    border: 1px solid $oc-line; border-left: 4px solid #bbb; border-radius: 6px; background: #fff;
+    font-size: 12px; line-height: 1.35; cursor: pointer;
+    &:hover { background: #f6f9fc; }
+    &:focus { outline: none; box-shadow: 0 0 0 2px rgba(60,120,180,0.25); }
+    &.selected { background: $oc-green-bg; border-color: $oc-green-dark; .oc-opt-pick { color: $oc-green-dark; } }
+    .oc-opt-main { flex: 1 1 auto; min-width: 0; }
+    .oc-opt-name { font-weight: 600; font-size: 13px; }
+    .oc-opt-score { display: inline-block; padding: 0 4px; border-radius: 4px; font-size: 11px; background: #eee; color: $oc-muted; }
+    .oc-opt-meta { color: $oc-muted; font-size: 11px; i { font-style: italic; } }
+    // an alternative cheaper than last time's article, same amber as the hint on the closed choice
+    &.cheaper:not(.selected) { background: lighten($oc-amber-bg, 3%); }
+    .oc-cheaper-tag { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 4px; background: $oc-amber-bg; border: 1px solid darken($oc-amber-bg, 15%);
+                      color: darken($oc-amber, 20%); font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .oc-opt-fit { font-size: 11px; color: darken($oc-amber, 20%); &.ok { color: $oc-green-dark; font-weight: 700; } }
+    .oc-opt-pick { flex: 0 0 auto; font-weight: 700; font-size: 11px; color: $oc-blue; white-space: nowrap; }
+    &.oc-opt-none { border-left-style: dashed; background: #f8f8f8; }
+    &.oc-opt-self { border-left-color: $oc-green-dark; .oc-opt-score { text-transform: uppercase; font-size: 10px; } }
+  }
   .oc-modal-foot { margin: 12px 0 0; text-align: right; }
 
   // ---- order details ------------------------------------------------------------------
@@ -121,6 +180,8 @@ $oc-footer-h: 64px;
       border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box;
       &:focus { outline: none; border-color: $oc-green; box-shadow: 0 0 0 2px rgba(120,183,78,0.25); }
     }
+    // date and time side by side (OrderCopyApp's oc-datetime)
+    .oc-datetime { display: flex; gap: 6px; input[type=date] { flex: 1 1 60%; } input[type=time] { flex: 1 1 40%; } }
     textarea { height: auto; min-height: 40px; padding: 8px 10px; resize: none; overflow: hidden; line-height: 1.4; }
   }
 
@@ -137,7 +198,6 @@ $oc-footer-h: 64px;
     }
   }
   .oc-lasttime { margin-top: 0; }
-  .oc-row-side { flex: 1 1 100%; padding-left: 0; }
 
   // ---- toolbar --------------------------------------------------------------------------
   .oc-toolbar { position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid $oc-line; padding: 8px 0 6px; margin: 0 0 6px; }
@@ -287,12 +347,28 @@ $oc-footer-h: 64px;
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     padding: 10px 14px; background: #fff; border-top: 1px solid $oc-line; box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
   }
+  .oc-footer-actions { flex: 0 0 auto; display: flex; gap: 8px; }
   .oc-footer-info { min-width: 0; strong { display: block; font-size: 15px; } small { display: block; font-size: 12px; } }
   .oc-toast {
     position: fixed; left: 50%; bottom: $oc-footer-h + 16px; transform: translateX(-50%); z-index: 40;
     padding: 10px 16px; border-radius: 20px; background: rgba(50,50,50,0.95); color: #fff; font-size: 14px;
     &.error { background: $oc-red; } &.ok { background: $oc-green-dark; }
   }
+}
+
+// phones: a last-time row as a grid, with the price change and history pill at
+// the top right beside the name
+@media (max-width: 767px) {
+  .oc .oc-lasttime .oc-unavailable-row {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px;
+    grid-template-areas: "title change" "meta meta" "demand demand" "choice choice";
+  }
+  .oc .oc-lasttime .oc-unavailable-name, .oc .oc-lasttime .oc-row-stats { display: contents; }
+  .oc .oc-lasttime .oc-unavailable-name > span { grid-area: title; }
+  .oc .oc-lasttime .oc-row-meta:not(.oc-row-change) { grid-area: meta; }
+  .oc .oc-lasttime .oc-row-change { grid-area: change; align-self: start; text-align: right; white-space: nowrap; }
+  .oc .oc-lasttime .oc-row-demand { grid-area: demand; }
+  .oc .oc-lasttime .oc-choice { grid-area: choice; }
 }
 
 @media (min-width: 768px) {
@@ -309,8 +385,9 @@ $oc-footer-h: 64px;
   .oc .oc-list { display: grid; grid-template-columns: 1fr; gap: 6px; }
   .oc .oc-item { flex-wrap: nowrap; }
   .oc .oc-item-side { flex: 0 0 auto; display: block; min-width: 150px; padding-left: 0; text-align: right; }
-  .oc .oc-suggestions { flex: 2 1 400px; }
-  .oc .oc-row-side { flex: 0 0 190px; }
+  .oc .oc-choice { flex: 0 0 260px; margin-top: 0; }
+  .oc .oc-lasttime .oc-unavailable-row { flex-wrap: nowrap; }
+  .oc .oc-row-stats { flex: 0 1 340px; }
   .oc .oc-unavailable-name { flex: 1 1 200px; }
   .oc .oc-history { margin-top: 6px; }
 }

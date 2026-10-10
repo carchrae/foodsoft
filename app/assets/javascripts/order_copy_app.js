@@ -11,8 +11,15 @@
 
   var M = window.FoodsoftArticleMatch;
   var SUGGESTIONS = 3;      // under an article that can no longer be ordered
-  var ALTERNATIVES = 3;     // visible beside a last-time article (selected ones always show)
-  var ALT_POOL = 30;        // candidates kept per article for the "show more" dialog
+  var ALT_POOL = 30;        // candidates kept per article for the choice dialog
+
+  // best match first (by the whole percentage shown), then cheapest, then by name
+  function byMatch(x, y) {
+    return Math.round(y.score * 100) - Math.round(x.score * 100) || x.a.price - y.a.price || x.a.name.localeCompare(y.a.name);
+  }
+
+  // "APPLES GALA BAGGED FCY 12x3# (BLOSSOM RIVER)": the grower after the name, in the choice dialog
+  function nameWithMaker(a) { return a.name + (a.manufacturer ? ' (' + a.manufacturer + ')' : ''); }
 
   function fmtUnits(n) { return Math.abs(n - Math.round(n)) < 0.005 ? String(Math.round(n)) : n.toFixed(1); }
 
@@ -51,7 +58,7 @@
     selNone: 'none',
     selShown: 'all shown',
     unselShown: 'none shown',
-    nothing: 'No articles match.',
+    noMatch: 'No articles match.',
     newChip: 'new',
     noneChip: 'nobody ordered',
     notOffered: 'not in last order',
@@ -78,6 +85,9 @@
       return p.join(' · ');
     },
     create: 'Create order',
+    reset: 'Reset',
+    resetConfirm: 'Throw away your changes and start again from the defaults (last order\'s articles, suggested dates)?',
+    restored: 'Your unsaved changes were restored.',
     creating: 'Creating…',
     created: 'The order has been created.',
     loadError: 'Could not load the order. Your session may have expired.',
@@ -92,20 +102,38 @@
     priceRange: function (low, high) { return 'last year ' + low + ' – ' + high; },
     priceHistory: 'Price history',
     priceHistoryLink: 'price history ›',
+    // one-line forms for the dense last-time rows and the choice dialog
+    priceShort: function (pct, when) { return (pct > 0 ? '▲ ' + pct + '%' : (pct < 0 ? '▼ ' + (-pct) + '%' : 'no change')) + ' since ' + when; },
+    barTitle: function (when, n) { return when + ': ' + (n == null ? 'not in that order' : n + (n === 1 ? ' household' : ' households')); },
+    avgOffered: function (n) { return 'avg ' + n + (n === 1 ? ' household' : ' households') + ' when offered'; },
     lastTimeTitle: function (n) { return 'Articles you ordered last time and their alternatives'; },
     tabLast: 'Last time & alternatives',
     tabAll: 'All available articles',
-    lastTimeHint: function (gone) { return 'The article as ordered last time, then similar available articles; the price difference is for the same amount. Tap to add or remove, "replace" swaps it for the last-time article.' + (gone ? ' ' + gone + (gone === 1 ? ' article' : ' articles') + ' can no longer be ordered (greyed) and will not be pre-selected.' : ''); },
+    lastTimeHint: function (gone) { return 'Each article ordered last time and what the new order gets instead: the same article, an alternative or nothing. Tap the choice on the right to change it; price differences are for the same amount.' + (gone ? ' ' + gone + (gone === 1 ? ' article' : ' articles') + ' can no longer be ordered (greyed); an identical new listing is chosen automatically, otherwise nothing.' : ''); },
     gone: 'no longer available',
     lastTime: 'last time',
-    remove: 'remove',
-    replace: '⇄ replace',
-    showMore: function (n) { return 'show ' + n + ' more…'; },
-    moreTitle: function (name) { return 'More alternatives for ' + name; },
+    sameArticle: 'Same as last time',
+    nothing: 'Nothing',
+    nothingHint: 'leave it out of the new order',
+    choose: 'change',
+    chosen: '✓ chosen',
+    pick: 'choose',
+    cheaperAlts: function (n, saving) { return n + (n === 1 ? ' cheaper alternative' : ' cheaper alternatives') + (n === 1 ? ' (' : ' (up to ') + saving + ' less)'; },
+    alternativesCount: function (n) { return n ? n + (n === 1 ? ' alternative' : ' alternatives') : 'no alternatives'; },
+    moreTitle: function (name) { return 'Instead of ' + name; },
     moreSearch: 'Search all articles…',
+    lastDemand: 'Last time:',
+    fitsCases: function (n) { return '✓ last time\'s demand fills ' + fmtUnits(n) + (n === 1 ? ' case' : ' cases'); },
+    fitsShort: function (units, missing) { return 'last time\'s demand: ' + (units ? fmtUnits(units) + (units === 1 ? ' case, ' : ' cases, ') : '') + missing + ' short of a case'; },
+    fitsNone: 'last time\'s demand fills no case',
+    noCategory: 'Other',
+    sortBy: 'Sort:',
+    sortMatch: 'best match',
+    sortPerLb: 'price per lb',
+    sortPrice: 'price',
     moreNothing: 'No article matches.',
     clear: 'Clear',
-    alternativesLabel: 'Alternatives',
+    alternativesLabel: 'Choose for the new order',
     unitsDiffer: 'units differ',
     cheaperBy: function (d) { return d + ' cheaper'; },
     dearerBy: function (d) { return d + ' more'; },
@@ -127,6 +155,8 @@
     otherUnit: 'other unit',
     close: 'Close',
     loadingPrices: 'Loading prices…',
+    date: 'Date',
+    time: 'Time',
     needEnds: 'Please set when the order closes.',
     needPickup: 'Please set the pickup date.',
     notSet: 'not set'
@@ -147,38 +177,70 @@
   }
 
   // One alternative as a tappable card: score, name, pack/grower/origin/price and
-  // the difference, then the same price details as the article cards (coop and
-  // supplier price, "N% more than last time" chip opening the history dialog,
-  // and the six-order history line). Used in the last-time rows and the dialog.
+  // the difference, the note, then the same price details as the article cards
+  // (coop and supplier price, "N% more than last time" chip opening the history
+  // dialog, and the six-order history line). Used in the choice dialog.
   var AltCard = {
     props: {
       s: { type: Object, required: true },        // { a, score, delta, comparable, sameUnit }
       selected: { type: Boolean, default: false },
-      replaceable: { type: Boolean, default: false },
       money: { type: Function, required: true },
       priceChip: { type: Function, required: true },
       historyText: { type: Function, required: true },
-      deltaChip: { type: Function, required: true }
+      deltaChip: { type: Function, required: true },
+      shortChip: { type: Function, required: true },
+      fit: { type: Object, default: null }          // demandFit() of this option, null when it cannot be told
     },
-    emits: ['toggle', 'replace', 'prices'],
+    emits: ['toggle', 'prices'],
     data: function () { return { T: T }; },
-    methods: { tint: M.tint, ink: M.ink },
+    computed: {
+      // cheaper than the last-time article for the same amount
+      cheaper: function () { return this.s.comparable && this.s.delta < -0.005; }
+    },
+    methods: { tint: M.tint, ink: M.ink, nameWithMaker: nameWithMaker },
     template:
-      '<div class="oc-suggestion" role="button" tabindex="0" :class="{ selected: selected }" :style="{ background: tint(s.score), color: ink(s.score), borderColor: ink(s.score) }" @click="$emit(\'toggle\')" @keydown.enter.prevent="$emit(\'toggle\')" :title="s.a.name">' +
-      '  <span class="oc-sug-name"><b>{{ T.match(Math.round(s.score * 100)) }}</b> {{ s.a.name }}</span>' +
-      '  <small>{{ [s.a.unit_quantity + \'×\' + s.a.unit, s.a.manufacturer, s.a.origin].filter(Boolean).join(\' · \') }}</small>' +
-      '  <button type="button" class="oc-pricebox" @click.stop.prevent="$emit(\'prices\')" :title="T.priceHistory">' +
-      '    <small class="oc-sug-prices"><strong>{{ money(s.a.price) }}</strong> · {{ money(s.a.fc_price) }} · {{ money(s.a.supplier_price) }} · <em :class="deltaChip(s).kind">{{ deltaChip(s).text }}</em></small>' +
-      '    <span class="oc-pricechip" v-if="priceChip(s.a)" :class="priceChip(s.a).kind">{{ priceChip(s.a).text }}</span>' +
-      '    <span class="oc-pricelink">{{ T.priceHistoryLink }}</span>' +
-      '  </button>' +
-      '  <small class="oc-sug-hist" v-if="s.a.history && s.a.history.offered">{{ historyText(s.a) }}</small>' +
-      '  <i>{{ selected ? \'✓ \' + T.added : \'+ \' + T.add }}<span class="oc-replace" v-if="replaceable && !selected" @click.stop="$emit(\'replace\')">{{ T.replace }}</span></i>' +
+      '<div class="oc-opt" role="button" tabindex="0" :class="{ selected: selected, cheaper: cheaper }" :style="{ borderLeftColor: ink(s.score) }" @click="$emit(\'toggle\')" @keydown.enter.prevent="$emit(\'toggle\')">' +
+      '  <div class="oc-opt-main">' +
+      '    <div class="oc-opt-name" :title="T.match(Math.round(s.score * 100)) + \' match\'">{{ nameWithMaker(s.a) }} <span class="oc-cheaper-tag" v-if="cheaper">{{ T.cheaperBy(money(-s.delta)) }}</span></div>' +
+      '    <div class="oc-opt-meta"><button type="button" class="oc-opt-price" @click.stop.prevent="$emit(\'prices\')" :title="T.priceHistory + \' (\' + T.prices + \': \' + money(s.a.fc_price) + \' · \' + money(s.a.supplier_price) + \')\'"><strong>{{ money(s.a.price) }}</strong> <em :class="deltaChip(s).kind">({{ deltaChip(s).text }})</em><template v-if="shortChip(s.a)"> <em :class="shortChip(s.a).kind">{{ shortChip(s.a).text }}</em></template> ›</button>' +
+      '      · {{ [s.a.unit_quantity + \'×\' + s.a.unit, s.a.origin].filter(Boolean).join(\' · \') }}<i v-if="s.a.note"> · {{ s.a.note }}</i><span v-if="s.a.history && s.a.history.ordered" :title="historyText(s.a)"> · {{ T.avgOffered(s.a.history.avg_households) }}</span></div>' +
+      '    <div class="oc-opt-fit" v-if="fit" :class="{ ok: fit.ok }">{{ fit.text }}</div>' +
+      '  </div>' +
+      '  <span class="oc-opt-pick">{{ selected ? T.chosen : T.pick }}</span>' +
+      '</div>'
+  };
+
+  // Date and time as two fields bound to one "YYYY-MM-DDTHH:MM" value. The native
+  // datetime-local popup (Firefox) only has a "Clear" button and stays open; a
+  // plain date picker closes on the chosen day and the time is typed. The value
+  // is only set while both halves are filled.
+  var DateTimeField = {
+    props: { modelValue: { type: String, default: '' }, label: { type: String, required: true }, required: { type: Boolean, default: false } },
+    emits: ['update:modelValue'],
+    data: function () { return { date: '', time: '', T: T }; },
+    watch: {
+      modelValue: {
+        immediate: true,
+        handler: function (v) {
+          if (v) { this.date = v.split('T')[0] || ''; this.time = (v.split('T')[1] || '').slice(0, 5); }
+          else if (this.date && this.time) { this.date = ''; this.time = ''; }
+        }
+      }
+    },
+    methods: {
+      emitValue: function () { this.$emit('update:modelValue', this.date && this.time ? this.date + 'T' + this.time : ''); }
+    },
+    template:
+      '<div class="oc-field"><span>{{ label }}<template v-if="required"> *</template></span>' +
+      '  <div class="oc-datetime">' +
+      '    <input type="date" v-model="date" @change="emitValue" :required="required" :aria-label="label + \' – \' + T.date">' +
+      '    <input type="time" v-model="time" @change="emitValue" :required="required" :aria-label="label + \' – \' + T.time">' +
+      '  </div>' +
       '</div>'
   };
 
   var OrderCopyApp = {
-    components: { 'oc-alt': AltCard },
+    components: { 'oc-alt': AltCard, 'oc-datetime': DateTimeField },
     directives: {
       autogrow: {
         mounted: function (el) { grow(el); el.addEventListener('input', function () { grow(el); }); },
@@ -194,6 +256,7 @@
         d: null,
         form: {},
         selected: {},       // article id -> true
+        choice: {},         // last-time article id -> article id chosen for the new order, or null for nothing
         filter: 'all',      // all | demand | nodemand | new
         category: '',
         query: '',
@@ -204,8 +267,9 @@
         errors: [],
         toast: null,
         priceDialog: null,   // { article, loading, data, error } while the history dialog is open
-        altDialog: null,     // { a, list } while the "more alternatives" dialog is open
+        altDialog: null,     // { a, available, list } while a last-time row's choice dialog is open
         altQuery: '',        // search in that dialog: empty shows the namesakes, text searches everything
+        altSort: 'match',    // match | perlb (when notes carry a price per lb) | price (when they don't)
         T: T
       };
     },
@@ -265,22 +329,41 @@
       },
       canCreate: function () { return this.selectedStats.total > 0 && !this.saving; },
 
-      // articles of the copied order that are still available, most wanted first,
-      // each with its alternatives (only those that have any)
+      // the copied order's articles (still available or not) by name, each with
+      // its alternatives and what is chosen for the new order
       lastTimeWithAlternatives: function () {
-        var self = this, sel = this.selected;
+        var self = this;
         if (!this.d) return [];
-        var rows = this.articles.filter(function (a) { return a.in_source; }).map(function (a) { return { a: a, available: true }; });
-        this.d.unavailable.forEach(function (u) { rows.push({ a: u, available: false }); });
-        return rows.sort(function (x, y) { return x.a.name.localeCompare(y.a.name); })
-          .map(function (r) {
-            var pool = self.alternativesFor(r.a);
-            // chosen alternatives always stay visible; the rest fill up to the usual three
-            var chosen = pool.filter(function (s) { return sel[s.a.id]; });
-            var others = pool.filter(function (s) { return !sel[s.a.id]; });
-            var visible = chosen.concat(others).slice(0, Math.max(ALTERNATIVES, chosen.length));
-            return { a: r.a, available: r.available, suggestions: visible, more: pool.length - visible.length };
-          });
+        return this.lastTimeRows.map(function (r) {
+          var alts = self.alternativesFor(r.a);
+          // alternatives cheaper for the same amount, and the biggest saving among them
+          var cheaper = alts.filter(function (s) { return s.comparable && s.delta < -0.005; });
+          var saving = cheaper.reduce(function (m, s) { return Math.max(m, -s.delta); }, 0);
+          return { a: r.a, available: r.available, category: r.category, alternatives: alts.length, cheaper: cheaper.length, saving: saving, chosen: self.chosenFor(r) };
+        });
+      },
+      lastTimeRows: function () {
+        if (!this.d) return [];
+        var rows = [];
+        this.d.categories.forEach(function (c) {
+          c.articles.forEach(function (a) { if (a.in_source) rows.push({ a: a, available: true, category: c.name }); });
+        });
+        this.d.unavailable.forEach(function (u) { rows.push({ a: u, available: false, category: u.category || '' }); });
+        return rows.sort(function (x, y) { return x.a.name.localeCompare(y.a.name); });
+      },
+      // the last-time rows by category, categories by name (articles without one last)
+      lastTimeGroups: function () {
+        var groups = {}, out = [];
+        this.lastTimeWithAlternatives.forEach(function (x) {
+          if (!groups[x.category]) out.push(groups[x.category] = { name: x.category, rows: [] });
+          groups[x.category].rows.push(x);
+        });
+        return out.sort(function (x, y) { return (!x.name) - (!y.name) || x.name.localeCompare(y.name); });
+      },
+      articlesById: function () {
+        var out = {};
+        this.articles.forEach(function (a) { out[a.id] = a; });
+        return out;
       },
 
       // available articles by product word ("apple", "pepper"), so alternatives are
@@ -297,6 +380,12 @@
       // unavailable articles with the best available matches (same product word,
       // scored like the swap page), best first
       goneCount: function () { return this.d ? this.d.unavailable.length : 0; }
+    },
+
+    watch: {
+      form: { deep: true, handler: function () { this.saveDraft(); } },
+      selected: { deep: true, handler: function () { this.saveDraft(); } },
+      choice: { deep: true, handler: function () { this.saveDraft(); } }
     },
 
     created: function () {
@@ -326,6 +415,16 @@
 
       apply: function (json) {
         this.d = json;
+        this.applyDefaults();
+        if (window.innerWidth < 768) this.detailsOpen = false;
+        if (this.restoreDraft()) this.notify('ok', T.restored);
+        // save only edits made from now on, not the watchers firing for the load itself
+        var self = this;
+        this.$nextTick(function () { self._draftReady = true; });
+      },
+
+      applyDefaults: function () {
+        var json = this.d;
         this.form = {
           starts: json.defaults.starts || '',
           ends: json.defaults.ends || '',
@@ -335,8 +434,46 @@
           note: json.defaults.note || '',
           supplier_note: json.defaults.supplier_note || ''
         };
+        this.choice = {};
         this.selectAs('last');
-        if (window.innerWidth < 768) this.detailsOpen = false;
+      },
+
+      // ---- unsaved changes in localStorage, per copied order ------------------------------------
+      draftKey: function () { return 'foodsoft.orderCopy.' + this.d.source.id; },
+      saveDraft: function () {
+        if (!this._draftReady || this._created) return;
+        try {
+          localStorage.setItem(this.draftKey(), JSON.stringify({ at: Date.now(), form: this.form, selected: this.selected, choice: this.choice }));
+        } catch (e) { /* storage full or blocked: nothing to restore later */ }
+      },
+      // the saved form, selection and per-row choices, kept to articles that still exist
+      restoreDraft: function () {
+        var draft;
+        try { draft = JSON.parse(localStorage.getItem(this.draftKey()) || 'null'); } catch (e) { draft = null; }
+        if (!draft || !draft.form || !draft.selected) return false;
+        var known = this.articlesById, sel = {}, choice = {}, self = this;
+        Object.keys(draft.form).forEach(function (k) { if (k in self.form) self.form[k] = draft.form[k]; });
+        this.articles.forEach(function (a) { sel[a.id] = !!draft.selected[a.id]; });
+        this.lastTimeRows.forEach(function (r) {
+          var c = draft.choice ? draft.choice[r.a.id] : undefined;
+          choice[r.a.id] = c === undefined ? self.choice[r.a.id] : (c != null && known[c] ? c : null);
+        });
+        this.selected = sel;
+        this.choice = choice;
+        return true;
+      },
+      clearDraft: function () {
+        try { localStorage.removeItem(this.draftKey()); } catch (e) { /* ignore */ }
+      },
+      resetAll: function () {
+        if (!window.confirm(T.resetConfirm)) return;
+        var self = this;
+        this._draftReady = false;
+        this.clearDraft();
+        this.applyDefaults();
+        this.errors = [];
+        // the watchers fire for the reset itself; only later edits are saved again
+        this.$nextTick(function () { self._draftReady = true; });
       },
 
       passes: function (a, q) {
@@ -378,6 +515,30 @@
         return parts;
       },
 
+      // the same, condensed for the last-time rows ("8 people wanted 10..16 ·
+      // 9 short of a case · got 0.4, 10 delivered · avg 8"); full wording in the titles
+      demandShort: function (a) {
+        var d = a.demand, parts = [], h = a.history;
+        if (!d) return [];
+        if (d.households === 0) parts.push({ text: T.noneChip, kind: 'muted' });
+        else {
+          // "8 people wanted 17..24": the range runs up to what they would also take
+          parts.push({ text: d.households + (d.households === 1 ? ' person' : ' people') + ' wanted ' + d.wanted + (d.extra ? '..' + (d.wanted + d.extra) : ''),
+                       title: T.households(d.households) + ', ' + T.wanted(d.wanted, d.extra), kind: 'strong' });
+          if (d.units_to_order > 0) {
+            parts.push({ text: T.cases(d.units_to_order, d.unit_size) + (d.missing_units > 0 ? ', ' + d.missing_units + ' short' : ''), kind: 'ok' });
+          } else {
+            parts.push({ text: d.missing_units > 0 ? T.shortOf(d.missing_units) : T.noCase, title: T.noCase, kind: 'warn' });
+          }
+          var got = [];
+          if (d.units_received != null && d.units_received !== d.units_to_order) got.push('got ' + fmtUnits(d.units_received));
+          if (d.delivered > 0) got.push(T.delivered(fmtUnits(d.delivered)));
+          if (got.length) parts.push({ text: got.join(', '), title: [d.units_received != null ? T.received(fmtUnits(d.units_received)) + ' (cases)' : '', d.delivered > 0 ? T.delivered(fmtUnits(d.delivered)) + ' (units to members)' : ''].filter(Boolean).join(', '), kind: 'info' });
+        }
+        if (h && h.ordered) parts.push({ text: 'avg ' + h.avg_households, title: T.avgOffered(h.avg_households) + ' (' + this.historyText(a) + ')', kind: 'muted' });
+        return parts;
+      },
+
       // 0..100 fill of the last case, for the small bar
       fillPercent: function (a) {
         var d = a.demand;
@@ -391,8 +552,10 @@
         if (!a.history) return [];
         var max = 1;
         a.history.households.forEach(function (n) { if (n != null && n > max) max = n; });
-        return a.history.households.map(function (n) {
-          return { height: n == null ? 0 : Math.max(8, Math.round(n / max * 100)), missing: n == null, n: n };
+        var orders = this.d.history.orders;
+        return a.history.households.map(function (n, i) {
+          return { height: n == null ? 0 : Math.max(8, Math.round(n / max * 100)), missing: n == null, n: n,
+                   title: T.barTitle(orders[i] ? orders[i].ends_human : '', n) };
         }).reverse(); // oldest left, newest right
       },
 
@@ -422,6 +585,50 @@
           else sel[a.id] = false;
         });
         this.selected = sel;
+        if (mode === 'last' || mode === 'demand') this.initChoices(mode === 'demand');
+      },
+
+      // Each last-time row starts with the article itself, or for one that can no
+      // longer be ordered with a perfect match (same name and unit, e.g. the
+      // relisted article without "UNAVAILABLE!"), or else nothing.
+      initChoices: function (onlyDemand) {
+        var self = this, choice = {};
+        this.lastTimeRows.forEach(function (r) {
+          var a = r.a, pick = null;
+          if (r.available) pick = a.id;
+          else {
+            var perfect = self.alternativesFor(a).filter(function (s) { return self.isPerfect(a, s); })[0];
+            if (perfect) pick = perfect.a.id;
+          }
+          if (pick != null && onlyDemand && !(a.demand && a.demand.households > 0)) pick = null;
+          choice[a.id] = pick;
+          if (pick != null) self.selected[pick] = true;
+        });
+        this.choice = choice;
+      },
+      isPerfect: function (target, s) { return s.sameUnit && M.cleanName(s.a.name) === M.cleanName(target.name); },
+
+      // what a last-time row currently gets: its choice while that is still
+      // selected (the "all" tab can untick it), else the article itself when it is
+      // selected, else nothing. { kind: none | self | alt, s }
+      chosenFor: function (r) {
+        var c = this.choice[r.a.id], sel = this.selected;
+        if (c != null && sel[c] && c !== r.a.id && this.articlesById[c]) return { kind: 'alt', s: this.scored(r.a, this.articlesById[c]) };
+        if (r.available && sel[r.a.id]) return { kind: 'self' };
+        return { kind: 'none' };
+      },
+
+      // choose an article (or null for nothing) for a last-time row; the article it
+      // had before leaves the order unless another row chose it too
+      choose: function (target, id) {
+        var self = this, prev = this.chosenFor({ a: target, available: !!this.articlesById[target.id] });
+        var prevId = prev.kind === 'alt' ? prev.s.a.id : (prev.kind === 'self' ? target.id : null);
+        if (prevId != null && prevId !== id) {
+          var shared = Object.keys(this.choice).some(function (k) { return String(k) !== String(target.id) && self.choice[k] === prevId; });
+          if (!shared) this.selected[prevId] = false;
+        }
+        this.choice[target.id] = id;
+        if (id != null) this.selected[id] = true;
       },
 
       money: function (v) { return money(v, this.cfg.currency_unit); },
@@ -443,20 +650,26 @@
         return { text: T.priceSame(prev, when), kind: 'muted' };
       },
 
+      // the same as a one-line chip: "▼ 12% since 29 Aug"
+      shortChip: function (a) {
+        var p = a.prices;
+        if (!p || p.change_pct == null) return null;
+        var when = String(p.previous_date || '').replace(/^[A-Za-z]+,\s*/, '').replace(/\s+\d{4}$/, '');
+        return { text: T.priceShort(p.change_pct, when), kind: p.change_pct > 0 ? (p.change_pct >= 10 ? 'bad' : 'warn') : (p.change_pct < 0 ? 'ok' : 'muted') };
+      },
+
       // Similar available articles for a target (same product word, scored like the
       // swap page), best first, one per name and unit (the cheapest), with the price
       // difference for the same amount when the units can be compared
       suggestionsFor: function (target, excludeId, limit) {
         var list = [], seen = {}, unique = [];
         var pool = this.productGroups[M.stem(M.firstWord(target.name))] || [];
+        var self = this;
         pool.forEach(function (a) {
           if (a.id === excludeId || !M.sameProduct(a.name, target.name) || M.isUnavailableName(a.name)) return;
-          var ratio = M.unitRatio(target.unit, a.unit);
-          var equiv = ratio == null ? null : a.price * ratio;
-          list.push({ a: a, score: M.similarity(target, a), sameUnit: M.unitKey(a.unit) === M.unitKey(target.unit),
-                      comparable: ratio != null, delta: equiv == null ? null : equiv - target.price });
+          list.push(self.scored(target, a));
         });
-        list.sort(function (x, y) { return y.score - x.score || x.a.price - y.a.price || x.a.name.localeCompare(y.a.name); });
+        list.sort(byMatch);
         list.forEach(function (s) {
           var key = M.cleanName(s.a.name) + '|' + M.unitKey(s.a.unit);
           if (seen[key]) return;
@@ -466,40 +679,88 @@
         return unique.slice(0, limit);
       },
 
-      // alternatives of an available article, computed once per article
+      // an article as an alternative to target: score, unit match and the price
+      // difference for the same amount when the units can be compared
+      scored: function (target, a) {
+        var ratio = M.unitRatio(target.unit, a.unit), equiv = ratio == null ? null : a.price * ratio;
+        return { a: a, score: M.similarity(target, a), sameUnit: M.unitKey(a.unit) === M.unitKey(target.unit),
+                 comparable: ratio != null, delta: equiv == null ? null : equiv - target.price };
+      },
+
+      // alternatives of a last-time article, computed once per article
       alternativesFor: function (a) {
         if (!this._altCache) this._altCache = {};
         if (!this._altCache[a.id]) this._altCache[a.id] = this.suggestionsFor(a, a.id, ALT_POOL);
         return this._altCache[a.id];
       },
 
-      // add the alternative and drop the last-time article
-      replaceWith: function (a, s) {
-        this.selected[s.a.id] = true;
-        this.selected[a.id] = false;
-      },
-      openMore: function (a) { this.altDialog = { a: a, list: this.alternativesFor(a) }; this.altQuery = ''; },
+      openMore: function (x) { this.altDialog = { a: x.a, available: x.available, list: this.alternativesFor(x.a) }; this.altQuery = ''; this.altSort = 'match'; },
       closeMore: function () { this.altDialog = null; },
-      // choosing in the dialog adds (or removes) the article and closes it; the
-      // pick then shows among the row's cards
-      pickMore: function (s) { this.toggle(s.a); this.closeMore(); },
+      // choosing in the dialog sets the row's choice and closes it
+      pickMore: function (id) { this.choose(this.altDialog.a, id); this.closeMore(); },
+      dialogChosen: function () {
+        return this.altDialog ? this.chosenFor({ a: this.altDialog.a, available: this.altDialog.available }) : null;
+      },
+      isDialogChoice: function (id) {
+        var c = this.dialogChosen();
+        if (!c) return false;
+        if (id == null) return c.kind === 'none';
+        return id === this.altDialog.a.id ? c.kind === 'self' : (c.kind === 'alt' && c.s.a.id === id);
+      },
 
       // the dialog's list: the namesakes, or with a query every available article that
       // matches it (name, grower, origin, code), scored against the last-time article
       moreList: function () {
+        var list = this.matchList();
+        if (this.altSort === 'price') {
+          return list.slice().sort(function (x, y) { return x.a.price - y.a.price || y.score - x.score; });
+        }
+        if (this.altSort !== 'perlb') return list;
+        var self = this;
+        // cheapest per lb first; options without one keep their match order at the end
+        return list.map(function (s, i) { return { s: s, i: i, p: self.perLb(s.a) }; })
+          .sort(function (x, y) {
+            if (x.p == null || y.p == null) return (x.p == null) - (y.p == null) || x.i - y.i;
+            return x.p - y.p || x.i - y.i;
+          })
+          .map(function (x) { return x.s; });
+      },
+      // How last time's demand for target (wanted..wanted+extra, in target's unit)
+      // would fill cases of article a, converted to a's unit; ok when it fills
+      // whole cases with nothing short. null without demand or comparable units.
+      demandFit: function (target, a) {
+        var d = target.demand;
+        if (!d || !(d.wanted > 0)) return null;
+        var ratio = a.id === target.id ? 1 : M.unitRatio(target.unit, a.unit);
+        if (ratio == null) return null;
+        var fill = M.caseFill(Math.round(d.wanted * ratio), Math.round(d.extra * ratio), a.unit_quantity);
+        if (fill.units > 0 && fill.missing === 0) return { ok: true, text: T.fitsCases(fill.units) };
+        if (fill.missing > 0) return { ok: false, text: T.fitsShort(fill.units, fill.missing) };
+        return { ok: false, text: T.fitsNone };
+      },
+
+      // "$2.13 per lb" (or "/lb") in an article's note, as a number; null without one
+      perLb: function (a) {
+        var m = /\$\s*(\d+(?:\.\d+)?)\s*(?:per|\/)\s*lbs?\b/i.exec((a && a.note) || '');
+        return m ? parseFloat(m[1]) : null;
+      },
+      hasPerLb: function () {
+        var self = this;
+        return this.matchList().some(function (s) { return self.perLb(s.a) != null; });
+      },
+      // the dialog's options by match: the namesakes, or with a query every article that matches it
+      matchList: function () {
         if (!this.altDialog) return [];
         var q = this.altQuery.trim().toLowerCase(), target = this.altDialog.a;
         if (!q) return this.altDialog.list;
-        var list = [];
+        var list = [], self = this;
         this.articles.forEach(function (a) {
           if (a.id === target.id || M.isUnavailableName(a.name)) return;
-          var hay = (a.name + ' ' + a.manufacturer + ' ' + a.origin + ' ' + a.order_number).toLowerCase();
+          var hay = (a.name + ' ' + a.manufacturer + ' ' + a.origin + ' ' + a.order_number + ' ' + a.note).toLowerCase();
           if (hay.indexOf(q) === -1) return;
-          var ratio = M.unitRatio(target.unit, a.unit), equiv = ratio == null ? null : a.price * ratio;
-          list.push({ a: a, score: M.similarity(target, a), sameUnit: M.unitKey(a.unit) === M.unitKey(target.unit),
-                      comparable: ratio != null, delta: equiv == null ? null : equiv - target.price });
+          list.push(self.scored(target, a));
         });
-        list.sort(function (x, y) { return y.score - x.score || x.a.price - y.a.price || x.a.name.localeCompare(y.a.name); });
+        list.sort(byMatch);
         return list.slice(0, 40);
       },
 
@@ -535,6 +796,7 @@
       },
       tint: M.tint,
       ink: M.ink,
+      nameWithMaker: nameWithMaker,
       pct: function (s) { return Math.round(s * 100); },
 
       save: function () {
@@ -565,6 +827,7 @@
           .then(function (res) {
             if (res.ok) {
               self._created = true;
+              self.clearDraft();
               self.notify('ok', T.created);
               window.location.href = res.json.url;
             } else if (res.status === 422) {
@@ -633,9 +896,9 @@
       '      <span class="oc-caret">{{ detailsOpen ? \'▴\' : \'▾\' }}</span>' +
       '    </button>' +
       '    <div class="oc-form" v-show="detailsOpen">' +
-      '      <label class="oc-field"><span>{{ T.starts }}</span><input type="datetime-local" v-model="form.starts"></label>' +
-      '      <label class="oc-field" v-if="cfg.use_boxfill"><span>{{ T.boxfill }}</span><input type="datetime-local" v-model="form.boxfill"></label>' +
-      '      <label class="oc-field"><span>{{ T.ends }} *</span><input type="datetime-local" v-model="form.ends" required></label>' +
+      '      <oc-datetime :label="T.starts" v-model="form.starts"></oc-datetime>' +
+      '      <oc-datetime :label="T.boxfill" v-model="form.boxfill" v-if="cfg.use_boxfill"></oc-datetime>' +
+      '      <oc-datetime :label="T.ends" v-model="form.ends" required></oc-datetime>' +
       '      <label class="oc-field"><span>{{ T.pickupDate }} *</span><input type="date" v-model="form.pickup" required></label>' +
       '      <label class="oc-field oc-field-wide"><span>{{ T.endAction }}</span>' +
       '        <select v-model="form.end_action"><option v-for="e in d.end_actions" :key="e.value" :value="e.value">{{ e.label }}</option></select></label>' +
@@ -655,37 +918,32 @@
       '    <div class="oc-unavailable oc-lasttime">' +
       '      <strong>{{ T.lastTimeTitle(lastTimeWithAlternatives.length) }}</strong>' +
       '      <small>{{ T.lastTimeHint(goneCount) }}</small>' +
-      '      <div class="oc-unavailable-row" v-for="x in lastTimeWithAlternatives" :key="x.a.id" :class="{ gone: !x.available }">' +
+      '      <template v-for="g in lastTimeGroups" :key="g.name">' +
+      '      <h4 class="oc-lt-category">{{ g.name || T.noCategory }} <small>{{ g.rows.length }}</small></h4>' +
+      '      <div class="oc-unavailable-row" v-for="x in g.rows" :key="x.a.id" :class="{ gone: !x.available }">' +
       '        <div class="oc-unavailable-name">' +
       '          <span>{{ x.a.name }}</span>' +
-      '          <small>{{ [x.a.unit_quantity + \'×\' + x.a.unit, x.a.manufacturer, x.a.origin, money(x.a.price)].filter(Boolean).join(\' · \') }}</small>' +
-      '          <div class="oc-demand"><span v-for="(p, i) in demandLine(x.a)" :key="i" :class="p.kind">{{ p.text }}</span></div>' +
+      '          <small class="oc-row-meta"><b class="oc-row-price">{{ money(x.a.price) }}</b>' +
+      '            · {{ x.a.unit_quantity + \'×\' + x.a.unit }}<template v-if="x.a.manufacturer"> · <b class="oc-maker">{{ x.a.manufacturer }}</b></template><template v-if="x.a.origin"> · {{ x.a.origin }}</template><i class="oc-note" v-if="x.a.note"> · {{ x.a.note }}</i></small>' +
       '        </div>' +
-      // the same price block as the article cards
-      '        <div class="oc-item-side oc-row-side">' +
-      '          <button type="button" class="oc-price oc-pricebox" @click.prevent.stop="openPrices(x.a)" :title="T.priceHistory"><strong>{{ money(x.a.price) }}</strong><small :title="T.prices">{{ money(x.a.fc_price) }} · {{ money(x.a.supplier_price) }}</small>' +
-      '            <span class="oc-pricechip" v-if="priceChip(x.a)" :class="priceChip(x.a).kind">{{ priceChip(x.a).text }}</span>' +
-      '            <span class="oc-pricelink">{{ T.priceHistoryLink }}</span>' +
-      '          </button>' +
-      '          <div class="oc-history" v-if="x.a.history && x.a.history.offered">' +
-      '            <span class="oc-bars"><span v-for="(b, i) in historyBars(x.a)" :key="i" :class="{ missing: b.missing, zero: b.n === 0 }" :style="{ height: b.height + \'%\' }" :title="b.missing ? T.notOffered : T.households(b.n)"></span></span>' +
-      '            <small>{{ T.history(x.a.history.ordered, x.a.history.offered, d.history.orders.length) }}<template v-if="x.a.history.ordered"> · {{ T.avg(x.a.history.avg_households) }}</template></small>' +
-      '          </div>' +
+      '        <div class="oc-row-stats">' +
+      // the change since last time and the price history, above last time's demand
+      '          <button type="button" class="oc-row-meta oc-row-change" @click.prevent.stop="openPrices(x.a)" :title="T.priceHistory + \' (\' + T.prices + \': \' + money(x.a.fc_price) + \' · \' + money(x.a.supplier_price) + \')\'">' +
+      '            <em v-if="shortChip(x.a)" :class="shortChip(x.a).kind">{{ shortChip(x.a).text }}</em><template v-else>{{ T.priceHistory }}</template> ›</button>' +
+      '          <div class="oc-demand oc-row-demand"><span v-for="(p, i) in demandShort(x.a)" :key="i" :class="p.kind" :title="p.title">{{ p.text }}</span></div>' +
       '        </div>' +
-      '        <div class="oc-suggestions">' +
-      '          <button type="button" class="oc-suggestion oc-self" :class="{ selected: selected[x.a.id], gone: !x.available }" :disabled="!x.available" @click="x.available && toggle(x.a)" :title="x.a.name">' +
-      '            <b>{{ T.lastTime }}</b> {{ x.a.name }}' +
-      '            <small>{{ [x.a.unit_quantity + \'×\' + x.a.unit, x.a.manufacturer, x.a.origin, money(x.a.price)].filter(Boolean).join(\' · \') }}</small>' +
-      '            <i v-if="!x.available">{{ T.gone }}</i>' +
-      '            <i v-else>{{ selected[x.a.id] ? \'✓ \' + T.added + \' · \' + T.remove : \'+ \' + T.add }}</i>' +
-      '          </button>' +
-      '          <span class="muted oc-none" v-if="!x.suggestions.length">{{ T.noSuggestion }}</span>' +
-      '          <oc-alt v-for="s in x.suggestions" :key="s.a.id" :s="s" :selected="!!selected[s.a.id]" :replaceable="x.available && !!selected[x.a.id]"' +
-      '                  :money="money" :price-chip="priceChip" :history-text="historyText" :delta-chip="deltaChip"' +
-      '                  @toggle="toggle(s.a)" @replace="replaceWith(x.a, s)" @prices="openPrices(s.a)"></oc-alt>' +
-      '          <button type="button" class="oc-linkbtn oc-more" v-if="x.more > 0" @click="openMore(x.a)">{{ T.showMore(x.more) }}</button>' +
-      '        </div>' +
+      // what the new order gets for it: looks like a select, opens the choice dialog
+      '        <button type="button" class="oc-choice" :class="\'is-\' + x.chosen.kind" @click="openMore(x)" aria-haspopup="dialog">' +
+      '          <span class="oc-choice-body" v-if="x.chosen.kind === \'self\'"><b>✓ {{ T.sameArticle }}</b><small class="oc-cheaper" v-if="x.cheaper">{{ T.cheaperAlts(x.cheaper, money(x.saving)) }}</small><small v-else>{{ T.alternativesCount(x.alternatives) }}</small></span>' +
+      '          <span class="oc-choice-body" v-else-if="x.chosen.kind === \'alt\'" :style="{ borderColor: ink(x.chosen.s.score) }">' +
+      '            <b class="oc-choice-name" :title="x.chosen.s.a.name">{{ x.chosen.s.a.name }}</b>' +
+      '            <small>{{ [money(x.chosen.s.a.price), x.chosen.s.a.unit_quantity + \'×\' + x.chosen.s.a.unit, x.chosen.s.a.origin].filter(Boolean).join(\' · \') }} · <em :class="deltaChip(x.chosen.s).kind">{{ deltaChip(x.chosen.s).text }}</em><i class="oc-note" v-if="x.chosen.s.a.note"> · {{ x.chosen.s.a.note }}</i></small>' +
+      '          </span>' +
+      '          <span class="oc-choice-body" v-else><b>{{ T.nothing }}</b><small>{{ T.alternativesCount(x.alternatives) }}</small></span>' +
+      '          <span class="oc-caret">▾</span>' +
+      '        </button>' +
       '      </div>' +
+      '      </template>' +
       '    </div>' +
       '  </section>' +
 
@@ -722,7 +980,7 @@
       '  </div>' +
 
       // ---- articles ----------------------------------------------------------------------------------
-      '  <p class="oc-empty" v-if="!visibleCategories.length">{{ T.nothing }}</p>' +
+      '  <p class="oc-empty" v-if="!visibleCategories.length">{{ T.noMatch }}</p>' +
       '  <section class="oc-category" v-for="c in visibleCategories" :key="c.name">' +
       '    <label class="oc-category-head">' +
       '      <input type="checkbox" :checked="categorySelected(c)" @change="toggleCategory(c)">' +
@@ -756,7 +1014,7 @@
       '            <span class="oc-pricelink">{{ T.priceHistoryLink }}</span>' +
       '          </button>' +
       '          <div class="oc-history" v-if="a.history && a.history.offered">' +
-      '            <span class="oc-bars"><span v-for="(b, i) in historyBars(a)" :key="i" :class="{ missing: b.missing, zero: b.n === 0 }" :style="{ height: b.height + \'%\' }" :title="b.missing ? T.notOffered : T.households(b.n)"></span></span>' +
+      '            <span class="oc-bars"><span v-for="(b, i) in historyBars(a)" :key="i" :class="{ missing: b.missing, zero: b.n === 0 }" :style="{ height: b.height + \'%\' }" :title="b.title"></span></span>' +
       '            <small>{{ T.history(a.history.ordered, a.history.offered, d.history.orders.length) }}<template v-if="a.history.ordered"> · {{ T.avg(a.history.avg_households) }}</template></small>' +
       '          </div>' +
       '        </div>' +
@@ -771,27 +1029,48 @@
       '      <strong>{{ T.selected(selectedStats.total) }}</strong>' +
       '      <small>{{ T.selectedDetail(selectedStats.demand, selectedStats.none, selectedStats.fresh) }}</small>' +
       '    </div>' +
-      '    <button type="button" class="oc-btn oc-btn-primary" :disabled="!canCreate" @click="save">{{ saving ? T.creating : T.create }}</button>' +
+      '    <span class="oc-footer-actions"><button type="button" class="oc-btn" :disabled="saving" @click="resetAll">{{ T.reset }}</button>' +
+      '    <button type="button" class="oc-btn oc-btn-primary" :disabled="!canCreate" @click="save">{{ saving ? T.creating : T.create }}</button></span>' +
       '  </footer>' +
       '  </template>' +
 
       '  <div class="oc-toast" :class="toast.type" v-if="toast" @click="toast = null">{{ toast.text }}</div>' +
 
-      // ---- more alternatives dialog ----------------------------------------------------------------------
+      // ---- choice dialog of a last-time row ----------------------------------------------------------------
       '  <div class="oc-modal-backdrop" v-if="altDialog" @click.self="closeMore">' +
       '    <div class="oc-modal" role="dialog" aria-modal="true">' +
       '      <div class="oc-modal-head">' +
-      '        <div><span class="oc-label">{{ T.alternativesLabel }}</span><h3>{{ T.moreTitle(altDialog.a.name) }}</h3></div>' +
+      '        <div><span class="oc-label">{{ T.alternativesLabel }}</span><h3>{{ T.moreTitle(nameWithMaker(altDialog.a)) }}</h3>' +
+      '          <div class="oc-dialog-item">{{ [money(altDialog.a.price), altDialog.a.unit_quantity + \'×\' + altDialog.a.unit, altDialog.a.origin].filter(Boolean).join(\' · \') }}<i v-if="altDialog.a.note"> · {{ altDialog.a.note }}</i></div>' +
+      '          <div class="oc-demand oc-row-demand oc-dialog-demand"><span class="muted">{{ T.lastDemand }}</span><span v-for="(p, i) in demandShort(altDialog.a)" :key="i" :class="p.kind" :title="p.title">{{ p.text }}</span></div></div>' +
       '        <button type="button" class="oc-modal-close" @click="closeMore" :aria-label="T.close">×</button>' +
       '      </div>' +
       '      <span class="oc-searchwrap oc-more-search"><input type="search" class="oc-search" v-model="altQuery" :placeholder="T.moreSearch">' +
       '        <button type="button" class="oc-clear" v-if="altQuery" @click="altQuery = \'\'" :aria-label="T.clear">×</button></span>' +
-      '      <p class="oc-empty" v-if="!moreList().length">{{ T.moreNothing }}</p>' +
-      '      <div class="oc-suggestions oc-more-list">' +
-      '        <oc-alt v-for="s in moreList()" :key="s.a.id" :s="s" :selected="!!selected[s.a.id]" :replaceable="!!altDialog.a.in_source && !!selected[altDialog.a.id]"' +
-      '                :money="money" :price-chip="priceChip" :history-text="historyText" :delta-chip="deltaChip"' +
-      '                @toggle="pickMore(s)" @replace="replaceWith(altDialog.a, s); closeMore()" @prices="openPrices(s.a)"></oc-alt>' +
+      '      <div class="oc-sortbar" v-if="moreList().length > 1"><span>{{ T.sortBy }}</span>' +
+      '        <button type="button" :class="{ active: altSort === \'match\' }" @click="altSort = \'match\'">{{ T.sortMatch }}</button>' +
+      '        <button type="button" v-if="hasPerLb()" :class="{ active: altSort === \'perlb\' }" @click="altSort = \'perlb\'">{{ T.sortPerLb }}</button>' +
+      '        <button type="button" v-else :class="{ active: altSort === \'price\' }" @click="altSort = \'price\'">{{ T.sortPrice }}</button>' +
       '      </div>' +
+      '      <div class="oc-opts">' +
+      '        <div class="oc-opt oc-opt-none" role="button" tabindex="0" :class="{ selected: isDialogChoice(null) }" @click="pickMore(null)" @keydown.enter.prevent="pickMore(null)">' +
+      '          <div class="oc-opt-main"><div class="oc-opt-name">{{ T.nothing }}</div><div class="oc-opt-meta">{{ T.nothingHint }}</div></div>' +
+      '          <span class="oc-opt-pick">{{ isDialogChoice(null) ? T.chosen : T.pick }}</span>' +
+      '        </div>' +
+      '        <div class="oc-opt oc-opt-self" role="button" tabindex="0" v-if="altDialog.available" :class="{ selected: isDialogChoice(altDialog.a.id) }" @click="pickMore(altDialog.a.id)" @keydown.enter.prevent="pickMore(altDialog.a.id)">' +
+      '          <div class="oc-opt-main">' +
+      '            <div class="oc-opt-name"><b class="oc-opt-score">{{ T.lastTime }}</b> {{ nameWithMaker(altDialog.a) }}</div>' +
+      '            <div class="oc-opt-meta"><button type="button" class="oc-opt-price" @click.stop.prevent="openPrices(altDialog.a)" :title="T.priceHistory"><strong>{{ money(altDialog.a.price) }}</strong><template v-if="shortChip(altDialog.a)"> <em :class="shortChip(altDialog.a).kind">{{ shortChip(altDialog.a).text }}</em></template> ›</button>' +
+      '              · {{ [altDialog.a.unit_quantity + \'×\' + altDialog.a.unit, altDialog.a.origin].filter(Boolean).join(\' · \') }}<i v-if="altDialog.a.note"> · {{ altDialog.a.note }}</i></div>' +
+      '            <div class="oc-opt-fit" v-if="demandFit(altDialog.a, altDialog.a)" :class="{ ok: demandFit(altDialog.a, altDialog.a).ok }">{{ demandFit(altDialog.a, altDialog.a).text }}</div>' +
+      '          </div>' +
+      '          <span class="oc-opt-pick">{{ isDialogChoice(altDialog.a.id) ? T.chosen : T.pick }}</span>' +
+      '        </div>' +
+      '        <oc-alt v-for="s in moreList()" :key="s.a.id" :s="s" :selected="isDialogChoice(s.a.id)"' +
+      '                :money="money" :price-chip="priceChip" :history-text="historyText" :delta-chip="deltaChip" :short-chip="shortChip" :fit="demandFit(altDialog.a, s.a)"' +
+      '                @toggle="pickMore(s.a.id)" @prices="openPrices(s.a)"></oc-alt>' +
+      '      </div>' +
+      '      <p class="oc-empty" v-if="!moreList().length">{{ altQuery ? T.moreNothing : T.noSuggestion }}</p>' +
       '      <p class="oc-modal-foot"><button type="button" class="oc-btn" @click="closeMore">{{ T.close }}</button></p>' +
       '    </div>' +
       '  </div>' +
