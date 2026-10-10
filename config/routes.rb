@@ -73,6 +73,7 @@ Foodsoft::Application.routes.draw do
     resources :ordering, only: [:index, :show, :update], controller: :ordering do
       get :all, on: :collection
       get :data, on: :member
+      get :prices, on: :member
     end
 
     # Modern (Vue) "copy order" page, :id is the order being copied. See OrderCopyController.

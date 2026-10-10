@@ -296,6 +296,14 @@ $oa-tap: 44px;
     .oa-units { text-transform: none; letter-spacing: 0; font-weight: 600; color: $oa-ink; margin-left: 2px; }
     label { display: block; text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: $oa-muted; margin: 0 0 2px; font-weight: 600; }
   }
+  // the price change since last time; opens the price history dialog
+  .oa-price-change {
+    display: inline-block; margin: 0; padding: 1px 8px; border: 1px solid #b8c8d8; border-radius: 6px;
+    background: linear-gradient(#fff, #eef3f8); box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+    font-size: 11px; line-height: 18px; color: #3a6ea5; white-space: nowrap; cursor: pointer;
+    em { font-style: normal; font-weight: 700; &.ok { color: $oa-green-dark; } &.warn { color: darken($oa-amber, 20%); } &.bad { color: $oa-red; } }
+    &:hover { border-color: #3a6ea5; }
+  }
   // shown instead of the steppers until something is ordered
   .oa-order-btn {
     position: relative; z-index: 1;
@@ -553,7 +561,7 @@ $oa-tap: 44px;
   .oa .oa-party { height: 36px; }
   // nothing ordered: the Order button sits under the price, no stepper row
   .oa .oa-article.is-unordered .oa-article-side { display: none; }
-  .oa .oa-order-btn.oa-order-aside { min-width: 110px; margin-top: 4px; }
+  .oa .oa-order-btn.oa-order-aside { min-width: 0; height: 34px; padding: 0 14px; border-radius: 17px; font-size: 14px; margin-top: 2px; }
 }
 // the button under the price is the phone layout's; wider screens keep it with the steppers
 @media (min-width: 768px) {

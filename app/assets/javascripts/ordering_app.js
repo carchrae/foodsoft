@@ -66,7 +66,10 @@
     toFill: function (n) { return n + ' to fill'; },
     extra: function (n) { return n + ' extra'; },
     amount: 'Amount',
-    order: 'Order',
+    order: 'Add to order',
+    priceHistory: 'Price history',
+    // the price change since the article was last priced differently: "▲ 8% since 11 Jul"
+    priceShort: function (pct, when) { return (pct > 0 ? '▲ ' + pct + '%' : (pct < 0 ? '▼ ' + (-pct) + '%' : 'no change')) + ' since ' + when; },
     atLeast: 'At least',
     upTo: 'Up to',
     outcomeAll: function (n) { return 'You get <b class="oa-ok">all ' + n + '</b>.'; },
@@ -272,16 +275,25 @@
   var ArticleCard = {
     props: {
       a: { type: Object, required: true },
-      cfg: { type: Object, required: true }
+      cfg: { type: Object, required: true },
+      price: { type: Object, default: null }   // price summary from /ordering/:id/prices, when loaded
     },
-    emits: ['change'],
+    emits: ['change', 'prices'],
 
     // opened: the steppers stay once shown, even when the amount goes back to 0
     data: function () { return { T: T, opened: false }; },
 
     computed: {
       d: function () { return derive(this.a, this.cfg); },
-      showSteppers: function () { return this.opened || this.a.quantity + this.a.tolerance > 0; }
+      showSteppers: function () { return this.opened || this.a.quantity + this.a.tolerance > 0; },
+      // the price change as a button that opens the history; "Price history" without an earlier price
+      priceChip: function () {
+        var p = this.price;
+        if (!p) return null;
+        if (p.change_pct == null) return { text: T.priceHistory, kind: '' };
+        var when = String(p.previous_date || '').replace(/^[A-Za-z]+,\s*/, '').replace(/\s+\d{4}$/, '');
+        return { text: T.priceShort(p.change_pct, when), kind: p.change_pct > 0 ? (p.change_pct >= 10 ? 'bad' : 'warn') : (p.change_pct < 0 ? 'ok' : '') };
+      }
     },
 
     methods: {
@@ -422,6 +434,7 @@
       '    </div>' +
       '    <div class="oa-article-aside">' +
       '      <div class="oa-article-price">{{ money(a.price) }} <span class="oa-per">{{ T.perUnit }} {{ a.unit }}</span></div>' +
+      '      <button type="button" class="oa-price-change" v-if="priceChip" @click="$emit(\'prices\', a)" :title="T.priceHistory"><em :class="priceChip.kind">{{ priceChip.text }}</em> ›</button>' +
       '      <button type="button" class="oa-order-btn oa-order-aside" v-if="!showSteppers" :disabled="maxQuantity(a) === 0" @click="startOrder(a)">{{ T.order }}</button>' +
       '      <div class="oa-status" v-if="!a.stockit && a.unit_quantity > 1">' +
       '        <span class="oa-chip" v-if="d.units > 0" :class="d.extra === 0 ? \'ok\' : \'warn\'">{{ caseLabel(a, d) }}</span>' +
@@ -466,7 +479,7 @@
   // ---- the component --------------------------------------------------------
 
   var OrderingApp = {
-    components: { 'oa-article-card': ArticleCard },
+    components: { 'oa-article-card': ArticleCard, 'oa-price-dialog': window.FoodsoftPriceDialog },
 
     props: {
       dataUrl: { type: String, required: true },
@@ -493,6 +506,8 @@
         showRangeDialog: false,
         showCancelDialog: false,
         jumpTo: '',            // combined page: order id picked in the jump select
+        prices: {},            // order article id -> price summary, loaded once per order after the snapshot
+        priceDialog: null,     // { name, url } while the price history dialog is open
         now: Date.now(),
         T: T
       };
@@ -690,6 +705,7 @@
         this.funds = json.funds || null;
         this.urls = json.urls || {};
         this.fillSnapshot = this.filter === 'fill' ? this.snapshotFill() : null;
+        this.loadPrices();
         var name = this.combined ? T.openOrders : (json.order && json.order.name);
         document.title = (name ? name + ' - ' : '') + document.title.replace(/^.* - /, '');
       },
@@ -699,6 +715,24 @@
         var order = snap.order;
         (snap.categories || []).forEach(function (c) { c.articles.forEach(function (a) { a.order_id = order.id; a.stockit = !!order.stockit; }); });
         return { order: order, groupOrder: snap.group_order, funds: snap.funds, urls: snap.urls || {}, categories: snap.categories || [], dirty: false };
+      },
+
+      // price changes for the cards, a separate request so loading and saving stay fast
+      loadPrices: function () {
+        var self = this;
+        this._pricesFor = this._pricesFor || {};
+        this.orders.forEach(function (o) {
+          if (!o.urls.prices || self._pricesFor[o.order.id]) return;
+          self._pricesFor[o.order.id] = true;
+          fetch(o.urls.prices, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+            .then(function (r) { if (!r.ok) throw new Error('failed'); return r.json(); })
+            .then(function (json) { self.prices = Object.assign({}, self.prices, json); })
+            .catch(function () { self._pricesFor[o.order.id] = false; });
+        });
+      },
+      openPrices: function (a) {
+        var o = this.orderEntry(a);
+        if (o && o.urls.prices) this.priceDialog = { name: a.name, url: o.urls.prices + '?order_article_id=' + a.id };
       },
 
       orderEntry: function (a) {
@@ -966,7 +1000,7 @@
       '    </section>' +
       '    <section class="oa-category" v-for="group in og.categories" :key="og.order.id + \'-\' + group.name">' +
       '      <h2 class="oa-category-title">{{ group.name }} <small>{{ group.articles.length }}</small></h2>' +
-      '      <oa-article-card v-for="a in group.articles" :key="a.id" :a="a" :cfg="cfg" @change="markDirty"></oa-article-card>' +
+      '      <oa-article-card v-for="a in group.articles" :key="a.id" :a="a" :cfg="cfg" :price="prices[a.id] || null" @change="markDirty" @prices="openPrices"></oa-article-card>' +
       '    </section>' +
       '    </template>' +
       '    <p class="oa-empty" v-if="rows.length === 0">{{ orders.length ? T.noMatch : T.noOpenOrders }}</p>' +
@@ -1027,6 +1061,7 @@
       '      </div>' +
       '    </div>' +
       '  </div>' +
+      '  <oa-price-dialog v-if="priceDialog" :name="priceDialog.name" :url="priceDialog.url" :currency-unit="cfg.currency_unit || \'\'" @close="priceDialog = null"></oa-price-dialog>' +
       '</div>'
   };
 

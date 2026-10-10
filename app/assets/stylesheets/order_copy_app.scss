@@ -424,3 +424,7 @@ $oc-footer-h: 64px;
 @media (min-width: 1030px) {
   .oc .oc-footer { padding-left: calc(50% - 486px); padding-right: calc(50% - 486px); }
 }
+
+// the shared price history dialog (price_history_dialog.js) brings its own .oc
+// wrapper so it is styled on other pages too; the wrapper takes no space
+.oc.oc-dialog-host { max-width: none; margin: 0; padding: 0; }

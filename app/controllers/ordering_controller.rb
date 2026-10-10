@@ -5,6 +5,9 @@
 #   GET  /ordering/:id       HTML shell for a single order (see ordering_app.js)
 #   GET  /ordering/:id/data  JSON snapshot of the order for the member's ordergroup
 #   PUT  /ordering/:id       save quantities, returns a fresh snapshot
+#   GET  /ordering/:id/prices  JSON: {order_article_id: price summary}, fetched once
+#                              after the snapshot so saving stays fast; with
+#                              ?order_article_id= one article's price history
 #
 # :id is the Order id. The legacy pages (GroupOrdersController#new/#edit) stay
 # untouched; members opt in via localStorage (see ordering/_legacy_switch).
@@ -17,7 +20,7 @@ class OrderingController < ApplicationController
   SINGLE_ORDER_ACTIONS = %i[show data update].freeze
 
   before_action :ensure_ordergroup_member
-  before_action :ensure_open_order, only: SINGLE_ORDER_ACTIONS
+  before_action :ensure_open_order, only: SINGLE_ORDER_ACTIONS + [:prices]
   before_action :find_group_order, only: SINGLE_ORDER_ACTIONS
   before_action :enough_apples?, only: SINGLE_ORDER_ACTIONS
 
@@ -71,6 +74,19 @@ class OrderingController < ApplicationController
   rescue StandardError => e
     logger.error("Failed to update order via OrderingController: #{e.class}: #{e.message}")
     render status: :unprocessable_entity, json: {error: 'general', message: I18n.t('group_orders.update.error_general')}
+  end
+
+  # Price changes since last time, and the history dialog (OrderCopySerializer
+  # does both for the copy page; namesakes count, as the catalogue relists articles)
+  def prices
+    prices = OrderCopySerializer.new(@order, view_context)
+    if params[:order_article_id].present?
+      render json: prices.price_history(@order.order_articles.find(params[:order_article_id]).article)
+    else
+      oas = @order.order_articles.includes(:article).to_a
+      summaries = prices.price_summaries_for(oas.map(&:article))
+      render json: oas.each_with_object({}) { |oa, out| out[oa.id] = summaries[oa.article_id] if summaries[oa.article_id] }
+    end
   end
 
   private

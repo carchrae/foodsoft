@@ -20,6 +20,7 @@
 //= require touchclick
 //= require delta_input
 //= require recurring_select
+//= require price_history_dialog
 //= require ordering_app
 //= require dashboard_app
 //= require article_match

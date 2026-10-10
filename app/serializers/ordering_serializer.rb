@@ -116,6 +116,7 @@ class OrderingSerializer
       legacy: legacy,
       back: @view.group_orders_path,
       show: (@group_order.persisted? ? @view.group_order_path(@group_order) : nil),
+      prices: @view.prices_ordering_path(@order),
     }
   end
 

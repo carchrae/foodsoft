@@ -149,23 +149,7 @@
     cheaperBy: function (d) { return d + ' cheaper'; },
     dearerBy: function (d) { return d + ' more'; },
     samePrice: 'same price',
-    priceNow: 'Now',
-    priceLast: 'Last time',
-    priceLow: 'Low (12 months)',
-    priceHigh: 'High (12 months)',
-    priceAvg: 'Average (12 months)',
-    priceHint: 'Prices of this article and every earlier listing with the same name (the catalogue gets a new entry at each sync). Net price per unit.',
-    priceEmpty: 'No earlier prices are known for this article.',
-    colDate: 'Date',
-    colPrice: 'Price',
-    colChange: 'Change',
-    colPack: 'Pack',
-    colOrders: 'Orders',
-    currentRow: 'current',
-    deletedRow: 'old listing',
-    otherUnit: 'other unit',
     close: 'Close',
-    loadingPrices: 'Loading prices…',
     date: 'Date',
     time: 'Time',
     needEnds: 'Please set when the order closes.',
@@ -273,7 +257,7 @@
   };
 
   var OrderCopyApp = {
-    components: { 'oc-alt': AltCard, 'oc-datetime': DateTimeField },
+    components: { 'oc-alt': AltCard, 'oc-datetime': DateTimeField, 'oc-price-dialog': window.FoodsoftPriceDialog },
     directives: {
       autogrow: {
         mounted: function (el) { grow(el); el.addEventListener('input', function () { grow(el); }); },
@@ -299,7 +283,7 @@
         saving: false,
         errors: [],
         toast: null,
-        priceDialog: null,   // { article, loading, data, error } while the history dialog is open
+        priceDialog: null,   // { article, url } while the history dialog (price_history_dialog.js) is open
         altDialog: null,     // { a, available, list } while a last-time row's choice dialog is open
         altQuery: '',        // search in that dialog: empty shows the namesakes, text searches everything
         altSort: 'match',    // match | perlb (when notes carry a price per lb) | price (when they don't)
@@ -826,28 +810,11 @@
       },
 
       openPrices: function (a) {
-        var self = this, url = this.d.urls.prices.replace(/0$/, String(a.id));
-        this.priceDialog = { article: a, loading: true, data: null, error: null };
-        fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
-          .then(function (r) { if (!r.ok) throw new Error('failed'); return r.json(); })
-          .then(function (json) { if (self.priceDialog) { self.priceDialog.data = json; self.priceDialog.loading = false; } })
-          .catch(function () { if (self.priceDialog) { self.priceDialog.error = T.saveError; self.priceDialog.loading = false; } });
+        this.priceDialog = { article: a, url: this.d.urls.prices.replace(/0$/, String(a.id)) };
       },
       closePrices: function () { this.priceDialog = null; },
 
       // change of a series row against the next older row with the same unit
-      rowChange: function (series, i) {
-        var row = series[i], j;
-        for (j = i + 1; j < series.length; j++) if (series[j].same_unit === row.same_unit) break;
-        if (j >= series.length || !series[j].price) return null;
-        var pct = Math.round((row.price - series[j].price) / series[j].price * 100);
-        return { pct: pct, kind: pct > 0 ? 'warn' : (pct < 0 ? 'ok' : 'muted') };
-      },
-      barWidth: function (series, row) {
-        var max = 0;
-        series.forEach(function (r) { if (r.same_unit && r.price > max) max = r.price; });
-        return max > 0 && row.same_unit ? Math.round(row.price / max * 100) : 0;
-      },
       tint: M.tint,
       ink: M.ink,
       nameWithMaker: nameWithMaker,
@@ -1120,42 +1087,7 @@
       '  </div>' +
 
       // ---- price history dialog -----------------------------------------------------------------------
-      '  <div class="oc-modal-backdrop" v-if="priceDialog" @click.self="closePrices">' +
-      '    <div class="oc-modal" role="dialog" aria-modal="true">' +
-      '      <div class="oc-modal-head">' +
-      '        <div><span class="oc-label">{{ T.priceHistory }}</span><h3>{{ priceDialog.article.name }}</h3></div>' +
-      '        <button type="button" class="oc-modal-close" @click="closePrices" :aria-label="T.close">×</button>' +
-      '      </div>' +
-      '      <p class="oc-state" v-if="priceDialog.loading"><span class="oc-spinner"></span> {{ T.loadingPrices }}</p>' +
-      '      <div class="oc-alert oc-alert-danger" v-else-if="priceDialog.error">{{ priceDialog.error }}</div>' +
-      '      <template v-else>' +
-      '        <div class="oc-price-summary" v-if="priceDialog.data.summary">' +
-      '          <div><small>{{ T.priceNow }}</small><strong>{{ money(priceDialog.data.article.price) }}</strong></div>' +
-      '          <div v-if="priceDialog.data.summary.previous != null"><small>{{ T.priceLast }}</small><strong>{{ money(priceDialog.data.summary.previous) }}</strong><small>{{ priceDialog.data.summary.previous_date }}</small></div>' +
-      '          <div><small>{{ T.priceLow }}</small><strong class="ok">{{ money(priceDialog.data.summary.low) }}</strong></div>' +
-      '          <div><small>{{ T.priceHigh }}</small><strong class="bad">{{ money(priceDialog.data.summary.high) }}</strong></div>' +
-      '          <div><small>{{ T.priceAvg }}</small><strong>{{ money(priceDialog.data.summary.avg) }}</strong></div>' +
-      '        </div>' +
-      '        <p class="oc-modal-hint">{{ T.priceHint }}</p>' +
-      '        <p class="oc-empty" v-if="!priceDialog.data.series.length">{{ T.priceEmpty }}</p>' +
-      '        <div class="oc-table-wrap" v-else>' +
-      '        <table class="oc-price-table">' +
-      '          <thead><tr><th>{{ T.colDate }}</th><th>{{ T.colPrice }}</th><th></th><th>{{ T.colChange }}</th><th>{{ T.colPack }}</th><th>{{ T.colOrders }}</th></tr></thead>' +
-      '          <tbody>' +
-      '            <tr v-for="(r, i) in priceDialog.data.series" :key="i" :class="{ current: r.current, muted: !r.same_unit }">' +
-      '              <td>{{ r.date_human }}<small v-if="r.current"> · {{ T.currentRow }}</small><small v-else-if="r.deleted"> · {{ T.deletedRow }}</small></td>' +
-      '              <td class="num"><strong>{{ money(r.price) }}</strong></td>' +
-      '              <td class="bar"><span :style="{ width: barWidth(priceDialog.data.series, r) + \'%\' }"></span></td>' +
-      '              <td class="num"><span v-if="rowChange(priceDialog.data.series, i)" :class="rowChange(priceDialog.data.series, i).kind">{{ rowChange(priceDialog.data.series, i).pct > 0 ? \'+\' : \'\' }}{{ rowChange(priceDialog.data.series, i).pct }}%</span></td>' +
-      '              <td>{{ r.unit_quantity }}×{{ r.unit }}<small v-if="!r.same_unit"> · {{ T.otherUnit }}</small><small v-if="r.name !== priceDialog.article.name" :title="r.name"> · {{ r.name }}</small></td>' +
-      '              <td class="num">{{ r.orders || \'\' }}</td>' +
-      '            </tr>' +
-      '          </tbody>' +
-      '        </table>' +
-      '        </div>' +
-      '      </template>' +
-      '    </div>' +
-      '  </div>' +
+      '  <oc-price-dialog v-if="priceDialog" :name="priceDialog.article.name" :url="priceDialog.url" :currency-unit="cfg.currency_unit" @close="closePrices"></oc-price-dialog>' +
       '</div>'
   };
 

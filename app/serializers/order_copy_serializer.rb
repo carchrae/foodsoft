@@ -57,6 +57,18 @@ class OrderCopySerializer
     }
   end
 
+  # article id -> price summary (see #summarize) for these articles, across namesakes
+  def price_summaries_for(articles)
+    keys = supplier_article_keys
+    wanted = articles.map { |a| keys[a.id] }.compact.to_set
+    ids = keys.select { |_, k| wanted.include?(k) }.keys
+    rows = ArticlePrice.where(article_id: ids).where('created_at >= ?', SUMMARY_MONTHS.months.ago)
+                       .order('created_at DESC').pluck(:article_id, :price, :created_at)
+    by_key = Hash.new { |h, k| h[k] = [] }
+    rows.each { |aid, price, at| by_key[keys[aid]] << [aid, price.to_f, at] }
+    articles.each_with_object({}) { |a, out| out[a.id] = summarize(a, by_key[keys[a.id]]) }
+  end
+
   def as_json(*)
     {
       mode: (@edit ? 'edit' : 'copy'),
@@ -198,18 +210,8 @@ class OrderCopySerializer
   # Per available article: the price before the current one ("last time"), and the
   # low / high / average over the last year, across every namesake with the same unit.
   def price_summaries
-    @price_summaries ||= begin
-      keys = supplier_article_keys
-      # the available catalogue plus the copied order's own articles (some may be gone)
-      available = (@source.articles_for_ordering_ungrouped.to_a + source_order_articles.map(&:article)).uniq(&:id)
-      wanted = available.map { |a| keys[a.id] }.compact.to_set
-      ids = keys.select { |_, k| wanted.include?(k) }.keys
-      rows = ArticlePrice.where(article_id: ids).where('created_at >= ?', SUMMARY_MONTHS.months.ago)
-                         .order('created_at DESC').pluck(:article_id, :price, :created_at)
-      by_key = Hash.new { |h, k| h[k] = [] }
-      rows.each { |aid, price, at| by_key[keys[aid]] << [aid, price.to_f, at] }
-      available.each_with_object({}) { |a, out| out[a.id] = summarize(a, by_key[keys[a.id]]) }
-    end
+    # the available catalogue plus the copied order's own articles (some may be gone)
+    @price_summaries ||= price_summaries_for((@source.articles_for_ordering_ungrouped.to_a + source_order_articles.map(&:article)).uniq(&:id))
   end
 
   def price_summary_for(article)
