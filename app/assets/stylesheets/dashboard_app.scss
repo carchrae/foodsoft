@@ -260,6 +260,8 @@ $da-tap: 44px;
   .da-hit-side { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; margin-left: auto; }
   // same look as the note on the ordering page's item card
   .da-hit-note { font-size: 13px; color: #555; margin-top: 2px; font-style: italic; white-space: pre-line; }
+  .da-show-older { display: block; margin: 8px 0 2px; font-size: 13px; }
+  .da-hit-last { font-size: 13px; white-space: nowrap; }
   .da-hit-mine { font-size: 13px; font-weight: 600; color: $da-green-dark; white-space: nowrap; }
   // quick edit: the ordering page's own item card (.oa .oa-article), full width under the hit
   .da-quickedit { flex: 1 1 100%; min-width: 0; max-width: 460px; }

@@ -276,12 +276,13 @@
     props: {
       a: { type: Object, required: true },
       cfg: { type: Object, required: true },
-      price: { type: Object, default: null }   // price summary from /ordering/:id/prices, when loaded
+      price: { type: Object, default: null },  // price summary from /ordering/:id/prices, when loaded
+      startOpen: { type: Boolean, default: false }  // show the steppers straight away (dashboard quick edit)
     },
     emits: ['change', 'prices'],
 
     // opened: the steppers stay once shown, even when the amount goes back to 0
-    data: function () { return { T: T, opened: false }; },
+    data: function () { return { T: T, opened: this.startOpen }; },
 
     computed: {
       d: function () { return derive(this.a, this.cfg); },

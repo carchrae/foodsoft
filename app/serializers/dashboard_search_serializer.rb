@@ -2,17 +2,21 @@
 #
 # Looks for articles whose name or manufacturer contains every word of the
 # query (in any order, so "red apple" also finds "Apple, red"), first in
-# the open orders (where the member can still order them), then in the most
-# recent finished/settled orders (so "when did we last get X?" has an answer).
-# Each hit carries the member's own amounts so the dashboard can show them and,
-# for open orders, change the amount through OrderingController#update.
-# Open-order hits come closest match first; recent ones newest order first.
+# the open orders (where the member can still order them), then in the
+# suppliers' catalogues (what could be ordered next time, with when it was
+# last ordered; suppliers without an order in the last 6 months come in a
+# separate, older list). Open-order hits carry the member's own amounts so the
+# dashboard can show and change them through OrderingController#update.
+# Both lists come closest match first.
 class DashboardSearchSerializer
   MIN_QUERY_LENGTH = 2
-  RECENT_ORDERS = 20
   MAX_OPEN_HITS = 40
-  MAX_RECENT_HITS = 30
+  MAX_ARTICLE_HITS = 30
+  # catalogue rows fetched before ranking; enough for any sensible query
+  MAX_ARTICLE_ROWS = 500
   MAX_WORDS = 6
+  # suppliers with no order for this long go to the older list
+  RECENT_SUPPLIER_PERIOD = 6.months
 
   def initialize(user, query, view)
     @ordergroup = user.ordergroup
@@ -22,41 +26,94 @@ class DashboardSearchSerializer
   end
 
   def as_json(*)
-    return {query: @query, open: [], recent: []} if @query.length < MIN_QUERY_LENGTH || @words.empty?
-    open_orders = Order.open_reverse.to_a
-    recent_orders = Order.finished.limit(RECENT_ORDERS).to_a
+    return {query: @query, open: [], articles: [], older_articles: []} if @query.length < MIN_QUERY_LENGTH || @words.empty?
+    open = open_hits(Order.open_reverse.to_a)
+    articles, older = article_hits(open.map { |h| h[:article_id] })
     {
       query: @query,
-      open: hits(open_orders, MAX_OPEN_HITS, open: true),
-      recent: hits(recent_orders, MAX_RECENT_HITS, open: false),
+      open: open.map { |h| h[:json] },
+      articles: articles,
+      older_articles: older,
     }
   end
 
   private
 
-  def hits(orders, limit, open:)
+  def open_hits(orders)
     return [] if orders.empty?
     by_id = orders.index_by(&:id)
-    # every word must be in the name or the manufacturer
+    order_articles = OrderArticle.joins(:article).includes(:article_price)
+      .where(order_id: by_id.keys)
+      .where(*word_conditions)
+      .to_a
+    # closest match first, then the order closing soonest
+    rank = by_id.keys.each_with_index.to_h
+    order_articles = order_articles.sort_by do |oa|
+      name = oa.article.name.to_s.downcase
+      [relevance(name), name.length, rank[oa.order_id], name]
+    end.first(MAX_OPEN_HITS)
+    mine = my_articles(order_articles.map(&:id))
+    group_orders = my_group_orders(by_id.keys)
+    order_articles.map do |oa|
+      {article_id: oa.article_id, json: hit_json(oa, by_id[oa.order_id], mine[oa.id], group_orders[oa.order_id])}
+    end
+  end
+
+  # Available articles of the suppliers (not the stock), leaving out the ones
+  # already shown in an open order. Returns two lists: articles of suppliers
+  # ordered from in the last 6 months, and those of the other suppliers.
+  def article_hits(skip_ids)
+    articles = Article.available.not_in_stock.joins(:supplier).merge(Supplier.undeleted)
+      .includes(:supplier)
+      .where(*word_conditions)
+    articles = articles.where.not(id: skip_ids) if skip_ids.any?
+    articles = articles.limit(MAX_ARTICLE_ROWS).to_a.sort_by do |a|
+      name = a.name.to_s.downcase
+      [relevance(name), name.length, name, a.supplier.name.to_s.downcase]
+    end
+    supplier_last = Order.where(supplier_id: articles.map(&:supplier_id).uniq).group(:supplier_id).maximum(:ends)
+    since = RECENT_SUPPLIER_PERIOD.ago
+    recent, older = articles.partition { |a| supplier_last[a.supplier_id] && supplier_last[a.supplier_id] >= since }
+    recent = recent.first(MAX_ARTICLE_HITS)
+    older = older.first(MAX_ARTICLE_HITS)
+    last = last_ordered(recent + older)
+    [recent, older].map { |list| list.map { |a| article_json(a, last[[a.supplier_id, a.name]]) } }
+  end
+
+  # When each article was last in a finished order. Synced catalogues get a new
+  # article row per listing, so this goes by supplier and name.
+  def last_ordered(articles)
+    return {} if articles.empty?
+    OrderArticle.joins(:article, :order)
+      .merge(Order.finished.except(:order))
+      .where(articles: {supplier_id: articles.map(&:supplier_id).uniq, name: articles.map(&:name).uniq})
+      .group('articles.supplier_id', 'articles.name')
+      .maximum('orders.ends')
+  end
+
+  def article_json(article, last_ends)
+    {
+      id: article.id,
+      name: article.name,
+      manufacturer: article.manufacturer.presence,
+      origin: article.origin.presence,
+      note: article.note.presence,
+      unit: article.unit,
+      unit_quantity: article.unit_quantity,
+      price: money(safely(nil) { article.fc_price }),
+      supplier: article.supplier.name,
+      last_ordered_human: (last_ends && @view.format_date(last_ends)),
+    }
+  end
+
+  # SQL and binds for: every word is in the name or the manufacturer
+  def word_conditions
     conditions = @words.each_index.map do |i|
       "(LOWER(articles.name) LIKE :w#{i} ESCAPE '!' OR LOWER(articles.manufacturer) LIKE :w#{i} ESCAPE '!')"
     end
     # escape LIKE wildcards with "!" (sanitize_sql_like is protected on Rails 4.2)
     patterns = @words.each_with_index.map { |w, i| [:"w#{i}", "%#{w.gsub(/[!%_]/) { |c| "!#{c}" }}%"] }.to_h
-    order_articles = OrderArticle.joins(:article).includes(:article_price)
-      .where(order_id: by_id.keys)
-      .where(conditions.join(' AND '), patterns)
-      .to_a
-    rank = by_id.keys.each_with_index.to_h
-    order_articles = order_articles.sort_by do |oa|
-      name = oa.article.name.to_s.downcase
-      order_key = [rank[oa.order_id], name]
-      # open: closest match first; recent: the given order sequence (most recent first)
-      open ? [relevance(name), name.length] + order_key : order_key
-    end.first(limit)
-    mine = my_articles(order_articles.map(&:id))
-    group_orders = my_group_orders(by_id.keys)
-    order_articles.map { |oa| hit_json(oa, by_id[oa.order_id], mine[oa.id], group_orders[oa.order_id], open) }
+    [conditions.join(' AND '), patterns]
   end
 
   # How closely an article name matches the query, lower is closer: the exact
@@ -80,10 +137,10 @@ class DashboardSearchSerializer
     /(?<![[:alnum:]])#{Regexp.escape(text)}/
   end
 
-  def hit_json(order_article, order, goa, group_order, open)
+  def hit_json(order_article, order, goa, group_order)
     article = order_article.article
-    # open orders are priced like the ordering page; finished ones by the price they closed at
-    price = open ? article.fc_price : safely(nil) { order_article.price.fc_price }
+    # priced like the ordering page
+    price = article.fc_price
     {
       id: order_article.id,
       name: article.name,
@@ -95,24 +152,22 @@ class DashboardSearchSerializer
       price: money(price),
       quantity: (goa ? goa.quantity : 0),
       tolerance: (goa ? goa.tolerance : 0),
-      # what the member actually received, once the order is finished
-      result: (open || goa.nil? ? nil : safely(nil) { goa.result.to_f }),
       order: {
         id: order.id,
         name: order.name,
-        open: open,
+        open: true,
         stockit: order.stockit?,
         ends_human: @view.format_date(order.ends),
         pickup_human: @view.format_date(order.pickup),
       },
-      urls: hit_urls(order, group_order, order_article, open),
+      urls: hit_urls(order, group_order, order_article),
     }
   end
 
-  def hit_urls(order, group_order, order_article, open)
+  def hit_urls(order, group_order, order_article)
     anchor = "article-#{order_article.id}"
     urls = {show: (group_order && @view.group_order_path(group_order))}
-    if open && @ordergroup
+    if @ordergroup
       urls[:order_modern] = @view.ordering_path(order, anchor: anchor)
       urls[:order] = if group_order
                        @view.edit_group_order_path(group_order, order_id: order.id)

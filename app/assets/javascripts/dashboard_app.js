@@ -100,15 +100,18 @@
     reload: 'Reload',
     searchPlaceholder: 'Search for an item…',
     clear: 'Clear',
-    searchHint: 'Searches the open orders, then recent ones. You can order or change an amount right from the results.',
+    searchHint: 'Searches the open orders, then the suppliers\' catalogues. You can order or change an amount right from the open-order results.',
     searchShort: function (n) { return 'Type at least ' + n + ' letters'; },
     searchNone: 'No items match.',
     inOpenOrders: 'Open orders',
-    inRecentOrders: 'Recent orders',
+    inCatalogue: 'Not in an open order',
+    lastOrdered: function (d) { return 'Last ordered ' + d; },
+    neverOrdered: 'Not ordered yet',
+    showOlder: function (n) { return 'Show ' + n + ' more from suppliers not ordered from in 6 months'; },
+    hideOlder: 'Hide suppliers not ordered from in 6 months',
+    olderSuppliers: 'Suppliers not ordered from in 6 months',
     caseOf: function (n) { return 'case of ' + n; },
     youHave: function (q, t) { return 'You: ' + q + (t ? ', up to ' + (q + t) : ''); },
-    youGot: function (n) { return 'You got ' + n; },
-    youOrdered: function (q) { return 'You ordered ' + q; },
     change: 'Change',
     addToOrder: 'Order',
     goToItem: 'Go to item',
@@ -176,9 +179,10 @@
         toast: null,
         now: Date.now(),
         q: '',            // item search
-        search: null,     // {query, open: [], recent: []} for the last answered query
+        search: null,     // {query, open: [], articles: [], older_articles: []} for the last answered query
         searching: false,
         searchError: false,
+        showOlder: false, // catalogue hits of suppliers not ordered from lately
         edit: null,       // quick edit: {id, hit, loading} then the loaded card (see startEdit)
         T: T
       };
@@ -187,6 +191,12 @@
     computed: {
       cfg: function () { return (this.d && this.d.config) || {}; },
       og: function () { return this.d && this.d.ordergroup; },
+      catalogueSections: function () {
+        if (!this.search) return [];
+        var sections = [{ key: 'a', title: T.inCatalogue, list: this.search.articles }];
+        if (this.showOlder) sections.push({ key: 'z', title: T.olderSuppliers, list: this.search.older_articles });
+        return sections;
+      },
       hasTasks: function () {
         var t = this.d && this.d.tasks;
         return t && (t.mine.length || t.to_accept.length || t.open.length);
@@ -279,7 +289,8 @@
           .then(parseJson)
           .then(function (json) {
             if (seq !== self._searchSeq) return;
-            self.search = json; self.searchError = false; self.searching = false;
+            if (!json.older_articles) json.older_articles = [];
+            self.search = json; self.searchError = false; self.searching = false; self.showOlder = false;
           })
           .catch(function () {
             if (seq !== self._searchSeq) return;
@@ -593,7 +604,7 @@
 
       '  </div>' +
       '  <div class="da-main">' +
-      // ---- item search: open orders first, then recent ones ---------------------------
+      // ---- item search: open orders first, then the suppliers' catalogues -------------
       '  <section class="da-section da-o-search" v-if="d.urls.search">' +
       '    <div class="da-searchbar">' +
       '      <div class="da-search-field">' +
@@ -605,7 +616,7 @@
       '    <p class="da-search-hint" v-if="q.length < 2">{{ T.searchHint }}</p>' +
       '    <div class="da-card da-results" v-if="q.length >= 2 && (search || searchError)">' +
       '      <p class="da-empty" v-if="searchError">{{ T.searchError }}</p>' +
-      '      <p class="da-empty" v-else-if="!search.open.length && !search.recent.length">{{ T.searchNone }}</p>' +
+      '      <p class="da-empty" v-else-if="!search.open.length && !search.articles.length && !search.older_articles.length">{{ T.searchNone }}</p>' +
       '      <template v-else>' +
       '      <h4 v-if="search.open.length">{{ T.inOpenOrders }}</h4>' +
       '      <div class="da-hit" v-for="h in search.open" :key="\'o\' + h.id" :class="{ \'is-mine\': h.quantity || h.tolerance, \'is-editing\': edit && edit.id === h.id }">' +
@@ -624,7 +635,7 @@
       '        <div class="da-quickedit" v-else>' +
       '          <p class="da-muted" v-if="edit.loading"><span class="da-spinner da-spinner-small"></span> {{ T.loadingItem }}</p>' +
       '          <template v-else>' +
-      '          <div class="oa oa-embed"><oa-article-card :a="edit.a" :cfg="edit.cfg" @change="editChanged"></oa-article-card></div>' +
+      '          <div class="oa oa-embed"><oa-article-card :a="edit.a" :cfg="edit.cfg" start-open @change="editChanged"></oa-article-card></div>' +
       '          <div class="da-quickedit-foot">' +
       '            <span class="da-quickedit-credit" :class="editBalanceOk(edit) ? \'da-ok\' : \'da-bad\'" v-if="editBalance(edit) != null">{{ cfg.charge_members_manually ? T.accountBalance : T.availableCredit }} {{ money(editBalance(edit)) }}</span>' +
       '            <span class="da-autosave" :class="edit.status" role="status">' +
@@ -638,18 +649,21 @@
       '          </template>' +
       '        </div>' +
       '      </div>' +
-      '      <h4 v-if="search.recent.length">{{ T.inRecentOrders }}</h4>' +
-      '      <component :is="h.urls.show ? \'a\' : \'div\'" class="da-hit da-hit-past" v-for="h in search.recent" :key="\'r\' + h.id" :href="h.urls.show" :class="{ \'is-mine\': h.quantity || h.tolerance }">' +
+      // catalogue hits; those of suppliers not ordered from lately only on request
+      '      <template v-for="s in catalogueSections" :key="s.key">' +
+      '      <h4 v-if="s.list.length">{{ s.title }}</h4>' +
+      '      <div class="da-hit da-hit-past" v-for="h in s.list" :key="s.key + h.id">' +
       '        <div class="da-hit-main">' +
       '          <span class="da-hit-title">{{ h.name }}<small v-if="h.origin"> ({{ h.origin }})</small></span>' +
-      '          <div class="da-row-meta"><span>{{ h.order.name }}</span><span v-if="h.order.pickup_human || h.order.ends_human">{{ h.order.pickup_human || h.order.ends_human }}</span><span v-if="hitMeta(h)">{{ hitMeta(h) }}</span></div>' +
+      '          <div class="da-row-meta"><span>{{ h.supplier }}</span><span v-if="hitMeta(h)">{{ hitMeta(h) }}</span></div>' +
       '          <div class="da-hit-note" v-if="h.note">{{ h.note }}</div>' +
       '        </div>' +
       '        <div class="da-hit-side">' +
-      '          <span class="da-hit-mine" v-if="h.result != null && (h.quantity || h.tolerance)">{{ T.youGot(h.result) }}</span>' +
-      '          <span class="da-hit-mine" v-else-if="h.quantity">{{ T.youOrdered(h.quantity) }}</span>' +
+      '          <span class="da-muted da-hit-last">{{ h.last_ordered_human ? T.lastOrdered(h.last_ordered_human) : T.neverOrdered }}</span>' +
       '        </div>' +
-      '      </component>' +
+      '      </div>' +
+      '      </template>' +
+      '      <button type="button" class="da-linkbtn da-show-older" v-if="search.older_articles.length" @click="showOlder = !showOlder">{{ showOlder ? T.hideOlder : T.showOlder(search.older_articles.length) }}</button>' +
       '      </template>' +
       '    </div>' +
       '  </section>' +
