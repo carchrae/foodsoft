@@ -82,6 +82,8 @@ class OrderManageSerializer
       invoices: !!@user.role_invoices?,
       # the classic page lets finance adjust members' results once the order is finished
       edit_results: !!(@order.finished? && @user.role_finance?),
+      # share the extra fairly (FairExtra): finance, once finished and until settled
+      fair_extra: !!(@order.finished? && !@order.closed? && @user.role_finance?),
     }
   end
 
@@ -197,6 +199,7 @@ class OrderManageSerializer
       nearly_full: @view.nearly_full_path(o),
       comment: @view.order_comments_path,
       group_order_articles: @view.group_order_articles_path,
+      fair_extra: @view.fair_extra_manage_path(o),
       ordering: @view.ordering_path(o),
       downloads: downloads_json,
     }

@@ -92,6 +92,8 @@ Foodsoft::Application.routes.draw do
     # See OrderManageController.
     resources :manage, only: [:show], controller: :order_manage do
       get :data, on: :member
+      get :fair_extra, on: :member    # preview of a fair share of the extra (FairExtra)
+      post :fair_extra, on: :member   # apply it
     end
 
     # Modern (Vue) dashboard and its JSON layer. See DashboardController.

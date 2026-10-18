@@ -15,6 +15,7 @@
   var STORAGE_KEY = 'foodsoft.ui';
   var OLD_KEYS = ['foodsoft.ordering.ui', 'foodsoft.dashboard.ui'];
   var VIEW_KEY = 'foodsoft.manage.view';
+  var FAIR_AFTER_CLOSE_KEY = 'foodsoft.manage.fairAfterClose';   // order id set by Close!, read once the page is back
 
   function writeUiPref(value) {
     try {
@@ -87,6 +88,35 @@
     summaryCount: function (n) { return n + (n === 1 ? ' article ordered' : ' articles ordered'); },
     // members / articles
     ordered: 'ordered',
+    fairExtra: 'Share extra fairly',
+    fairExtraTitle: 'Share the extra fairly',
+    fairAfterClose: 'The order is closed. Share the extra fairly now?',
+    fairSplit: function (n) { return 'Split cases on ' + n + ' ' + (n === 1 ? 'article are' : 'articles are') + ' taken as delivered first, so their households get their amounts.'; },
+    fairNotNow: 'Not now',
+    fairExtraIntro: function (units, articles) { return 'The extra in filled cases goes to whoever typed it first. Sharing it across the order moves ' + units + ' ' + (units === 1 ? 'unit' : 'units') + ' on ' + articles + ' ' + (articles === 1 ? 'article' : 'articles') + ' so that every household pays a similar share of extra on top of what it wanted.'; },
+    fairExtraNone: 'Nothing to share: no filled case has extra that could be spread differently.',
+    fairExtraSpread: function (before, after) { return 'Gap between the highest and the lowest share of extra that can be balanced: ' + before + ' now, ' + after + ' after.'; },
+    fairExtraKept: 'Kept',
+    fairExtraKeptNote: '"Kept" is extra that cannot move: on short deliveries, stock articles, or amounts edited by hand. It stays as it is and is included in the figures.',
+    fairExtraFillerNote: 'Extra on lines where nothing was wanted ("0 + 2") only fills a case that nobody who wanted the article can take. It is included in the figures but left out of the balance.',
+    fairExtraApply: 'Apply',
+    fairExtraApplied: function (n) { return n + ' ' + (n === 1 ? 'amount' : 'amounts') + ' updated.'; },
+    household: 'Household',
+    total: 'Total',
+    extraNow: 'Extra now',
+    extraAfter: 'After',
+    pct: function (p) { return p + '%'; },
+    extraTag: function (n) { return '+' + n + ' extra'; },
+    showFair: 'Show fair adjustments',
+    fairChanges: function (n) { return n + (n === 1 ? ' change' : ' changes'); },
+    fairChangesTotal: function (n) { return n ? n + (n === 1 ? ' change' : ' changes') : 'nothing to change'; },
+    fairNoChange: 'fair as it is',
+    fairTo: function (v) { return '→ ' + v; },
+    memberExtra: function (amount, pct) { return amount + ' extra · ' + pct + '% of what was wanted'; },
+    memberNoExtra: 'no extra',
+    extraShared: function (got, asked) { return 'extra ' + got + ' of ' + asked + ' asked'; },
+    extraEven: 'shared evenly',
+    extraUneven: function (with_, without) { return with_ + ' ' + (with_ === 1 ? 'household has' : 'households have') + ' extra, ' + without + ' asked and got none'; },
     received: 'received',
     result: 'gets',
     total: 'total',
@@ -193,6 +223,10 @@
         expanded: {},
         dialog: null,          // {title, body, confirm, danger, action}
         downloadsOpen: false,
+        fair: null,           // preview from FairExtra (GET fair_extra) while the dialog is open
+        fairAfterClose: false, // the dialog was opened right after closing the order
+        showFair: true,       // articles and members views: mark what the fair share would change
+        fairPlan: null,       // the same preview, kept while showFair is on
         comment: '',
         busy: false,
         toast: null,
@@ -276,6 +310,9 @@
             list.push({ key: 'receive', label: T.receive, kind: (o.received ? '' : 'success'), href: u.receive });
           }
         }
+        if (can.fair_extra) {
+          list.push({ key: 'fair', label: T.fairExtra, click: function () { self.previewFair(); } });
+        }
         if (!o.open) list.push({ key: 'downloads', label: T.downloads, menu: true });
         if (can.finance || can.invoices) {
           if (o.invoice) list.push({ key: 'invoice', label: T.invoice, href: o.invoice.url });
@@ -288,11 +325,19 @@
         return list;
       },
 
-      commentOk: function () { return this.comment.trim().length >= 3; }
+      commentOk: function () { return this.comment.trim().length >= 3; },
+
+      // group order article id -> {from, to} from the fair share preview
+      fairById: function () {
+        var out = {};
+        if (this.fairPlan) this.fairPlan.changes.forEach(function (c) { out[c.id] = c; });
+        return out;
+      }
     },
 
     watch: {
-      view: function (v) { try { localStorage.setItem(VIEW_KEY, v); } catch (e) { /* ignore */ } }
+      view: function (v) { try { localStorage.setItem(VIEW_KEY, v); } catch (e) { /* ignore */ } },
+      showFair: function (on) { if (on && !this.fairPlan) this.loadFairPlan(); }
     },
 
     created: function () { this.load(); },
@@ -333,6 +378,7 @@
 
       load: function () {
         var self = this;
+        self.fairPlan = null;
         self.state = self.d ? 'ready' : 'loading';
         fetch(self.dataUrl, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
           .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -340,6 +386,8 @@
             // a new order nobody has ordered from yet: list what it offers instead of nothing
             if (!(json.articles || []).some(function (a) { return a.ordered; })) self.showUnordered = true;
             self.d = json; self.state = 'ready';
+            if (self.showFair && self.can.fair_extra) self.loadFairPlan();
+            self.offerFairAfterClose();
           })
           .catch(function (e) { self.state = 'error'; self.errorMessage = T.loadFailed + ' (' + e.message + ')'; });
       },
@@ -348,7 +396,11 @@
       confirmClose: function () {
         var self = this;
         this.dialog = { title: T.closeTitle(this.order.name), body: T.closeBody, confirm: T.closeConfirm, danger: false,
-          action: function () { submitForm(self.urls.finish, 'post'); } };
+          action: function () {
+            // the page comes back after the redirect: offer the fair share then
+            try { localStorage.setItem(FAIR_AFTER_CLOSE_KEY, String(self.order.id)); } catch (e) { /* ignore */ }
+            submitForm(self.urls.finish, 'post');
+          } };
       },
       confirmSend: function () {
         var self = this, o = this.order;
@@ -412,6 +464,74 @@
           .catch(function () { self.flash(T.saveFailed, true); })
           .then(function () { self.busy = false; });
       },
+
+      // ---- fair share of the extra (FairExtra) ----------------------------------------------------
+      fetchFair: function () {
+        return fetch(this.urls.fair_extra, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+      },
+      // right after "Close!" the order comes back finished: offer the fair share once
+      offerFairAfterClose: function () {
+        var flag = null;
+        try { flag = localStorage.getItem(FAIR_AFTER_CLOSE_KEY); } catch (e) { /* ignore */ }
+        if (!flag || String(flag) !== String(this.order.id)) return;
+        try { localStorage.removeItem(FAIR_AFTER_CLOSE_KEY); } catch (e) { /* ignore */ }
+        if (!this.can.fair_extra) return;
+        this.fairAfterClose = true;
+        this.previewFair();
+      },
+      previewFair: function () {
+        var self = this;
+        self.busy = true;
+        self.fetchFair()
+          .then(function (plan) { self.fair = plan; self.fairPlan = plan; })
+          .catch(function () { self.flash(T.saveFailed, true); })
+          .then(function () { self.busy = false; });
+      },
+      loadFairPlan: function () {
+        var self = this;
+        self.fetchFair().then(function (plan) { self.fairPlan = plan; }).catch(function () { self.showFair = false; });
+      },
+      // what the fair share would change on this article's lines
+      fairCount: function (a) {
+        var by = this.fairById, n = 0;
+        (a.lines || []).forEach(function (l) { if (by[l.id]) n++; });
+        return n;
+      },
+      // a household's extra over the order: {amount, base, pct}
+      memberExtra: function (g) {
+        var extra = 0, base = 0;
+        (g.lines || []).forEach(function (l) {
+          var r = l.result || 0;
+          extra += Math.max(0, r - l.quantity) * l.fc_price;
+          base += Math.min(r, l.quantity) * l.fc_price;
+        });
+        return { amount: extra, base: base, pct: base > 0 ? Math.round(1000 * extra / base) / 10 : 0 };
+      },
+      applyFair: function () {
+        var self = this;
+        self.busy = true;
+        postForm(self.urls.fair_extra, 'POST', {})
+          .then(function (r) { return r.json(); })
+          .then(function (plan) { self.fair = null; self.fairAfterClose = false; self.fairPlan = null; self.flash(T.fairExtraApplied(plan.changes.length)); self.load(); })
+          .catch(function () { self.flash(T.saveFailed, true); })
+          .then(function () { self.busy = false; });
+      },
+      // how the extra of one article is spread: {got, asked, with, without, even}
+      extraInfo: function (a) {
+        var asked = 0, got = 0, with_ = 0, without = 0, min = null, max = 0;
+        (a.lines || []).forEach(function (l) {
+          if (!(l.tolerance > 0)) return;
+          var extra = Math.max(0, (l.result || 0) - l.quantity);
+          asked += l.tolerance; got += extra;
+          if (extra > 0) with_++; else without++;
+          if (min == null || extra < min) min = extra;
+          if (extra > max) max = extra;
+        });
+        if (!got) return null;
+        return { got: got, asked: asked, with: with_, without: without, even: (max - (min || 0)) <= 1 };
+      },
+      extraOf: function (l) { return Math.max(0, (l.result || 0) - l.quantity); },
 
       // ---- comments -----------------------------------------------------------------------------
       submitComment: function () {
@@ -491,6 +611,9 @@
       '      <button type="button" :class="{ active: view === \'members\' }" @click="view = \'members\'">{{ T.byMember }} <small>{{ d.group_orders.length }}</small></button>' +
       '      <button type="button" :class="{ active: view === \'articles\' }" @click="view = \'articles\'">{{ T.byArticle }} <small>{{ orderedArticles.length }}</small></button>' +
       '    </div>' +
+      '    <label class="om-toggle" v-if="view !== \'summary\' && can.fair_extra">' +
+      '      <input type="checkbox" v-model="showFair"> {{ T.showFair }} <small v-if="showFair && fairPlan">{{ T.fairChangesTotal(fairPlan.changes.length) }}</small>' +
+      '    </label>' +
       '    <label class="om-toggle" v-if="view === \'articles\' && unorderedCount">' +
       '      <input type="checkbox" v-model="showUnordered"> {{ T.showUnordered }} <small>{{ T.unorderedCount(unorderedCount) }}</small>' +
       '    </label>' +
@@ -540,15 +663,18 @@
       '      <article v-for="g in memberCards" :key="g.id" class="om-card om-group">' +
       '        <header class="om-group-head">' +
       '          <h3>{{ g.name }}</h3>' +
-      '          <div class="om-group-total"><strong>{{ money(g.price) }}</strong><small v-if="g.updated_on_human">{{ T.savedBy(g.updated_by, g.updated_on_human) }}</small></div>' +
+      '          <div class="om-group-total"><strong>{{ money(g.price) }}</strong><small v-if="g.updated_on_human">{{ T.savedBy(g.updated_by, g.updated_on_human) }}</small>' +
+      '            <small class="om-fair is-plain" v-if="!order.open">{{ memberExtra(g).amount > 0 ? T.memberExtra(money(memberExtra(g).amount), memberExtra(g).pct) : T.memberNoExtra }}</small>' +
+      '          </div>' +
       '        </header>' +
       '        <p class="om-empty" v-if="!g.lines.length">{{ T.nothingOrdered }}</p>' +
       '        <div v-for="l in g.lines" :key="l.id" class="om-line" :class="lineClass(l)">' +
       '          <span class="om-line-name">{{ l.name }} <span class="om-unit">{{ l.unit }}</span><small v-if="l.unit_quantity > 1" class="om-pkg">× {{ l.unit_quantity }}</small></span>' +
       '          <span class="om-line-fig"><span class="om-label">{{ T.ordered }}</span>{{ T.wanted(l.quantity, l.tolerance) }}</span>' +
       '          <span class="om-line-fig om-line-result"><span class="om-label">{{ T.result }}</span>' +
-      '            <template v-if="can.edit_results"><button type="button" class="om-mini" :disabled="busy" @click="bump(l, -1)">−</button><input class="om-result" type="number" min="0" step="any" :value="resultValue(l)" @input="onResultInput(l, $event)" @change="commitResult(l)"><button type="button" class="om-mini" :disabled="busy" @click="bump(l, 1)">+</button></template>' +
+      '            <span class="om-line-ctl" v-if="can.edit_results"><button type="button" class="om-mini" :disabled="busy" @click="bump(l, -1)">−</button><input class="om-result" type="number" min="0" step="any" :value="resultValue(l)" @input="onResultInput(l, $event)" @change="commitResult(l)"><button type="button" class="om-mini" :disabled="busy" @click="bump(l, 1)">+</button></span>' +
       '            <template v-else>{{ l.result }}</template>' +
+      '            <span class="om-fair-chip" v-if="showFair && fairById[l.id]" :class="fairById[l.id].to > fairById[l.id].from ? \'up\' : \'down\'">{{ T.fairTo(fairById[l.id].to) }}</span>' +
       '          </span>' +
       '          <span class="om-line-price"><small>× {{ money(l.fc_price) }} =</small> {{ money(l.total_price) }}</span>' +
       '        </div>' +
@@ -566,15 +692,19 @@
       '            <h3>{{ a.name }} <span class="om-unit">{{ a.unit }}</span> <span class="om-chip" v-if="stateLabel(a) && !a.ordered" :class="stateLabel(a).kind">{{ stateLabel(a).text }}</span></h3>' +
       '            <small class="om-muted">{{ money(a.price.fc) }}<template v-if="a.unit_quantity > 1"> · × {{ a.unit_quantity }}</template> · {{ T.caseLine(a.units, a.unit_quantity, a.unit) }}</small>' +
       '          </div>' +
-      '          <div class="om-group-total"><strong>{{ money(sumPrice(a)) }}</strong><small>{{ sumResult(a) }} {{ T.received }}</small></div>' +
+      '          <div class="om-group-total"><strong>{{ money(sumPrice(a)) }}</strong><small>{{ sumResult(a) }} {{ T.received }}</small>' +
+      '            <small class="om-fair" v-if="extraInfo(a)" :class="extraInfo(a).even ? \'is-even\' : \'is-uneven\'">{{ T.extraShared(extraInfo(a).got, extraInfo(a).asked) }} · {{ extraInfo(a).even ? T.extraEven : T.extraUneven(extraInfo(a).with, extraInfo(a).without) }}</small>' +
+      '            <small class="om-fair-adj" v-if="showFair && fairPlan && extraInfo(a)" :class="fairCount(a) ? \'is-changes\' : \'is-none\'">{{ fairCount(a) ? T.fairChanges(fairCount(a)) : T.fairNoChange }}</small>' +
+      '          </div>' +
       '        </header>' +
       '        <p class="om-empty" v-if="!a.lines.length">{{ T.noHouseholds }}</p>' +
       '        <div v-for="l in a.lines" :key="l.id" class="om-line" :class="lineClass(l)">' +
-      '          <span class="om-line-name">{{ l.ordergroup }}</span>' +
+      '          <span class="om-line-name">{{ l.ordergroup }} <span class="om-extra-tag" v-if="extraOf(l) > 0">{{ T.extraTag(extraOf(l)) }}</span></span>' +
       '          <span class="om-line-fig"><span class="om-label">{{ T.ordered }}</span>{{ T.wanted(l.quantity, l.tolerance) }}</span>' +
       '          <span class="om-line-fig om-line-result"><span class="om-label">{{ T.result }}</span>' +
-      '            <template v-if="can.edit_results"><button type="button" class="om-mini" :disabled="busy" @click="bump(l, -1)">−</button><input class="om-result" type="number" min="0" step="any" :value="resultValue(l)" @input="onResultInput(l, $event)" @change="commitResult(l)"><button type="button" class="om-mini" :disabled="busy" @click="bump(l, 1)">+</button></template>' +
+      '            <span class="om-line-ctl" v-if="can.edit_results"><button type="button" class="om-mini" :disabled="busy" @click="bump(l, -1)">−</button><input class="om-result" type="number" min="0" step="any" :value="resultValue(l)" @input="onResultInput(l, $event)" @change="commitResult(l)"><button type="button" class="om-mini" :disabled="busy" @click="bump(l, 1)">+</button></span>' +
       '            <template v-else>{{ l.result }}</template>' +
+      '            <span class="om-fair-chip" v-if="showFair && fairById[l.id]" :class="fairById[l.id].to > fairById[l.id].from ? \'up\' : \'down\'">{{ T.fairTo(fairById[l.id].to) }}</span>' +
       '          </span>' +
       '          <span class="om-line-price">{{ money(l.total_price) }}</span>' +
       '        </div>' +
@@ -620,6 +750,31 @@
       '      <div class="om-modal-actions">' +
       '        <button type="button" class="om-btn om-btn-primary" :disabled="busy" @click="submitAdd">{{ busy ? T.saving : T.save }}</button>' +
       '        <button type="button" class="om-btn" @click="adding = null">{{ T.cancel }}</button>' +
+      '      </div>' +
+      '    </div>' +
+      '  </div>' +
+      '  <div class="om-modal-backdrop" v-if="fair" @click.self="fair = null; fairAfterClose = false">' +
+      '    <div class="om-modal om-modal-wide" role="dialog" aria-modal="true">' +
+      '      <h3>{{ fairAfterClose ? T.fairAfterClose : T.fairExtraTitle }}</h3>' +
+      '      <p v-if="fair.split_articles">{{ T.fairSplit(fair.split_articles) }}</p>' +
+      '      <p v-if="fair.changes.length">{{ T.fairExtraIntro(fair.units, fair.articles) }} {{ T.fairExtraSpread(T.pct(fair.spread_before), T.pct(fair.spread_after)) }}</p>' +
+      '      <p v-else>{{ T.fairExtraNone }}</p>' +
+      '      <div class="om-fair-table" v-if="fair.changes.length">' +
+      '        <table>' +
+      '          <thead><tr><th>{{ T.household }}</th><th>{{ T.total }}</th><th>{{ T.extraNow }}</th><th>{{ T.extraAfter }}</th><th v-if="fair.pinned">{{ T.fairExtraKept }}</th></tr></thead>' +
+      '          <tbody><tr v-for="h in fair.households" :key="h.id" :class="{ up: h.after > h.before + 0.005, down: h.after < h.before - 0.005 }">' +
+      '            <td>{{ h.name }}</td><td>{{ money(h.base + h.after) }}</td>' +
+      '            <td>{{ money(h.before) }} <small class="om-muted">{{ T.pct(h.pct_before) }}</small></td>' +
+      '            <td><strong>{{ money(h.after) }}</strong> <small>{{ T.pct(h.pct_after) }}</small></td>' +
+      '            <td class="om-muted" v-if="fair.pinned">{{ h.fixed ? money(h.fixed) : \'\' }}</td>' +
+      '          </tr></tbody>' +
+      '        </table>' +
+      '      </div>' +
+      '      <p class="om-fair-note" v-if="fair.changes.length && fair.pinned">{{ T.fairExtraKeptNote }}</p>' +
+      '      <p class="om-fair-note" v-if="fair.changes.length && fair.fillers">{{ T.fairExtraFillerNote }}</p>' +
+      '      <div class="om-modal-actions">' +
+      '        <button type="button" class="om-btn om-btn-primary" v-if="fair.changes.length || fair.split_articles" :disabled="busy" @click="applyFair">{{ busy ? T.saving : T.fairExtraApply }}</button>' +
+      '        <button type="button" class="om-btn" @click="fair = null; fairAfterClose = false">{{ fairAfterClose ? T.fairNotNow : T.cancel }}</button>' +
       '      </div>' +
       '    </div>' +
       '  </div>' +

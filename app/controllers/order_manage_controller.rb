@@ -12,6 +12,7 @@
 # branch as a drop-in.
 class OrderManageController < ApplicationController
   before_action :authenticate_pickups_or_orders
+  before_action :authenticate_finance, only: [:fair_extra]
   before_action :find_order
 
   def show
@@ -19,6 +20,18 @@ class OrderManageController < ApplicationController
 
   def data
     render json: OrderManageSerializer.new(@order, current_user, view_context)
+  end
+
+  # The one write on this page: a fair share of the extra (see FairExtra).
+  #   GET  /manage/:id/fair_extra  preview: what sharing the extra fairly would change
+  #   POST /manage/:id/fair_extra  apply it (finance, finished order not yet settled)
+  def fair_extra
+    unless @order.finished? && !@order.closed?
+      render json: {error: I18n.t('model.group_order_article.order_closed')}, status: :unprocessable_entity
+      return
+    end
+    fair = FairExtra.new(@order)
+    render json: (request.post? ? fair.apply! : fair.plan)
   end
 
   private

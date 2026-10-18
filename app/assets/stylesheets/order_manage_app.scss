@@ -192,7 +192,25 @@ $om-tap: 44px;
     h3 { margin: 0; font-size: 16px; }
     small { display: block; font-size: 12px; }
   }
-  .om-group-total { text-align: right; flex: 0 0 auto; strong { display: block; font-size: 18px; line-height: 1.2; } }
+  .om-group-total { text-align: right; flex: 0 0 auto; strong { display: block; font-size: 18px; line-height: 1.2; } small { display: block; } }
+  // how the article's extra is spread (see extraInfo in order_manage_app.js)
+  .om-fair { font-size: 12px; margin-top: 2px; &.is-even { color: $om-green-dark; } &.is-uneven { color: darken($om-amber, 15%); } &.is-plain { color: $om-ink; } }
+  .om-fair-adj { font-size: 12px; margin-top: 2px; &.is-changes { color: #3a6ea5; font-weight: 600; } &.is-none { color: $om-muted; } }
+  // "→ 2": what the fair share would make of this line
+  .om-fair-chip { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 11px; font-size: 12px; font-weight: 700; line-height: 22px; background: #e8f0f7; color: #3a6ea5; &.down { background: $om-amber-bg; color: darken($om-amber, 15%); } }
+  .om-extra-tag { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 9px; font-size: 11px; font-weight: 600; line-height: 18px; background: $om-green-bg; color: $om-green-dark; vertical-align: 1px; }
+  .om-modal.om-modal-wide { max-width: 640px; }   // after .om-modal below, so the wider box wins
+  .om-fair-note { font-size: 12px; color: $om-muted; margin: -4px 0 12px; }
+  .om-fair-table small { font-size: 11px; }
+  .om-fair-table {
+    max-height: 50vh; overflow: auto; margin: 0 0 12px; border: 1px solid $om-line; border-radius: 8px;
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 5px 8px; text-align: right; border-top: 1px solid $om-line; white-space: nowrap; }
+    th { background: #fafaf8; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: $om-muted; border-top: 0; position: sticky; top: 0; }
+    th:first-child, td:first-child { text-align: left; }
+    tr.up td strong { color: darken($om-amber, 15%); }
+    tr.down td strong { color: $om-green-dark; }
+  }
   .om-group-foot { padding: 8px 14px; border-top: 1px solid $om-line; }
   .om-group .om-empty { padding: 8px 14px; }
   .om-line {
@@ -220,7 +238,9 @@ $om-tap: 44px;
     &:disabled { opacity: 0.4; }
   }
   .om-result { width: 56px; height: 30px; margin: 0 4px; text-align: center; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; padding: 0 4px; }
-  .om-line-result { flex-direction: row; flex-wrap: wrap; justify-content: center; .om-label { flex: 0 0 100%; text-align: center; } }
+  // the stepper never wraps: label on its own line on phones, inline on wider screens
+  .om-line-result { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; white-space: nowrap; .om-label { flex: 0 0 100%; text-align: center; } }
+  .om-line-ctl { display: inline-flex; align-items: center; flex-wrap: nowrap; }
 
   // ---- comments -----------------------------------------------------------------------------------
   .om-comments { margin-top: 24px; .om-card + .om-card { margin-top: 8px; } }
@@ -255,6 +275,14 @@ $om-tap: 44px;
 
 @media (max-width: 480px) {
   .om .om-tiles { grid-template-columns: 1fr 1fr; }
+  // the share dialog: percentage under the amount so all columns fit a phone
+  .om .om-fair-table {
+    table { font-size: 12px; }
+    th, td { padding: 5px 5px; }
+    th:first-child, td:first-child { white-space: normal; }
+    th:nth-child(5), td:nth-child(5) { display: none; }   // "Kept" is explained in the note below
+    small { display: block; line-height: 1.1; }
+  }
   .om .om-tabs button { padding: 0 10px; font-size: 13px; }
 }
 
@@ -263,9 +291,13 @@ $om-tap: 44px;
   .om .om-toolbar { top: 0; }
   .om .om-modal-actions { flex-direction: row-reverse; .om-btn { flex: 1 1 auto; } }
   .om .om-line {
-    grid-template-columns: minmax(0, 1fr) 90px 120px 120px;
+    grid-template-columns: minmax(0, 1fr) auto auto 90px;
     grid-template-areas: "name ordered result price";
+    column-gap: 20px; align-items: center; padding-top: 6px; padding-bottom: 6px;
   }
+  // one line per household: "ordered 2 + 1 · gets [− 3 +] · $19.98"
+  .om .om-line-fig { text-align: left; white-space: nowrap; .om-label { display: inline; margin-right: 6px; } }
+  .om .om-line-result { flex-wrap: nowrap; justify-content: flex-start; .om-label { flex: 0 0 auto; text-align: left; } }
   .om .om-line-price { text-align: right; font-size: 14px; }
   .om .om-list { grid-template-columns: 1fr; }
   .om .om-group-head h3 { font-size: 17px; }
