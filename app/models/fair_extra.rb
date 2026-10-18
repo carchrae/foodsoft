@@ -6,6 +6,9 @@
 # others none. This class recomputes the results so that the extra each
 # household pays, as a share of what it wanted to spend, is as even as possible
 # across the order: $5 on a $50 order and $20 on a $200 order are both 10%.
+# Very small orders are measured against the order's typical size (the median
+# wanted spend) instead of their own, or one $8 pack would swing a $11 order by
+# 70 points and dictate who gets what.
 #
 # 1. Everyone keeps what they wanted; only the surplus beyond the sum of wanted
 #    amounts is shared, and only among households that asked for extra on that
@@ -71,6 +74,8 @@ class FairExtra
         moves: moves,
         spread_before: spread(:before),
         spread_after: spread(:after),
+        floor: floor.round(2),
+        target_pct: target_pct,
         pinned: households.values.any? { |h| h[:fixed] > 0 },
         fillers: households.values.any? { |h| h[:filler] > 0 },
       }
@@ -197,10 +202,30 @@ class FairExtra
     end
   end
 
-  # extra as a share of what the household wanted to spend (a household that
-  # wanted nothing counts as a one-currency-unit spend, so it is served last)
+  # the order's typical size: the median of what households wanted to spend
+  def floor
+    @floor ||= begin
+      bases = households.values.map { |h| h[:base] }.select { |b| b > 0 }.sort
+      bases.empty? ? 0.0 : (bases[(bases.size - 1) / 2] + bases[bases.size / 2]) / 2.0
+    end
+  end
+
+  # what a household's share is measured against: its wanted spend, but at
+  # least the typical order size, and never less than one currency unit
+  def measure(ordergroup_id)
+    [households[ordergroup_id][:base], floor, 1.0].max
+  end
+
+  # extra as a share of the household's measure
   def share(ordergroup_id, extra = cost[ordergroup_id])
-    extra / [households[ordergroup_id][:base], 1.0].max
+    extra / measure(ordergroup_id)
+  end
+
+  # the share everyone would pay if the balanced extra were spread perfectly
+  def target_pct
+    extra = households.values.sum { |h| h[:after] - h[:filler] }
+    total = households.keys.sum { |id| measure(id) }
+    total > 0 ? (100.0 * extra / total).round(1) : 0.0
   end
 
   def rank(ordergroup_id)
@@ -277,9 +302,10 @@ class FairExtra
   end
 
   # gap in percentage points between the highest and lowest share of the extra
-  # that can be balanced ("0 + extra" fillers are outside the balance)
+  # that can be balanced ("0 + extra" fillers are outside the balance),
+  # measured the way the balance measures it
   def spread(key)
-    values = households.values.map { |h| pct(h[key] - h[key == :before ? :filler_before : :filler], h[:base]) }
+    values = households.map { |id, h| pct(h[key] - h[key == :before ? :filler_before : :filler], measure(id)) }
     values.empty? ? 0.0 : (values.max - values.min).round(1)
   end
 end

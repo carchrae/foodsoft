@@ -96,6 +96,8 @@
     fairExtraIntro: function (units, articles) { return 'The extra in filled cases goes to whoever typed it first. Sharing it across the order moves ' + units + ' ' + (units === 1 ? 'unit' : 'units') + ' on ' + articles + ' ' + (articles === 1 ? 'article' : 'articles') + ' so that every household pays a similar share of extra on top of what it wanted.'; },
     fairExtraNone: 'Nothing to share: no filled case has extra that could be spread differently.',
     fairExtraSpread: function (before, after) { return 'Gap between the highest and the lowest share of extra that can be balanced: ' + before + ' now, ' + after + ' after.'; },
+    fairExtraTarget: function (pct, floor) { return 'Ideal share: ' + pct + ' of what each household wanted. Orders under ' + floor + ' are measured against ' + floor + ', the typical order here, so one pack cannot swing them.'; },
+    afterIdeal: function (pct) { return 'ideal ' + pct; },
     fairExtraKept: 'Kept',
     fairExtraKeptNote: '"Kept" is extra that cannot move: on short deliveries, stock articles, or amounts edited by hand. It stays as it is and is included in the figures.',
     fairExtraFillerNote: 'Extra on lines where nothing was wanted ("0 + 2") only fills a case that nobody who wanted the article can take. It is included in the figures but left out of the balance.',
@@ -758,10 +760,11 @@
       '      <h3>{{ fairAfterClose ? T.fairAfterClose : T.fairExtraTitle }}</h3>' +
       '      <p v-if="fair.split_articles">{{ T.fairSplit(fair.split_articles) }}</p>' +
       '      <p v-if="fair.changes.length">{{ T.fairExtraIntro(fair.units, fair.articles) }} {{ T.fairExtraSpread(T.pct(fair.spread_before), T.pct(fair.spread_after)) }}</p>' +
+      '      <p v-if="fair.changes.length"><strong>{{ T.fairExtraTarget(T.pct(fair.target_pct), money(fair.floor)) }}</strong></p>' +
       '      <p v-else>{{ T.fairExtraNone }}</p>' +
       '      <div class="om-fair-table" v-if="fair.changes.length">' +
       '        <table>' +
-      '          <thead><tr><th>{{ T.household }}</th><th>{{ T.total }}</th><th>{{ T.extraNow }}</th><th>{{ T.extraAfter }}</th><th v-if="fair.pinned">{{ T.fairExtraKept }}</th></tr></thead>' +
+      '          <thead><tr><th>{{ T.household }}</th><th>{{ T.total }}</th><th>{{ T.extraNow }}</th><th>{{ T.extraAfter }} <small>{{ T.afterIdeal(T.pct(fair.target_pct)) }}</small></th><th v-if="fair.pinned">{{ T.fairExtraKept }}</th></tr></thead>' +
       '          <tbody><tr v-for="h in fair.households" :key="h.id" :class="{ up: h.after > h.before + 0.005, down: h.after < h.before - 0.005 }">' +
       '            <td>{{ h.name }}</td><td>{{ money(h.base + h.after) }}</td>' +
       '            <td>{{ money(h.before) }} <small class="om-muted">{{ T.pct(h.pct_before) }}</small></td>' +
