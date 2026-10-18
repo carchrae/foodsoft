@@ -16,7 +16,11 @@
       = article_price_change_hint(order_article)
     %td #{order_article.quantity} + #{order_article.tolerance}
     %td
-      = order_article.units_to_order
+      - split_units = split_units_to_order(order_article)
+      - if split_units
+        %span{title: "#{order_article.units_to_order} whole; the supplier ships the split case"}= split_units
+      - else
+        = order_article.units_to_order
       = pkg_helper order_article.article
     -#%td # TODO implement invoice screen
       - unless order_article.units_billed.nil?

@@ -13,10 +13,7 @@
   $('input', old_order_article_entry).toggleClass('package', <%= @order_article.article_price.unit_quantity == 1 ? 'false' : 'true' %>);
 
   // update expected units, since unit_quantity may have been changed
-  $('input', old_order_article_entry).data('units-expected', <%=
-    (@order_article.units_billed or @order_article.units_to_order) *
-      1.0 * @order_article.article.unit_quantity / @order_article.article_price.unit_quantity
-  %>);
+  $('input', old_order_article_entry).data('units-expected', <%= units_expected(@order_article) %>);
   
   // render new element and inject dynamic cell
   var new_order_article_entry = $(

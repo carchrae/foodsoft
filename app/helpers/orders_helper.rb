@@ -80,14 +80,35 @@ module OrdersHelper
     content_tag(:i, nil, class: 'icon-asterisk', title: j(title)).html_safe
   end
 
+  # Cases the supplier should deliver, honouring split cases: 12 of a
+  # splittable 24CT is 0.5 (CaseFill#units, the ordering page's rules). nil
+  # when nothing splits, so the plain units_to_order applies.
+  def split_units_to_order(order_article)
+    return nil unless order_article.units_billed.nil?
+    fill = CaseFill.new(order_article)
+    units = fill.units
+    units if fill.split && units != order_article.units_to_order
+  end
+
+  # Units the supplier is expected to deliver: billed, else ordered, with a
+  # full split case counted as its fraction.
+  def units_expected(order_article)
+    (order_article.units_billed || split_units_to_order(order_article) || order_article.units_to_order) *
+      1.0 * order_article.article.unit_quantity / order_article.article_price.unit_quantity
+  end
+
   def receive_input_field(form)
     order_article = form.object
-    units_expected = (order_article.units_billed || order_article.units_to_order) *
-      1.0 * order_article.article.unit_quantity / order_article.article_price.unit_quantity
+    units_expected = units_expected(order_article)
+    split_units = split_units_to_order(order_article)
 
     input_classes = 'input input-nano units_received'
     input_classes += ' package' unless order_article.article_price.unit_quantity == 1
+    # a split case that the supplier ships is received as its fraction unless told otherwise
+    input_value = order_article.units_received
+    input_value = split_units if input_value.nil? && split_units && !order_article.result_manually_changed?
     input_html = form.text_field :units_received, class: input_classes,
+      value: (input_value.is_a?(Numeric) ? input_value.to_s.sub(/\.0+\z/, '') : input_value),
       data: {'units-expected' => units_expected},
       disabled: order_article.result_manually_changed?,
       autocomplete: 'off'
