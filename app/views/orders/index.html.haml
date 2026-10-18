@@ -42,9 +42,7 @@
               %td= format_date(order.pickup) unless order.pickup.nil?
               %td= format_time(order.ends) unless order.ends.nil?
               %td= truncate(order.note)
-              %td= link_to t('.action_end'), finish_order_path(order),
-                data: {confirm: t('.confirm_end', order: order.name)}, method: :post,
-                class: 'btn btn-small btn-success'
+              %td= classic_close_button(order, t('.action_end'), 'btn btn-small btn-success')
 
               %td
                 = link_to t('ui.show'), order, class: 'btn btn-small'
@@ -64,9 +62,7 @@
               %td= format_date(order.pickup) unless order.pickup.nil?
               %td= format_time(order.ends) unless order.ends.nil?
               %td= truncate(order.note)
-              %td= link_to t('.action_end'), finish_order_path(order),
-                data: {confirm: t('.confirm_end', order: order.name)}, method: :post,
-                class: 'btn btn-small btn-success'
+              %td= classic_close_button(order, t('.action_end'), 'btn btn-small btn-success')
 
               %td
                 = link_to t('ui.show'), order, class: 'btn btn-small'

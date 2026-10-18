@@ -69,8 +69,7 @@
     - unless @order.open?
       = render 'shared/order_download_button', order: @order, klass: ''
     - if @order.open?
-      = link_to t('.action_end'), finish_order_path(@order), method: :post, class: 'btn btn-success',
-        data: {confirm: t('.confirm_end', order: @order.name)}
+      = classic_close_button(@order, t('.action_end'))
       - if @order.stock_group_order
         = link_to t('.stock_order'), edit_group_order_path(@order.stock_group_order, :order_id => @order.id), class: 'btn'
       - else

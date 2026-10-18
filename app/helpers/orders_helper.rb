@@ -97,6 +97,16 @@ module OrdersHelper
       1.0 * order_article.article.unit_quantity / order_article.article_price.unit_quantity
   end
 
+  # The classic pages keep their Close button, but closing happens in the modern
+  # page (split cases and the fair share of extra follow the close there). The
+  # button asks, and on OK switches to the modern page for this order; the
+  # data-fs-ui attribute makes "modern" the preference, so the page comes back
+  # there after the close and can offer the fair share.
+  def classic_close_button(order, label, html_class = 'btn btn-success')
+    link_to label, manage_path(order), class: html_class, 'data-fs-ui' => 'modern',
+      data: {confirm: 'Orders are closed in the new interface, where split cases and the fair share of extra are applied after the close. Switch to it now?'}
+  end
+
   def receive_input_field(form)
     order_article = form.object
     units_expected = units_expected(order_article)
