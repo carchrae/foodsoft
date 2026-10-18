@@ -76,6 +76,8 @@ class FairExtra
         spread_after: spread(:after),
         floor: floor.round(2),
         target_pct: target_pct,
+        extra_total: households.values.sum { |h| h[:after] - h[:filler] }.round(2),
+        wanted_total: households.values.sum { |h| h[:base] }.round(2),
         pinned: households.values.any? { |h| h[:fixed] > 0 },
         fillers: households.values.any? { |h| h[:filler] > 0 },
       }
@@ -221,10 +223,11 @@ class FairExtra
     extra / measure(ordergroup_id)
   end
 
-  # the share everyone would pay if the balanced extra were spread perfectly
+  # the order's extra as a share of what everyone wanted: what each household
+  # would pay if the extra were spread perfectly
   def target_pct
     extra = households.values.sum { |h| h[:after] - h[:filler] }
-    total = households.keys.sum { |id| measure(id) }
+    total = households.values.sum { |h| h[:base] }
     total > 0 ? (100.0 * extra / total).round(1) : 0.0
   end
 
