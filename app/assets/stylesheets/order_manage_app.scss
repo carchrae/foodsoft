@@ -194,7 +194,9 @@ $om-tap: 44px;
   }
   .om-group-total { text-align: right; flex: 0 0 auto; strong { display: block; font-size: 18px; line-height: 1.2; } small { display: block; } }
   // how the article's extra is spread (see extraInfo in order_manage_app.js)
-  .om-fair { font-size: 12px; margin-top: 2px; &.is-even { color: $om-green-dark; } &.is-uneven { color: darken($om-amber, 15%); } &.is-plain { color: $om-ink; } }
+  .om-fair { font-size: 12px; margin-top: 2px; &.is-even { color: $om-green-dark; } &.is-uneven { color: darken($om-amber, 15%); } &.is-plain { color: $om-ink; } &.is-bad { color: $om-red; font-weight: 600; } }
+  // amounts allocated do not add up to what came in (hand edits)
+  .om-alloc-warn { margin: 0 0 10px; padding: 8px 12px; border-radius: $om-radius; background: $om-red-bg; color: $om-red; font-size: 13px; }
   .om-fair-adj { font-size: 12px; margin-top: 2px; &.is-changes { color: #3a6ea5; font-weight: 600; } &.is-none { color: $om-muted; } }
   // "→ 2": what the fair share would make of this line
   .om-fair-chip { display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 11px; font-size: 12px; font-weight: 700; line-height: 22px; background: #e8f0f7; color: #3a6ea5; &.down { background: $om-amber-bg; color: darken($om-amber, 15%); } }

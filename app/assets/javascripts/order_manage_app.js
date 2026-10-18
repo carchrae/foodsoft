@@ -120,6 +120,12 @@
     extraEven: 'shared evenly',
     extraUneven: function (with_, without) { return with_ + ' ' + (with_ === 1 ? 'household has' : 'households have') + ' extra, ' + without + ' asked and got none'; },
     received: 'received',
+    allocated: function (n) { return n + ' allocated'; },
+    ofExpected: function (n, received) { return 'of ' + n + (received ? ' received' : ' ordered'); },
+    allocUnder: function (n) { return n + ' not allocated to anyone'; },
+    allocOver: function (n) { return n + ' more allocated than ' + 'available'; },
+    allocWarnTitle: function (n) { return n + (n === 1 ? ' article' : ' articles') + ' where the amounts allocated do not add up to what came in'; },
+    allocWarnBody: 'This happens after amounts are edited by hand. Fix the amounts, or check what was received.',
     result: 'gets',
     total: 'total',
     cost: 'Cost',
@@ -329,6 +335,12 @@
 
       commentOk: function () { return this.comment.trim().length >= 3; },
 
+      // articles whose allocated amounts do not add up to what came in
+      misallocated: function () {
+        var self = this;
+        return (this.order && !this.order.open) ? this.orderedArticles.filter(function (a) { return !self.allocation(a).ok; }) : [];
+      },
+
       // group order article id -> {from, to} from the fair share preview
       fairById: function () {
         var out = {};
@@ -376,6 +388,18 @@
       },
       sumPrice: function (a) {
         return a.lines.reduce(function (s, l) { return s + (l.total_price || 0); }, 0);
+      },
+      // what came in (received, else billed, else ordered) against what the
+      // households were allocated; a difference means someone edited by hand
+      allocation: function (a) {
+        var expected = (a.units || 0) * (a.unit_quantity > 1 ? a.unit_quantity : 1);
+        var allocated = this.sumResult(a);
+        var diff = Math.round((allocated - expected) * 1000) / 1000;
+        return { expected: expected, allocated: allocated, diff: diff, received: a.units_received != null, ok: Math.abs(diff) < 0.005 };
+      },
+      allocationText: function (a) {
+        var x = this.allocation(a);
+        return x.diff < 0 ? T.allocUnder(-x.diff) : T.allocOver(x.diff);
       },
 
       load: function () {
@@ -622,6 +646,9 @@
       '  </div>' +
 
       // ---- summary ------------------------------------------------------------------------------
+      '  <div class="om-alloc-warn" v-if="view !== \'summary\' && misallocated.length">' +
+      '    <strong>{{ T.allocWarnTitle(misallocated.length) }}:</strong> {{ misallocated.map(function (a) { return a.name; }).join(\', \') }}. {{ T.allocWarnBody }}' +
+      '  </div>' +
       '  <section class="om-section" v-if="view === \'summary\'">' +
       '    <p class="om-empty" v-if="!summaryGroups.length">{{ T.nothing }}</p>' +
       '    <div v-for="g in summaryGroups" :key="g.name" class="om-category">' +
@@ -694,7 +721,8 @@
       '            <h3>{{ a.name }} <span class="om-unit">{{ a.unit }}</span> <span class="om-chip" v-if="stateLabel(a) && !a.ordered" :class="stateLabel(a).kind">{{ stateLabel(a).text }}</span></h3>' +
       '            <small class="om-muted">{{ money(a.price.fc) }}<template v-if="a.unit_quantity > 1"> · × {{ a.unit_quantity }}</template> · {{ T.caseLine(a.units, a.unit_quantity, a.unit) }}</small>' +
       '          </div>' +
-      '          <div class="om-group-total"><strong>{{ money(sumPrice(a)) }}</strong><small>{{ sumResult(a) }} {{ T.received }}</small>' +
+      '          <div class="om-group-total"><strong>{{ money(sumPrice(a)) }}</strong><small>{{ T.allocated(sumResult(a)) }} · {{ T.ofExpected(allocation(a).expected, allocation(a).received) }}</small>' +
+      '            <small class="om-fair is-bad" v-if="!allocation(a).ok">{{ allocationText(a) }}</small>' +
       '            <small class="om-fair" v-if="extraInfo(a)" :class="extraInfo(a).even ? \'is-even\' : \'is-uneven\'">{{ T.extraShared(extraInfo(a).got, extraInfo(a).asked) }} · {{ extraInfo(a).even ? T.extraEven : T.extraUneven(extraInfo(a).with, extraInfo(a).without) }}</small>' +
       '            <small class="om-fair-adj" v-if="showFair && fairPlan && extraInfo(a)" :class="fairCount(a) ? \'is-changes\' : \'is-none\'">{{ fairCount(a) ? T.fairChanges(fairCount(a)) : T.fairNoChange }}</small>' +
       '          </div>' +
