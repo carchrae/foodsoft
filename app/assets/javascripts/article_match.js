@@ -113,15 +113,50 @@
 
   function firstWord(name) { return tokens(cleanName(name))[0] || ''; }
 
-  // "3LB" -> {amount: 3, base: 'lb'}, "500ml" -> {amount: 500, base: 'ml'}, "2kg" -> {amount: 2000, base: 'g'}
-  var BASES = { lb: 'lb', lbs: 'lb', '#': 'lb', pound: 'lb', pounds: 'lb', g: 'g', gr: 'g', gram: 'g', grams: 'g', kg: 'g', kgs: 'g',
-                ml: 'ml', l: 'ml', ltr: 'ml', litre: 'ml', liter: 'ml', oz: 'oz', ozs: 'oz', ct: 'ct', count: 'ct', ea: 'ct', each: 'ct', pc: 'ct', pcs: 'ct' };
-  var KILO = { kg: 1000, kgs: 1000, l: 1000, ltr: 1000, litre: 1000, liter: 1000 };
+  // Every weight is measured in pounds and every volume in millilitres, so
+  // "12oz" and "LB" or "500g" and "2kg" compare directly.
+  var G_PER_LB = 453.59237;
+  var LB_PER = { lb: 1, lbs: 1, '#': 1, pound: 1, pounds: 1, oz: 1 / 16, ozs: 1 / 16,
+                 g: 1 / G_PER_LB, gr: 1 / G_PER_LB, gram: 1 / G_PER_LB, grams: 1 / G_PER_LB, kg: 1000 / G_PER_LB, kgs: 1000 / G_PER_LB };
+  var METRIC = { g: 1, gr: 1, gram: 1, grams: 1, kg: 1, kgs: 1 };
+  var ML_PER = { ml: 1, l: 1000, ltr: 1000, litre: 1000, liter: 1000, gal: 3785.41 };
+  var COUNTS = { ct: 'ct', count: 'ct', ea: 'ct', each: 'ct', pc: 'ct', pcs: 'ct' };
+  // "3LB" -> {amount: 3, base: 'lb'}, "12oz" -> {amount: 0.75, base: 'lb'}, "500ml" -> {amount: 500, base: 'ml'},
+  // "2kg" -> {amount: 4.41, base: 'lb', metric: true}. Older imports left trailing text in the unit
+  // ("10# BC", "# CA*", "4CT MX"): only the leading amount and unit count.
   function parseUnit(unit) {
-    var m = /^\s*(\d*\.?\d+)?\s*([a-z#]+)\s*$/i.exec(unit || '');
+    var m = /^\s*(\d*\.?\d+)?\s*([a-z#]+)/i.exec(unit || '');
     if (!m) return null;
     var name = m[2].toLowerCase(), amount = m[1] ? parseFloat(m[1]) : 1;
-    return { amount: amount * (KILO[name] || 1), base: BASES[name] || name };
+    if (LB_PER[name]) return { amount: amount * LB_PER[name], base: 'lb', metric: !!METRIC[name] };
+    if (ML_PER[name]) return { amount: amount * ML_PER[name], base: 'ml' };
+    return { amount: amount, base: COUNTS[name] || name };
+  }
+
+  // pounds of one unit ("12oz" -> 0.75, "10# BC" -> 10), null for anything but a weight
+  function unitWeightLb(unit) {
+    var p = parseUnit(unit);
+    return (p && p.base === 'lb' && p.amount > 0) ? p.amount : null;
+  }
+
+  function trimNumber(n) { return String(+n.toFixed(2)); }
+
+  // A weight for people: never fractional pounds. 0.75 -> "12 oz", 1.5 -> "1 lb 8 oz",
+  // 10 -> "10 lb"; metric units stay metric (500 g, 2 kg).
+  function weightText(lb, metric) {
+    if (metric) {
+      var g = Math.round(lb * G_PER_LB);
+      return g >= 1000 ? trimNumber(g / 1000) + ' kg' : g + ' g';
+    }
+    var tenths = Math.round(lb * 160), whole = Math.floor(tenths / 160), oz = (tenths - whole * 160) / 10;
+    if (!whole) return trimNumber(oz) + ' oz';
+    return whole + ' lb' + (oz ? ' ' + trimNumber(oz) + ' oz' : '');
+  }
+
+  // "12oz" -> "12 oz", "1.5LB" -> "1 lb 8 oz", "10# BC" -> "10 lb"; other units as they are
+  function unitText(unit) {
+    var p = parseUnit(unit);
+    return (p && p.base === 'lb') ? weightText(p.amount, p.metric) : unit;
   }
 
   // How the demand (wanted + extra) fills cases of the given size: the same maths
@@ -162,6 +197,27 @@
     return (v > 0 && isFinite(v)) ? v : null;
   }
   function scaleAmount(n, f) { return Math.round(n * f); }
+
+  // The price per pound the importer wrote into the note ("$3.50 per lb",
+  // "$7.70 per kg") from the supplier's box weight: the only fair comparison
+  // for count-packed produce, where 48CT and 70CT are the same 25 lb case of
+  // bigger or smaller fruit. null when the note carries none.
+  function notePerLb(note) {
+    var m = /\$?\s*(\d+(?:[.,]\d+)?)\s*(?:per|\/)\s*(lbs?|#|pounds?|kgs?|kilos?)(?![a-z])/i.exec(note || '');
+    if (!m) return null;
+    var v = parseFloat(m[1].replace(',', '.'));
+    if (!(v > 0)) return null;
+    return /^k/i.test(m[2]) ? v / 2.20462 : v;
+  }
+
+  // The article's price per pound: exact from a weight unit ("3LB" at $5.80 is
+  // $1.93), else the importer's note, which carries the supplier's box weight
+  // and is what count-packed produce needs. null when neither is known.
+  function pricePerLb(a) {
+    var lb = unitWeightLb(a.unit);
+    if (lb) return a.price / lb;
+    return notePerLb(a.note);
+  }
 
   // the candidate's price for the same amount as one of the current article
   function equivalentPrice(oa, a) {
@@ -209,9 +265,14 @@
     similarity: similarity,
     unitKey: unitKey,
     parseUnit: parseUnit,
+    unitWeightLb: unitWeightLb,
+    weightText: weightText,
+    unitText: unitText,
     unitRatio: unitRatio,
     conversionFactor: conversionFactor,
     equivalentPrice: equivalentPrice,
+    notePerLb: notePerLb,
+    pricePerLb: pricePerLb,
     parseFactor: parseFactor,
     scaleAmount: scaleAmount,
     caseFill: caseFill,

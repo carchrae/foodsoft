@@ -41,6 +41,7 @@
     match: function (p) { return p + '% match'; },
     origin: 'origin',
     unitDiffers: 'different unit',
+    unitDiffersWeight: function (u0, w0, u1, w1) { return 'different unit: ' + u0 + ' (' + w0 + ') → ' + u1 + ' (' + w1 + ')'; },
     askFactor: function (from, to) { return 'How should members\' amounts be converted from ' + from + ' to ' + to + '?'; },
     customOpen: 'Custom conversion…',
     customClose: 'Use the automatic conversion',
@@ -49,6 +50,7 @@
     factorUnit: function (to) { return '×' + to; },
     factorEmpty: 'Leave empty to keep everyone\'s numbers as they are.',
     sameCaseNote: function (q0, u0, q1, u1) { return 'Suggested ' + q1 + '/' + q0 + ', assuming a case of ' + q0 + '×' + u0 + ' holds the same as a case of ' + q1 + '×' + u1 + '. Change it if the cases differ.'; },
+    weightNote: function (u0, w0, u1, w1, f) { return '1×' + u0 + ' is ' + w0 + ' and 1×' + u1 + ' is ' + w1 + ', so ' + f + ' is suggested.'; },
     factorExample: function (from, to, f) { return 'Example: 1×' + from + ' becomes ' + f + '×' + to + '.'; },
     factorMembers: function (pairs) { return 'Members\' amounts ' + pairs + '.'; },
     factorExtra: function (pairs) { return 'Extra: ' + pairs + '.'; },
@@ -60,7 +62,13 @@
     convertHint: function (f, from, to) { return 'A member who ordered 1×' + from + ' will get ' + f + '×' + to + '. Untick to keep the numbers as they are.'; },
     perEquiv: function (f, unit) { return 'for ' + f + '×' + unit; },
     perUnit: function (unit) { return 'per ' + unit; },
+    perLb: function (p) { return p + ' per lb'; },
+    perLbShort: function (p) { return p + '/lb'; },
+    lbCheaper: function (d, a, b) { return d + ' per lb cheaper (' + a + ' vs ' + b + ' per lb)'; },
+    lbDearer: function (d, a, b) { return d + ' per lb more (' + a + ' vs ' + b + ' per lb)'; },
+    lbSame: function (p) { return 'same price per lb (' + p + ')'; },
     cheaperHint: function (name, origin, d) { return name + (origin ? ' (' + origin + ')' : '') + ' is ' + d + ' cheaper'; },
+    cheaperHintLb: function (name, origin, d, du, unit) { return name + (origin ? ' (' + origin + ')' : '') + ' is ' + d + ' per lb cheaper' + (du ? ' (' + du + ' per ' + unit + ')' : ''); },
     noDemand: 'nobody has ordered this yet',
     fillsCases: function (n, size) { return 'demand fills ' + n + (n === 1 ? ' case' : ' cases') + ' of ' + size; },
     fillsShort: function (n, more, size) { return (n ? n + (n === 1 ? ' case' : ' cases') + ' filled, ' : '') + more + ' more needed for a case of ' + size; },
@@ -97,7 +105,8 @@
   var M = window.FoodsoftArticleMatch;
   var UNAVAILABLE_RE = M.UNAVAILABLE_RE, isUnavailableName = M.isUnavailableName, cleanName = M.cleanName,
       sameProduct = M.sameProduct, similarity = M.similarity, unitKey = M.unitKey, unitRatio = M.unitRatio,
-      conversionFactor = M.conversionFactor, equivalentPrice = M.equivalentPrice, parseFactor = M.parseFactor,
+      conversionFactor = M.conversionFactor, equivalentPrice = M.equivalentPrice, pricePerLb = M.pricePerLb,
+      unitWeightLb = M.unitWeightLb, unitText = M.unitText, parseFactor = M.parseFactor,
       scaleAmount = M.scaleAmount, caseFill = M.caseFill, tint = M.tint, ink = M.ink;
 
   // a cheaper article is only suggested on the card when it is this similar
@@ -148,6 +157,12 @@
         if (Math.abs(d) < 0.005) return '';
         return (d < 0 ? '−' : '+') + money(Math.abs(d), this.currency);
       },
+      // "MEXICO · PROMICH · $3.10 · 20×CT · $4.73/lb"
+      meta: function (o, withManufacturer) {
+        var a = o.a, parts = [a.origin, withManufacturer ? a.manufacturer : '', money(a.price, this.currency), a.unit_quantity + '×' + a.unit];
+        if (o.perLb != null) parts.push(T.perLbShort(money(o.perLb, this.currency)));
+        return parts.filter(Boolean).join(' · ');
+      },
       optionStyle: function (o) {
         return o.current ? null : { background: tint(o.score), color: ink(o.score) };
       }
@@ -156,7 +171,7 @@
       '<div class="sw-picker" :class="{ open: open }">' +
       '  <button type="button" class="sw-picker-btn" :id="id" :aria-label="ariaLabel" :style="buttonStyle" :aria-expanded="open ? \'true\' : \'false\'" aria-haspopup="listbox" @click="open = !open">' +
       '    <span class="sw-picker-text" :class="{ placeholder: !chosen }">' +
-      '      <template v-if="chosen"><strong>{{ chosen.a.name }}</strong><small> · {{ [chosen.a.origin, money(chosen.a.price), chosen.a.unit_quantity + \'×\' + chosen.a.unit].filter(Boolean).join(\' · \') }}</small></template>' +
+      '      <template v-if="chosen"><strong>{{ chosen.a.name }}</strong><small> · {{ meta(chosen, false) }}</small></template>' +
       '      <template v-else>{{ options.length ? T.chooseOne : T.noneFound }}</template>' +
       '    </span>' +
       '    <span class="sw-picker-caret">▾</span>' +
@@ -166,12 +181,17 @@
       '    <button type="button" class="sw-picker-opt" v-for="o in options" :key="o.a.article_id" :class="{ selected: chosen && chosen.a.article_id === o.a.article_id, current: o.current }" :style="optionStyle(o)" role="option" @click="choose(o.a.article_id)">' +
       '      <span class="sw-opt-main">' +
       '        <span class="sw-opt-name"><span class="sw-opt-keep" v-if="o.current">{{ T.keep }} · </span>{{ o.a.name }}</span>' +
-      '        <span class="sw-opt-meta">{{ [o.a.origin, o.a.manufacturer, money(o.a.price), o.a.unit_quantity + \'×\' + o.a.unit].filter(Boolean).join(\' · \') }}</span>' +
+      '        <span class="sw-opt-meta">{{ meta(o, true) }}</span>' +
       '      </span>' +
       '      <span class="sw-opt-side" v-if="!o.current">' +
       '        <span class="sw-opt-factor" v-if="o.factor > 1">×{{ o.factor }}</span>' +
-      '        <span class="sw-opt-delta muted" v-if="o.ratio == null">{{ T.unitsDiffer }}</span>' +
-      '        <span class="sw-opt-delta" v-else-if="deltaText(o.delta)" :class="o.delta < 0 ? \'ok\' : \'warn\'">{{ deltaText(o.delta) }}</span>' +
+      '        <template v-if="o.lbDelta != null">' +
+      '          <span class="sw-opt-delta" v-if="deltaText(o.lbDelta)" :class="o.lbDelta < 0 ? \'ok\' : \'warn\'">{{ deltaText(o.lbDelta) }}/lb</span>' +
+      '          <span class="sw-opt-delta muted" v-else>{{ T.samePrice }}/lb</span>' +
+      '          <span class="sw-opt-delta muted" v-if="!o.weights && o.ratio != null && deltaText(o.delta)">{{ deltaText(o.delta) }}/{{ o.a.unit }}</span>' +
+      '        </template>' +
+      '        <span class="sw-opt-delta muted" v-else-if="o.ratio == null">{{ T.unitsDiffer }}</span>' +
+      '        <span class="sw-opt-delta" v-else-if="deltaText(o.delta)" :class="o.lbRef ? \'muted\' : (o.delta < 0 ? \'ok\' : \'warn\')">{{ deltaText(o.delta) }}<template v-if="o.lbRef">/{{ o.a.unit }}</template></span>' +
       '        <span class="sw-opt-score">{{ Math.round(o.score * 100) }}%</span>' +
       '      </span>' +
       '    </button>' +
@@ -296,11 +316,15 @@
           factor = custom != null ? custom : 1;
         }
         var useFactor = customOpen ? (custom != null && custom !== 1) : (factor > 1 && this.convert[oa.id] !== false);
-        // the cheapest near-identical alternative, like the classic "cheaper?" column
-        var cheaper = null;
+        // the cheapest near-identical alternative, like the classic "cheaper?" column.
+        // When the importer noted a price per pound, that is what "cheaper" means
+        // (48CT and 70CT avocados are the same case of bigger or smaller fruit):
+        // only alternatives with a per-pound price compete, on that price.
+        var oaLb = pricePerLb(oa), cheaper = null;
+        function ref(o) { return oaLb != null ? o.lbDelta : (o.ratio == null ? null : o.delta); }
         options.forEach(function (o) {
-          if (o.current || isUnavailableName(o.a.name) || o.score < CHEAPER_MIN_SCORE || o.ratio == null) return;
-          if (o.delta < -0.005 && (!cheaper || o.delta < cheaper.delta)) cheaper = o;
+          if (o.current || isUnavailableName(o.a.name) || o.score < CHEAPER_MIN_SCORE || ref(o) == null) return;
+          if (ref(o) < -0.005 && (!cheaper || ref(o) < ref(cheaper))) cheaper = o;
         });
         return {
           oa: oa,
@@ -317,8 +341,13 @@
           customError: customError,
           sameCaseNote: (needsFactor && unitRatio(oa.unit, chosen.unit) == null && oa.unit_quantity > 0 && chosen.unit_quantity > 0)
             ? T.sameCaseNote(oa.unit_quantity, oa.unit, chosen.unit_quantity, chosen.unit) : null,
+          weightNote: (needsFactor && unitRatio(oa.unit, chosen.unit) != null && unitWeightLb(oa.unit) && unitWeightLb(chosen.unit))
+            ? T.weightNote(oa.unit, unitText(oa.unit), chosen.unit, unitText(chosen.unit), +unitRatio(oa.unit, chosen.unit).toFixed(4)) : null,
           example: (customOpen && useFactor) ? this.exampleFor(oa, chosen, factor) : null,
+          // the price per pound, unless the unit is a pound and already says so
+          perLb: (oaLb != null && unitWeightLb(oa.unit) !== 1) ? oaLb : null,
           cheaper: (!changed && cheaper) ? cheaper : null,
+          cheaperText: (!changed && cheaper) ? this.cheaperTextFor(oa, cheaper) : null,
           cheaperFill: (!changed && cheaper) ? this.fillFor(oa, cheaper.a, cheaper.factor || 1) : null,
           diffs: chosen ? this.diffsFor(oa, chosen, useFactor ? factor : 1) : [],
           error: this.rowErrors[oa.id] || null
@@ -345,11 +374,22 @@
           var factor = conversionFactor(oa.unit, a.unit);
           if (!all && !sameProduct(a.name, oa.name)) return;
           var equiv = equivalentPrice(oa, a);
-          list.push({ a: a, score: s, current: a.article_id === oa.article_id, factor: factor, ratio: unitRatio(oa.unit, a.unit), equivPrice: equiv, delta: equiv - oa.price });
+          var lb = pricePerLb(a), oaLb = pricePerLb(oa);
+          list.push({ a: a, score: s, current: a.article_id === oa.article_id, factor: factor, ratio: unitRatio(oa.unit, a.unit), equivPrice: equiv, delta: equiv - oa.price,
+                      perLb: (lb != null && unitWeightLb(a.unit) !== 1) ? lb : null, lbDelta: (lb != null && oaLb != null) ? lb - oaLb : null, lbRef: oaLb != null,
+                      weights: !!(unitWeightLb(oa.unit) && unitWeightLb(a.unit)) });
         });
         // the current article first, then best match first
         list.sort(function (x, y) { return (y.current - x.current) || (y.score - x.score) || x.a.name.localeCompare(y.a.name); });
         return list;
+      },
+
+      // "AVOCADO HASS 60CT (MEXICO) is $1.30 per lb cheaper (−$0.13 per CT)"
+      cheaperTextFor: function (oa, o) {
+        var cu = this.cfg.currency_unit;
+        if (o.lbDelta == null) return T.cheaperHint(o.a.name, o.a.origin, money(-o.delta, cu));
+        var du = (!o.weights && o.ratio != null && Math.abs(o.delta) >= 0.005) ? (o.delta < 0 ? '−' : '+') + money(Math.abs(o.delta), cu) : '';
+        return T.cheaperHintLb(o.a.name, o.a.origin, money(-o.lbDelta, cu), du, oa.unit);
       },
 
       // what differs between the current article and the chosen one
@@ -360,8 +400,9 @@
         if (ratio == null && factor !== 1) ratio = factor;
         var equivPrice = ratio == null ? a.price : a.price * ratio, d = equivPrice - oa.price;
         if (a.article_id === oa.article_id) return out;
-        var conv = conversionFactor(oa.unit, a.unit);
-        if (conv == null) out.push({ text: T.unitDiffers + ': ' + oa.unit + ' → ' + a.unit, kind: factor !== 1 ? 'warn' : 'bad' });
+        var conv = conversionFactor(oa.unit, a.unit), weights = !!(unitWeightLb(oa.unit) && unitWeightLb(a.unit));
+        if (conv == null && weights) out.push({ text: T.unitDiffersWeight(oa.unit, unitText(oa.unit), a.unit, unitText(a.unit)), kind: factor !== 1 ? 'warn' : 'bad' });
+        else if (conv == null) out.push({ text: T.unitDiffers + ': ' + oa.unit + ' → ' + a.unit, kind: factor !== 1 ? 'warn' : 'bad' });
         else if (factor !== 1 && factor !== conv) out.push({ text: T.unitConvert(factor, oa.unit, a.unit).replace(/becomes .*$/, 'becomes ' + scaleAmount(1, factor) + '×' + a.unit), kind: 'ok' });
         else if (conv > 1) out.push({ text: T.unitConvert(conv, oa.unit, a.unit), kind: factor > 1 ? 'ok' : 'warn' });
         if (a.unit_quantity !== oa.unit_quantity) out.push({ text: T.caseDiffers(oa.unit_quantity, a.unit_quantity), kind: 'warn' });
@@ -371,10 +412,23 @@
         if (ratio != null && ratio !== 1) {
           equiv = ' (' + money(equivPrice, cu) + ' ' + (ratio > 1 && Math.abs(ratio - Math.round(ratio)) < 1e-6 ? T.perEquiv(Math.round(ratio), a.unit) : T.perUnit(oa.unit)) + ')';
         }
+        // The importer's price per pound is the reference whenever the current
+        // article carries one: the verdict chip compares pounds when the other
+        // article has it too, and the per-unit difference is shown uncoloured.
+        var oaLb = pricePerLb(oa), aLb = pricePerLb(a), lbKnown = oaLb != null && aLb != null, lbRef = oaLb != null;
+        if (lbKnown) {
+          var dl = aLb - oaLb, pa = money(aLb, cu), p0 = money(oaLb, cu);
+          if (Math.abs(dl) < 0.005) out.push({ text: T.lbSame(pa), kind: 'price muted' });
+          else if (dl < 0) out.push({ text: T.lbCheaper(money(-dl, cu), pa, p0), kind: 'price ok' });
+          else out.push({ text: T.lbDearer(money(dl, cu), pa, p0), kind: 'price warn' });
+          // between two weights that per-pound chip is the per-unit comparison
+          if (weights) return out;
+        }
+        if (lbRef && ratio != null && !equiv) equiv = ' ' + T.perUnit(oa.unit);
         if (ratio == null) out.push({ text: T.priceUnknown(money(a.price, cu), a.unit, money(oa.price, cu), oa.unit), kind: 'price muted' });
         else if (Math.abs(d) < 0.005) out.push({ text: T.samePrice + equiv, kind: 'price muted' });
-        else if (d < 0) out.push({ text: T.cheaper(money(-d, cu)) + equiv, kind: 'price ok' });
-        else out.push({ text: T.dearer(money(d, cu)) + equiv, kind: 'price warn' });
+        else if (d < 0) out.push({ text: T.cheaper(money(-d, cu)) + equiv, kind: lbRef ? 'price muted' : 'price ok' });
+        else out.push({ text: T.dearer(money(d, cu)) + equiv, kind: lbRef ? 'price muted' : 'price warn' });
         return out;
       },
 
@@ -521,7 +575,11 @@
       '          <strong>{{ displayName(r.oa.name) }}</strong>' +
       '          <small class="sw-origin" v-if="r.oa.origin || r.oa.manufacturer">{{ [r.oa.origin, r.oa.manufacturer].filter(Boolean).join(\' · \') }}</small>' +
       '        </div>' +
-      '        <div class="sw-price"><strong>{{ money(r.oa.price) }}</strong><small>{{ r.oa.unit_quantity }}×{{ r.oa.unit }}</small></div>' +
+      '        <div class="sw-price">' +
+      '          <strong>{{ money(r.oa.price) }} <span class="sw-per">{{ T.perUnit(r.oa.unit) }}</span></strong>' +
+      '          <small>{{ r.oa.unit_quantity }}×{{ r.oa.unit }}</small>' +
+      '          <small v-if="r.perLb != null">{{ T.perLb(money(r.perLb)) }}</small>' +
+      '        </div>' +
       '      </div>' +
       '      <p class="sw-meta">' +
       '        <span>{{ T.wanted(r.oa.quantity, r.oa.quantity + r.oa.tolerance) }}</span>' +
@@ -535,7 +593,7 @@
       '          <span class="sw-match" v-if="r.score != null" :style="{ background: tint(r.score), color: ink(r.score) }">{{ T.match(pct(r.score)) }}</span>' +
       '        </div>' +
       '        <p class="sw-cheaper" v-if="r.cheaper">' +
-      '          <span class="sw-chip price ok">{{ T.cheaperHint(r.cheaper.a.name, r.cheaper.a.origin, money(-r.cheaper.delta)) }}</span>' +
+      '          <span class="sw-chip price ok">{{ r.cheaperText }}</span>' +
       '          <span class="sw-chip" :class="r.cheaperFill.kind">{{ r.cheaperFill.text }}</span>' +
       '          <button type="button" class="sw-linkbtn" @click="pickCheaper(r)">{{ T.use }}</button>' +
       '        </p>' +
@@ -546,6 +604,7 @@
       '        <div class="sw-convert sw-ask" v-if="r.customOpen">' +
       '          <strong>{{ T.askFactor(r.oa.unit, r.chosen.unit) }}</strong>' +
       '          <small v-if="r.sameCaseNote">{{ r.sameCaseNote }}</small>' +
+      '          <small v-else-if="r.weightNote">{{ r.weightNote }}</small>' +
       '          <small v-else-if="r.factor === 1 && unitKey(r.oa.unit) === unitKey(r.chosen.unit)">{{ T.customSameUnit }}</small>' +
       '          <div class="sw-ask-row">' +
       '            <span>{{ T.factorLabel(r.oa.unit, r.chosen.unit) }}</span>' +
