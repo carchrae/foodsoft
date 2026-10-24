@@ -11,6 +11,9 @@
 #
 # The resque worker is optional; start it with:
 #   ./start-docker-dev.sh --profile worker
+#
+# APP_HOME is where the image keeps the app ($APP_HOME/src) and its gems
+# ($APP_HOME/bundle); it must match the build arg of Dockerfile-dev.
 
 services:
 
@@ -29,6 +32,7 @@ services:
       args:
         HOST_UID: ${HOST_UID:-1000}
         HOST_GID: ${HOST_GID:-1000}
+        APP_HOME: ${APP_HOME:-/home/app}
     command: ./proc-start web
     restart: unless-stopped
     network_mode: host
@@ -38,9 +42,9 @@ services:
       - SHARED_DATABASE_URL=${SHARED_DATABASE_URL:-postgres://food-coop:food-coop@localhost:5432/food-prices}
       - REDIS_URL=redis://localhost:6379
       - PORT=3000
-    volumes:
-      - bundle:/home/app/bundle
-      - .:/home/app/src
+    volumes: &volumes
+      - bundle:${APP_HOME:-/home/app}/bundle
+      - .:${APP_HOME:-/home/app}/src
 
   foodsoft_worker:
     profiles: [worker]
@@ -50,9 +54,7 @@ services:
     network_mode: host
     depends_on: [redis]
     environment: *env
-    volumes:
-      - bundle:/home/app/bundle
-      - .:/home/app/src
+    volumes: *volumes
 
 volumes:
   bundle:

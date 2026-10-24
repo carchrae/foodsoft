@@ -39,14 +39,19 @@ RUN curl -fsSL https://cache.ruby-lang.org/pub/ruby/2.6/ruby-2.6.6.tar.gz | tar 
 
 RUN gem install bundler -v 1.17.3 --no-document
 
-ENV PORT=3000 \
+# Where the app lives in the container: $APP_HOME/src is the source tree,
+# $APP_HOME/bundle the gems. The compose files mount volumes at the same
+# paths, so pass the same APP_HOME build arg there when changing it.
+ARG APP_HOME=/home/app
+ENV APP_HOME=${APP_HOME} \
+    PORT=3000 \
     SMTP_SERVER_PORT=2525 \
     RAILS_ENV=development \
     RAILS_LOG_TO_STDOUT=true \
     RAILS_SERVE_STATIC_FILES=true \
     \
-    BUNDLE_PATH=/home/app/bundle \
-    BUNDLE_APP_CONFIG=/home/app/bundle/config
+    BUNDLE_PATH=${APP_HOME}/bundle \
+    BUNDLE_APP_CONFIG=${APP_HOME}/bundle/config
 
 # Run app and all commands as user 'app', created with the host uid/gid so
 # files written into the mounted source tree stay owned by you.
@@ -54,11 +59,11 @@ ENV PORT=3000 \
 ARG HOST_UID=1000
 ARG HOST_GID=1000
 RUN groupadd -g "$HOST_GID" app \
-    && useradd -m -u "$HOST_UID" -g "$HOST_GID" -s /bin/bash app \
-    && ln -s /home/app/src /usr/src/app
+    && useradd -m -d "$APP_HOME" -u "$HOST_UID" -g "$HOST_GID" -s /bin/bash app \
+    && ln -s "$APP_HOME/src" /usr/src/app
 USER app
 
-WORKDIR /home/app/src
+WORKDIR ${APP_HOME}/src
 
 # Copy files needed for installing gem dependencies, and install them.
 # (plugins are path gems referenced from the Gemfile)
@@ -69,6 +74,11 @@ RUN bundle config build.nokogiri "--use-system-libraries" && \
 
 # Copy the application code
 COPY --chown=app:app . ./
+
+# .dockerignore leaves these out, and a named volume mounted on a path the
+# image lacks is created root-owned, which breaks assets:precompile and
+# tmp/pids as user app. Create them here so the volumes inherit app's ownership.
+RUN mkdir -p public/assets tmp/pids tmp/cache
 
 EXPOSE 3000
 

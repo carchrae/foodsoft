@@ -9,6 +9,9 @@
 #
 # Precompiled assets and tmp/ go to volumes, not into the working tree, so the
 # dev server keeps compiling assets live.
+#
+# APP_HOME is where the image keeps the app ($APP_HOME/src) and its gems
+# ($APP_HOME/bundle); it must match the build arg of Dockerfile-dev.
 
 services:
 
@@ -19,6 +22,7 @@ services:
       args:
         HOST_UID: ${HOST_UID:-1000}
         HOST_GID: ${HOST_GID:-1000}
+        APP_HOME: ${APP_HOME:-/home/app}
     command: >
       sh -c "bundle exec rake assets:precompile &&
              exec bundle exec rails server -e production --binding=0.0.0.0 --port=$${PORT}"
@@ -35,10 +39,10 @@ services:
       - RAILS_LOG_TO_STDOUT=true
       - HOSTNAME=localhost:${PRODCHECK_PORT:-3001}
     volumes:
-      - bundle_prodcheck:/home/app/bundle
-      - .:/home/app/src
-      - prodcheck_assets:/home/app/src/public/assets
-      - prodcheck_tmp:/home/app/src/tmp
+      - bundle_prodcheck:${APP_HOME:-/home/app}/bundle
+      - .:${APP_HOME:-/home/app}/src
+      - prodcheck_assets:${APP_HOME:-/home/app}/src/public/assets
+      - prodcheck_tmp:${APP_HOME:-/home/app}/src/tmp
 
 volumes:
   bundle_prodcheck:
