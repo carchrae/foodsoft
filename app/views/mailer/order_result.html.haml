@@ -1,5 +1,11 @@
 %div= raw t ('.html0'), ordergroup: @group_order.ordergroup_name, order: @order.name, when: I18n.l(@order.ends), user: show_user(@user), orderuser: show_user(@updated_by), message: @message
 
+- if @no_changes
+  %p
+    %b No changes have been recorded for your order.
+    If you were expecting anything to be adjusted, please contact the ordering person,
+    = @orderer ? "#{show_user(@orderer)} (#{@orderer.email})." : "by replying to this email."
+
 = render :partial => 'order_result_table', :locals => { goas: @group_order.group_order_articles.ordered.includes(:order_article), diff: @diff }
 
 

@@ -40,15 +40,29 @@ class UserNotifier
     UserNotifier.email_updated_orders(args.push('The order has been closed and sent to supplier.'))
   end
 
-  # when the order has been settled
+  # when the order has been settled: everyone gets their final charges, even
+  # when nothing changed since their last email
   def self.closed_order(args)
     # just delegate, one email template for all
-    UserNotifier.email_updated_orders(args.push('Here are your final order charges.'))
+    UserNotifier.email_updated_orders(args.push('Here are your final order charges.', true))
   end
 
   # day after pickup delivery notification
   def self.delivery_day_after_notification(args)
     UserNotifier.email_updated_orders(args.push('The order is not yet finalized but here are your final charges. If anything does not look correct, please email the ordering person by replying to this email.'))
+  end
+
+  # the ordering person has been nagged to settle the order: tell everyone
+  # who ordered what has been recorded so far, so mistakes surface before the
+  # final charges (see Order.email_reminder_to_settle). Sent even when nothing
+  # changed, so that silence can be flagged too.
+  def self.order_not_closed_notification(args)
+    order = Order.find(args.first)
+    orderer = order.created_by || order.updated_by
+    contact = orderer && orderer.email.presence || FoodsoftConfig[:contact][:email]
+    UserNotifier.email_updated_orders(args.push(
+      "The order has not been closed yet, but these are the changes recorded so far. " \
+      "Please contact #{contact} if anything is not correct.", true))
   end
 
   # when the order has been updated
@@ -57,10 +71,11 @@ class UserNotifier
     UserNotifier.email_updated_orders(args.push('There were updates to your order, please review any changes.'))
   end
 
-  # any time the order changes we send an email to members
+  # any time the order changes we send an email to members; with force the
+  # email also goes to members whose order did not change since their last one
   def self.email_updated_orders(args)
     puts "email_updated_orders #{args.as_json}"
-    order_id, message = args.first(2)
+    order_id, message, force = args.first(3)
     Order.find(order_id).group_orders.each do |group_order|
       next if group_order.ordergroup.nil?
       puts "emailing #{group_order.ordergroup.users.count} users"
@@ -72,7 +87,7 @@ class UserNotifier
 
 
         Mailer.deliver_now_with_user_locale user do
-          Mailer.order_result(user, group_order, message)
+          Mailer.order_result(user, group_order, message, force: force)
         end
         rescue Mailer::MailCancelled => e
           puts "mail was canceled/no mail required #{e}"

@@ -133,16 +133,20 @@ class Mailer < ActionMailer::Base
     end
   end
 
-  def order_result(user, group_order, message = '')
+  # @param force [Boolean] send even when nothing changed since the last email;
+  #   the email then says so, in place of a list of changes
+  def order_result(user, group_order, message = '', force: false)
     @order = group_order.order
     @group_order = group_order
     @message = message
     @user = user
     @diff = compute_changed_since_last_email(group_order, user)
     @updated_by = @order.updated_by || @order.created_by
+    @orderer = @order.created_by || @order.updated_by
+    @no_changes = (@diff && @diff.size == 0)
 
     # puts "size of diff #{@diff.size}"
-    if (@diff && @diff.size == 0)
+    if @no_changes && !force
       # puts("not first change and size is empty")
       raise MailCancelled.new("#{user.email}")
     else

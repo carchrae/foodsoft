@@ -450,8 +450,20 @@ class Order < ApplicationRecord
         Mailer.deliver_now_with_user_locale user do
           Mailer.remind_order_not_settled(user, late_orders)
         end
+        late_orders.each { |order| order.settle_reminder_sent! }
       end
     end
+  end
+
+  # Counts the settle reminders sent for this order (in the cache, like the
+  # result email state). With the first one everyone who ordered gets the
+  # recorded changes, so they can flag mistakes while the order is still open
+  # for corrections. Later reminders only go to the ordering person.
+  def settle_reminder_sent!
+    key = "settle-reminders-#{id}"
+    count = FoodsoftCache.get(key).to_i + 1
+    FoodsoftCache.set(key, count)
+    UserNotifier.enqueue_in(10.seconds, 'order_not_closed_notification', id) if count == 1
   end
 
   def nearly_full_order_articles
