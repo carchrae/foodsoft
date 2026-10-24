@@ -42,8 +42,16 @@
             %td{title: units_history_line(order_article, plain: true)}
               = units
               = pkg_helper order_article.price
-          %td= link_to t('ui.edit'), edit_supplier_article_path(order_article.article.supplier_id, order_article.article),
-            :remote => true, class: 'btn btn-mini'
+          %td
+            - if order.open?
+              -# while members can still order, the catalogue article is what gets edited
+              = link_to t('ui.edit'), edit_supplier_article_path(order_article.article.supplier_id, order_article.article),
+                :remote => true, class: 'btn btn-mini'
+            - else
+              -# once the order is finished the line has its own price snapshot: open the
+              -# same dialog as the balancing page, which edits that snapshot
+              = link_to t('ui.edit'), edit_order_order_article_path(order, order_article),
+                :remote => true, class: 'btn btn-mini'
 %p
   = t '.prices_sum'
   = "#{number_to_currency(total_net)} / #{number_to_currency(total_gross)}"

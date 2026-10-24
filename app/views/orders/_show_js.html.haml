@@ -18,3 +18,7 @@
     $(function() {
       activate_search('#{j @view}', '#{j t("orders.show.search_placeholder.#{@view}")}');
     });
+    // the order-line edit dialog (finished orders) announces its save; redraw the table
+    $(document).on('OrderArticle#update', function() {
+      $.getScript('#{j order_path(@order, view: @view, format: :js)}');
+    });
