@@ -240,8 +240,11 @@ class OrderArticle < ApplicationRecord
       # Updates self
       self.update_attributes!(order_article_attributes)
 
-      # Updates article
-      article.update_attributes!(article_attributes)
+      # Updates article. An order line has no name, unit or order number of its
+      # own: those belong to the catalogue article and show in every order,
+      # open ones included. So they are only written when the global update is
+      # asked for; otherwise an edit here stays an edit of this order's line.
+      article.update_attributes!(article_attributes) if update_global_price && article_attributes.present?
 
       # Updates article_price belonging to current order article
       if price_attributes.present?

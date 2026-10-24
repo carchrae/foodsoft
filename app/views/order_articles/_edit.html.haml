@@ -15,18 +15,30 @@
 
       .foo{style: 'clear:both'}
 
+    -# name, unit and order number belong to the catalogue article (the line has
+    -# none of its own), so they are only editable with the global update ticked
+    - global = @order_article.update_global_price
     = simple_fields_for :article, @order_article.article do |f|
-      = f.input :name
+      = f.input :name, disabled: !global, input_html: {class: 'global-only'}
 
       - if @order_article.article.is_a?(StockArticle)
         %div.alert= t '.stock_alert'
       - else
         = simple_fields_for :article_price, @order_article.article_price do |fprice|
-          = render partial: 'shared/article_fields_units', locals: {f_unit: f, f_uq: fprice}
+          = render partial: 'shared/article_fields_units', locals: {f_unit: f, f_uq: fprice, unit_html: {class: 'global-only', disabled: !global}}
           = render partial: 'shared/article_fields_price', locals: {f: fprice}
 
       = form.input :update_global_price, as: :boolean
-      = f.input :order_number
+      = f.input :order_number, disabled: !global, input_html: {class: 'global-only'}
+      :javascript
+        $(function() {
+          // name, unit and order number change the catalogue article for every
+          // order, so they follow the global checkbox
+          var box = $('#order_article_update_global_price');
+          var sync = function() { $('.global-only').prop('disabled', !box.is(':checked')); };
+          box.on('change', sync);
+          sync();
+        });
   .modal-footer
     = button_tag(id: 'updateSplitButton', type: 'button', class: 'btn', onclick: 'updateSplitPrice();') do content_tag(:span, 'Recalculate Split Price') end
     = link_to t('ui.close'), '#', class: 'btn', data: {dismiss: 'modal'}

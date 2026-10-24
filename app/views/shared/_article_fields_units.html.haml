@@ -3,4 +3,4 @@
   = (f_uq rescue f).input :unit_quantity, label: Article.human_attribute_name(:unit),
     input_html: {class: 'input-mini', title: Article.human_attribute_name(:unit_quantity)}
   = (f_unit rescue f).input :unit, label: '&times;'.html_safe,
-    input_html: {class: 'input-mini', title: Article.human_attribute_name(:unit)}
+    input_html: {class: 'input-mini', title: Article.human_attribute_name(:unit)}.merge((unit_html rescue nil) || {})

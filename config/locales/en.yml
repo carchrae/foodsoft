@@ -165,7 +165,7 @@ en:
         units_received_short: Received
         units_to_order: Ordered units
         units_to_order_short: Ordered
-        update_global_price: Globally update current price
+        update_global_price: Also update the catalogue article
       order_comment:
         text: Add comment to this order ...
       ordergroup:
@@ -2007,7 +2007,7 @@ en:
         description: comma-separated list of category names recognised at import/synchronisation
       order_article:
         units_to_order: If you change the received amount, you will need to update each member's amount received so members are charged the correct amount.
-        update_global_price: Also update the price of future orders
+        update_global_price: Writes the price, name, unit and order number to the article itself, so future and currently open orders see them too. Unticked, only this order's line changes.
       stock_article:
         copy:
           name: Please modify
