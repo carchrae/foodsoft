@@ -70,6 +70,9 @@ gem 'foodsoft_discourse', path: 'plugins/discourse'
 #gem 'foodsoft_uservoice', path: 'plugins/uservoice'
 
 
+# One line per request instead of the Started/Processing/Rendered/Completed spread
+gem 'lograge', '~> 0.11.2'
+
 group :development do
   gem 'sqlite3'
   gem 'web-console', '~> 2.0'
