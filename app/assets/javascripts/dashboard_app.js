@@ -100,7 +100,7 @@
     reload: 'Reload',
     searchPlaceholder: 'Search for an item…',
     clear: 'Clear',
-    searchHint: 'Searches the open orders, then the suppliers\' catalogues. You can order or change an amount right from the open-order results.',
+    searchHint: 'Searches the open orders, then the suppliers\' catalogues. You can order or change an amount right from the open-order results, and add a catalogue item to its supplier\'s open order.',
     searchShort: function (n) { return 'Type at least ' + n + ' letters'; },
     searchNone: 'No items match.',
     inOpenOrders: 'Open orders',
@@ -114,6 +114,9 @@
     youHave: function (q, t) { return 'You: ' + q + (t ? ', up to ' + (q + t) : ''); },
     change: 'Change',
     addToOrder: 'Order',
+    // a catalogue item of a supplier with one open order (OrderingController#add_article)
+    addToNamed: function (name) { return 'Add to ' + name + ' order'; },
+    adding: 'Adding…',
     goToItem: 'Go to item',
     done: 'Done',
     autosaving: 'Saving…',
@@ -164,9 +167,10 @@
 
   // the ordering page's item card (ordering_app.js, loaded first in application.js)
   var ArticleCard = window.FoodsoftOrdering && window.FoodsoftOrdering.ArticleCard;
+  var AddWarningDialog = window.FoodsoftOrdering && window.FoodsoftOrdering.AddWarningDialog;
 
   var DashboardApp = {
-    components: ArticleCard ? { 'oa-article-card': ArticleCard } : {},
+    components: ArticleCard ? { 'oa-article-card': ArticleCard, 'oa-add-warning': AddWarningDialog } : {},
 
     props: { dataUrl: { type: String, required: true } },
 
@@ -184,6 +188,8 @@
         searchError: false,
         showOlder: false, // catalogue hits of suppliers not ordered from lately
         edit: null,       // quick edit: {id, hit, loading} then the loaded card (see startEdit)
+        adding: null,     // catalogue hit being added to its supplier's open order
+        addWarning: null, // catalogue hit while the produce "think twice" dialog is open
         T: T
       };
     },
@@ -318,7 +324,8 @@
 
       // Load the order's snapshot so the ordering page's own item card can edit
       // this article (amount, "up to", case progress, what you get).
-      startEdit: function (h) {
+      // fresh: just added from the catalogue, the card starts with one ordered
+      startEdit: function (h, fresh) {
         var self = this;
         this.closeEdit();
         this.edit = { id: h.id, hit: h, loading: true };
@@ -336,6 +343,7 @@
             if (!target) throw { body: { message: T.itemGone } };
             self.edit = {
               id: h.id, hit: h, snap: snap, a: target, cfg: cfg,
+              fresh: !!fresh,
               before: orderCost(all, cfg),  // cost of what the server has, for the credit rule
               dirty: false,                 // changed since the last save was sent
               saving: false,
@@ -346,6 +354,52 @@
           })
           .catch(function (err) {
             self.edit = null;
+            self.notify('error', (err && err.body && err.body.message) || T.actionError);
+          });
+      },
+
+      // Catalogue item of a supplier with one open order: produce orders ask first.
+      addHit: function (h) {
+        if (this.adding) return;
+        if (h.add_to.warnings) this.addWarning = h; else this.addHitNow(h);
+      },
+
+      // Put the article in the order for everyone, then show it as an open-order
+      // hit with its item card open and one ordered, which saves itself as usual.
+      addHitNow: function (h) {
+        var self = this, to = h.add_to;
+        var token = document.querySelector('meta[name="csrf-token"]');
+        this.addWarning = null;
+        this.adding = h.id;
+        fetch(to.urls.add, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-Token': token ? token.getAttribute('content') : ''
+          },
+          body: JSON.stringify({ article_id: h.id })
+        })
+          .then(parseJson)
+          .then(function (json) {
+            self.adding = null;
+            var s = self.search;
+            if (!s) return;
+            var id = json.added_id;
+            var hit = {
+              id: id, name: h.name, manufacturer: h.manufacturer, origin: h.origin, note: h.note,
+              unit: h.unit, unit_quantity: h.unit_quantity, price: h.price, quantity: 0, tolerance: 0,
+              order: to.order,
+              urls: Object.assign({}, to.urls, { order_modern: to.urls.order_modern + '#article-' + id })
+            };
+            s.articles = s.articles.filter(function (x) { return x.id !== h.id; });
+            s.older_articles = s.older_articles.filter(function (x) { return x.id !== h.id; });
+            s.open.push(hit);
+            self.startEdit(hit, true);
+          })
+          .catch(function (err) {
+            self.adding = null;
             self.notify('error', (err && err.body && err.body.message) || T.actionError);
           });
       },
@@ -635,7 +689,7 @@
       '        <div class="da-quickedit" v-else>' +
       '          <p class="da-muted" v-if="edit.loading"><span class="da-spinner da-spinner-small"></span> {{ T.loadingItem }}</p>' +
       '          <template v-else>' +
-      '          <div class="oa oa-embed"><oa-article-card :a="edit.a" :cfg="edit.cfg" start-open @change="editChanged"></oa-article-card></div>' +
+      '          <div class="oa oa-embed"><oa-article-card :a="edit.a" :cfg="edit.cfg" start-open :start-ordering="edit.fresh" @change="editChanged"></oa-article-card></div>' +
       '          <div class="da-quickedit-foot">' +
       '            <span class="da-quickedit-credit" :class="editBalanceOk(edit) ? \'da-ok\' : \'da-bad\'" v-if="editBalance(edit) != null">{{ cfg.charge_members_manually ? T.accountBalance : T.availableCredit }} {{ money(editBalance(edit)) }}</span>' +
       '            <span class="da-autosave" :class="edit.status" role="status">' +
@@ -660,9 +714,11 @@
       '        </div>' +
       '        <div class="da-hit-side">' +
       '          <span class="da-muted da-hit-last">{{ h.last_ordered_human ? T.lastOrdered(h.last_ordered_human) : T.neverOrdered }}</span>' +
+      '          <button type="button" class="da-btn da-btn-small da-btn-primary" v-if="h.add_to && og" :disabled="adding != null" @click="addHit(h)">{{ adding === h.id ? T.adding : T.addToNamed(h.add_to.order.name) }}</button>' +
       '        </div>' +
       '      </div>' +
       '      </template>' +
+      '      <div class="oa oa-embed" v-if="addWarning"><oa-add-warning :name="addWarning.name" :warnings="addWarning.add_to.warnings" :currency-unit="cfg.currency_unit || \'\'" @add="addHitNow(addWarning)" @cancel="addWarning = null"></oa-add-warning></div>' +
       '      <button type="button" class="da-linkbtn da-show-older" v-if="search.older_articles.length" @click="showOlder = !showOlder">{{ showOlder ? T.hideOlder : T.showOlder(search.older_articles.length) }}</button>' +
       '      </template>' +
       '    </div>' +

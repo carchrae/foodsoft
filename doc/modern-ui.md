@@ -70,6 +70,56 @@ identical there. `GET /f/ordering/all` returns one `OrderingSerializer`
 snapshot per open order plus `funds.available_funds_without_open_orders`;
 articles are tagged with their order id and stock flag on the client.
 
+## Adding articles from the supplier's catalogue
+
+For suppliers with a big catalogue (Purity, supplier 9, ~5000 articles) an
+order holds only a selection, as putting every article in makes the order
+slow. Any member can add more while the order is open: when the supplier has
+available articles that are not in the order (`urls.catalogue` in the
+snapshot, `OrderCatalogueSerializer.more_in_catalogue?`), the search box reads
+"Search, or add from the catalogue…" and, from two letters on, a "More from
+<supplier>" section under the order's own matches lists up to 30 of them
+(`GET /f/ordering/:id/catalogue?q=`). Matching and ranking are the dashboard
+search's (`OrderCatalogueSerializer` subclasses `DashboardSearchSerializer`),
+plus the note, since Purity abbreviates names ("NWRLD SESA TAHINI RAW") and
+spells them out in the note.
+
+"Add to order" POSTs `article_id` to `/f/ordering/:id/add_article`, which
+creates the order article (for everyone; a second click or a race finds the
+existing one) and returns a fresh snapshot with `added_id`. The page takes the
+new article list but keeps the articles already shown, so unsaved amounts and
+the lock version are untouched, then scrolls to the new card, flashes it and
+starts it at 1 with the automatic "Up to", like the card's own "Add to order".
+The member still saves as usual. The added article stays visible whatever the
+search and filters. On the combined page an article missing from several open
+orders of one supplier gets one button per order.
+
+The page search now also matches words in any order and the article note.
+
+**Produce orders ask first.** On an order whose note contains "Produce"
+(Discovery's produce order) the catalogue hits carry `warnings`
+(`ProduceAddWarnings`), and "Add to order" opens a "Before you add this…"
+dialog ("Don't add" is the main button, "Add it anyway" adds) when:
+
+* `same`: an article with exactly that name is already on the order (the
+  catalogue lists some produce twice, at different prices);
+* `similar`: the order has the same kind of produce, by the first word of the
+  name with plurals folded ("POTATO RED BULK" vs "POTATO YELLOW BAGGED");
+* `past`: on at least 3 produce orders of the supplier in the last year members
+  wanted under half a case on average and the case filled less than half the time;
+* `large`: the case costs at least twice the median case on the order, or
+  weighs at least 50 lb and more than any case on the order.
+
+The dialog is `AddWarningDialog` in `ordering_app.js`, shared with the dashboard.
+
+**Dashboard search.** A catalogue hit whose supplier has exactly one open
+(non-stock) order gets "Add to <order> order" (`add_to` in
+`DashboardSearchSerializer`, with the same produce warnings). It calls the same
+`add_article`, then moves the hit to the open-order results and opens its item
+card with one ordered, which autosaves like any quick edit. With several open
+orders from the supplier (Discovery, usually) there is no button; the combined
+ordering page lets the member pick.
+
 ## Page width
 
 Every modern page (dashboard `.da`, ordering `.oa`, swap `.sw`, copy order

@@ -568,6 +568,17 @@ $oa-tap: 44px;
   .oa .oa-order-btn.oa-order-aside { display: none; }
 }
 
+// catalogue hits under the search results: supplier articles not in the order yet
+.oa .oa-catalogue { margin-top: 12px; border-top: 4px solid $oa-line; }
+.oa .oa-catalogue-hint { margin: 0; padding: 0 12px 8px; font-size: 13px; color: $oa-muted; }
+.oa .oa-catalogue-hit .oa-article-main { min-height: 0; }
+.oa .oa-warn-item { margin-bottom: 4px; }
+.oa .oa-warn-list { margin: 0 0 12px 18px; > li { margin-bottom: 8px; } ul { margin: 4px 0 0 16px; font-size: 13px; color: #555; } }
+.oa .oa-order-btn.oa-add-btn {
+  min-width: 0; height: auto; min-height: 34px; padding: 4px 14px; border-radius: 17px;
+  font-size: 14px; line-height: 1.2; margin-top: 2px; text-align: center;
+}
+
 @media (min-width: 768px) {
   .oa .oa-toolbar { flex-wrap: nowrap; }
   .oa .oa-filters { flex: 0 1 auto; }

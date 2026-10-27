@@ -27,8 +27,9 @@ class DashboardSearchSerializer
 
   def as_json(*)
     return {query: @query, open: [], articles: [], older_articles: []} if @query.length < MIN_QUERY_LENGTH || @words.empty?
-    open = open_hits(Order.open_reverse.to_a)
-    articles, older = article_hits(open.map { |h| h[:article_id] })
+    open_orders = Order.open_reverse.to_a
+    open = open_hits(open_orders)
+    articles, older = article_hits(open.map { |h| h[:article_id] }, open_orders)
     {
       query: @query,
       open: open.map { |h| h[:json] },
@@ -62,7 +63,8 @@ class DashboardSearchSerializer
   # Available articles of the suppliers (not the stock), leaving out the ones
   # already shown in an open order. Returns two lists: articles of suppliers
   # ordered from in the last 6 months, and those of the other suppliers.
-  def article_hits(skip_ids)
+  # Articles of a supplier with exactly one open order can be added to it (add_to).
+  def article_hits(skip_ids, open_orders = [])
     articles = Article.available.not_in_stock.joins(:supplier).merge(Supplier.undeleted)
       .includes(:supplier)
       .where(*word_conditions)
@@ -77,7 +79,43 @@ class DashboardSearchSerializer
     recent = recent.first(MAX_ARTICLE_HITS)
     older = older.first(MAX_ARTICLE_HITS)
     last = last_ordered(recent + older)
-    [recent, older].map { |list| list.map { |a| article_json(a, last[[a.supplier_id, a.name]]) } }
+    add_to = add_targets(recent + older, open_orders)
+    [recent, older].map do |list|
+      list.map do |a|
+        json = article_json(a, last[[a.supplier_id, a.name]])
+        add_to[a.id] ? json.merge(add_to: add_to[a.id]) : json
+      end
+    end
+  end
+
+  # {article_id => {order: {...}, urls: {...}, warnings: {...}}} for the articles
+  # whose supplier has exactly one open order (OrderingController#add_article);
+  # with several the member would have to pick, which the ordering page does.
+  def add_targets(articles, open_orders)
+    return {} if @ordergroup.nil? || articles.empty?
+    by_supplier = open_orders.reject(&:stockit?).group_by(&:supplier_id).select { |_, orders| orders.size == 1 }
+    group_orders = my_group_orders(by_supplier.values.flatten.map(&:id))
+    articles.group_by(&:supplier_id).each_with_object({}) do |(supplier_id, list), out|
+      order = by_supplier[supplier_id].try(:first)
+      next unless order
+      warnings = ProduceAddWarnings.produce?(order) ? ProduceAddWarnings.new(order, list).to_h : {}
+      group_order = group_orders[order.id]
+      list.each do |a|
+        out[a.id] = {
+          order: {id: order.id, name: order.name, open: true, stockit: false,
+                  ends_human: @view.format_date(order.ends), pickup_human: @view.format_date(order.pickup)},
+          urls: {
+            add: @view.add_article_ordering_path(order),
+            data: @view.data_ordering_path(order),
+            save: @view.ordering_path(order),
+            order_modern: @view.ordering_path(order),
+            order: (group_order ? @view.edit_group_order_path(group_order, order_id: order.id) : @view.new_group_order_path(order_id: order.id)),
+            show: (group_order && @view.group_order_path(group_order)),
+          },
+          warnings: warnings[a.id],
+        }.compact
+      end
+    end
   end
 
   # When each article was last in a finished order. Synced catalogues get a new

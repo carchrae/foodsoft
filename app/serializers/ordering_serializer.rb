@@ -117,6 +117,9 @@ class OrderingSerializer
       back: @view.group_orders_path,
       show: (@group_order.persisted? ? @view.group_order_path(@group_order) : nil),
       prices: @view.prices_ordering_path(@order),
+      # only when the supplier has articles that are not in the order
+      catalogue: (OrderCatalogueSerializer.more_in_catalogue?(@order) ? @view.catalogue_ordering_path(@order) : nil),
+      add_article: @view.add_article_ordering_path(@order),
     }
   end
 

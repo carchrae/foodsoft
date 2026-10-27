@@ -8,6 +8,10 @@
 #   GET  /ordering/:id/prices  JSON: {order_article_id: price summary}, fetched once
 #                              after the snapshot so saving stays fast; with
 #                              ?order_article_id= one article's price history
+#   GET  /ordering/:id/catalogue?q=  JSON: the supplier's articles not in the order
+#                                    (OrderCatalogueSerializer)
+#   POST /ordering/:id/add_article   puts one of those in the order (article_id=),
+#                                    returns a fresh snapshot plus its order article id
 #
 # :id is the Order id. The legacy pages (GroupOrdersController#new/#edit) stay
 # untouched; members opt in via localStorage (see ordering/_legacy_switch).
@@ -20,8 +24,8 @@ class OrderingController < ApplicationController
   SINGLE_ORDER_ACTIONS = %i[show data update].freeze
 
   before_action :ensure_ordergroup_member
-  before_action :ensure_open_order, only: SINGLE_ORDER_ACTIONS + [:prices]
-  before_action :find_group_order, only: SINGLE_ORDER_ACTIONS
+  before_action :ensure_open_order, only: SINGLE_ORDER_ACTIONS + %i[prices catalogue add_article]
+  before_action :find_group_order, only: SINGLE_ORDER_ACTIONS + [:add_article]
   before_action :enough_apples?, only: SINGLE_ORDER_ACTIONS
 
   # Every open order on one page.
@@ -89,6 +93,28 @@ class OrderingController < ApplicationController
     end
   end
 
+  def catalogue
+    render json: OrderCatalogueSerializer.new(current_user, @order, params[:q], view_context)
+  end
+
+  # Any member may add an article of the order's supplier to an open order, for
+  # suppliers whose catalogue is too big to put everything in the order up front.
+  def add_article
+    return render(status: :unprocessable_entity, json: {error: 'stock'}) if @order.stockit?
+    article = Article.available.not_in_stock.where(supplier_id: @order.supplier_id).find_by(id: params[:article_id])
+    return render(status: :not_found, json: {error: 'article'}) unless article
+    order_article = @order.order_articles.find_or_create_by!(article_id: article.id)
+    render json: serializer.as_json.merge(added_id: order_article.id)
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+    # someone else added it at the same moment, or the article has no price
+    order_article = @order.order_articles.find_by(article_id: article.id)
+    if order_article
+      render json: serializer.as_json.merge(added_id: order_article.id)
+    else
+      render status: :unprocessable_entity, json: {error: 'general', message: I18n.t('model.order_article.error_price')}
+    end
+  end
+
   private
 
   def serializer
@@ -135,7 +161,7 @@ class OrderingController < ApplicationController
   end
 
   def respond_closed(message)
-    if request.format.json? || action_name == 'update' || action_name == 'data'
+    if request.format.json? || %w[update data catalogue add_article].include?(action_name)
       render status: :gone, json: {error: 'closed', message: message}
     else
       redirect_to group_orders_url, alert: message

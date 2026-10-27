@@ -49,6 +49,7 @@
     pickup: 'Pickup',
     createdBy: 'Order created by',
     search: 'Search for something…',
+    searchCatalogue: 'Search, or add from the catalogue…',
     all: 'All',
     mine: 'My order',
     mineShort: 'Mine',
@@ -56,6 +57,30 @@
     needsFillingShort: 'To fill',
     allCategories: 'Categories',
     noMatch: 'No articles match your search.',
+    noMatchCatalogue: 'Nothing in this order matches yet. You can add it from the catalogue below.',
+    // supplier articles that are not in the order yet (OrderCatalogueSerializer)
+    catalogueTitle: function (supplier) { return supplier ? 'More from ' + supplier : 'More from the suppliers'; },
+    catalogueHint: 'Not in the order yet. Add one, then choose how many you want.',
+    catalogueSearching: 'Searching the catalogue…',
+    addTo: function (label) { return 'Add to ' + label; },
+    adding: 'Adding…',
+    addError: 'Could not add the item. Please try again.',
+    lastOrdered: function (when) { return 'last ordered ' + when; },
+    // produce orders: asked before adding (ProduceAddWarnings)
+    warnTitle: 'Before you add this…',
+    warnIntro: 'Cases only ship when we fill them, so the produce order works best with fewer, popular items.',
+    warnSame: 'An item with exactly this name is already on the order. Please order that one instead, so everyone fills the same case.',
+    warnSimilar: 'This order already has something very similar. Adding another kind splits the orders between them and makes it harder to fill either case. Could one of these do instead?',
+    warnPast: function (p) {
+      return 'It was on ' + p.orders + ' earlier produce orders and members wanted about ' + Math.round(p.avg_cases * 100) +
+        '% of a case on average; the case filled ' + (p.filled === 0 ? 'none of those times' : (p.filled === 1 ? 'only once' : 'only ' + p.filled + ' times')) + '.';
+    },
+    warnLarge: function (weight, price, typical) {
+      return 'It is a big case: ' + [weight ? weight + ' lb' : null, price].filter(Boolean).join(' for ') +
+        (typical ? ' (a typical case on this order is ' + typical + ')' : '') + '. It takes a lot of members to fill.';
+    },
+    warnAdd: 'Add it anyway',
+    warnCancel: 'Don\'t add',
     perUnit: 'per',
     caseOf: 'case of',
     deposit: 'deposit',
@@ -277,12 +302,17 @@
       a: { type: Object, required: true },
       cfg: { type: Object, required: true },
       price: { type: Object, default: null },  // price summary from /ordering/:id/prices, when loaded
-      startOpen: { type: Boolean, default: false }  // show the steppers straight away (dashboard quick edit)
+      startOpen: { type: Boolean, default: false },  // show the steppers straight away (dashboard quick edit)
+      startOrdering: { type: Boolean, default: false }  // as if "Add to order" was clicked (just added from the catalogue)
     },
     emits: ['change', 'prices'],
 
     // opened: the steppers stay once shown, even when the amount goes back to 0
     data: function () { return { T: T, opened: this.startOpen }; },
+
+    mounted: function () {
+      if (this.startOrdering && this.a.quantity + this.a.tolerance === 0) this.startOrder(this.a);
+    },
 
     computed: {
       d: function () { return derive(this.a, this.cfg); },
@@ -475,12 +505,57 @@
       '</article>'
   };
 
-  window.FoodsoftOrdering = { ArticleCard: ArticleCard, derive: derive, T: T };
+  // ---- "think twice" dialog before adding a catalogue article to a produce order ----
+  // warnings come from ProduceAddWarnings; shared with the dashboard search.
+  // Needs an .oa ancestor for its styles.
+  var AddWarningDialog = {
+    props: {
+      name: { type: String, required: true },
+      warnings: { type: Object, required: true },
+      currencyUnit: { type: String, default: '' }
+    },
+    emits: ['add', 'cancel'],
+    data: function () { return { T: T }; },
+    computed: {
+      largeText: function () {
+        var l = this.warnings.large;
+        return l ? T.warnLarge(l.weight_lb, this.money(l.case_price), l.typical_case_price ? this.money(l.typical_case_price) : null) : null;
+      }
+    },
+    methods: {
+      money: function (v) {
+        if (v == null || !isFinite(v)) return null;
+        if (window.I18n && typeof I18n.toCurrency === 'function') return I18n.toCurrency(v, { unit: this.currencyUnit, precision: 2 });
+        return this.currencyUnit + v.toFixed(2);
+      }
+    },
+    template:
+      '<div class="oa-modal-backdrop" @click.self="$emit(\'cancel\')">' +
+      '  <div class="oa-modal oa-warn-modal" role="dialog" aria-modal="true" aria-labelledby="oa-warn-title">' +
+      '    <h3 id="oa-warn-title">{{ T.warnTitle }}</h3>' +
+      '    <p class="oa-warn-item"><strong>{{ name }}</strong></p>' +
+      '    <p>{{ T.warnIntro }}</p>' +
+      '    <ul class="oa-warn-list">' +
+      '      <li v-if="warnings.same">{{ T.warnSame }}</li>' +
+      '      <li v-if="warnings.similar">{{ T.warnSimilar }}' +
+      '        <ul><li v-for="n in warnings.similar" :key="n">{{ n }}</li></ul></li>' +
+      '      <li v-if="warnings.past">{{ T.warnPast(warnings.past) }}</li>' +
+      '      <li v-if="largeText">{{ largeText }}</li>' +
+      '    </ul>' +
+      '    <div class="oa-modal-actions">' +
+      '      <button type="button" class="oa-btn oa-btn-primary" @click="$emit(\'cancel\')">{{ T.warnCancel }}</button>' +
+      '      <button type="button" class="oa-btn" @click="$emit(\'add\')">{{ T.warnAdd }}</button>' +
+      '    </div>' +
+      '  </div>' +
+      '</div>'
+  };
+
+  window.FoodsoftOrdering = { ArticleCard: ArticleCard, AddWarningDialog: AddWarningDialog, derive: derive, T: T };
 
   // ---- the component --------------------------------------------------------
 
   var OrderingApp = {
-    components: { 'oa-article-card': ArticleCard, 'oa-price-dialog': window.FoodsoftPriceDialog },
+    components: { 'oa-article-card': ArticleCard, 'oa-price-dialog': window.FoodsoftPriceDialog, 'oa-add-warning': AddWarningDialog },
 
     props: {
       dataUrl: { type: String, required: true },
@@ -509,6 +584,12 @@
         jumpTo: '',            // combined page: order id picked in the jump select
         prices: {},            // order article id -> price summary, loaded once per order after the snapshot
         priceDialog: null,     // { name, url } while the price history dialog is open
+        catalogue: {},         // order id -> catalogue hits for the search (only orders with urls.catalogue)
+        catalogueLoading: 0,   // catalogue requests in flight
+        adding: null,          // article id being added from the catalogue
+        justAdded: null,       // order article id added from the catalogue, shown whatever the filters
+        pendingStart: null,    // order article id whose card starts ordering when it appears
+        addWarning: null,      // { hit, entry, warnings } while the produce confirm dialog is open
         now: Date.now(),
         T: T
       };
@@ -579,19 +660,21 @@
       },
 
       // [{order, categories: [{name, articles}]}] after search and filters
+      // every word of the search, in any order (like the catalogue search)
       rows: function () {
-        var self = this, d = this.derived, needle = normalize(this.search);
+        var self = this, d = this.derived, words = normalize(this.search).split(/\s+/).filter(Boolean);
         var out = [];
         this.orders.forEach(function (o) {
           var groups = [];
           o.categories.forEach(function (c) {
-            if (self.category && c.name !== self.category) return;
             var articles = c.articles.filter(function (a) {
+              if (a.id === self.justAdded) return true;
+              if (self.category && c.name !== self.category) return false;
               if (self.filter === 'mine' && a.quantity + a.tolerance === 0) return false;
               if (self.filter === 'fill' && d[a.id].missing === 0 && !(self.fillSnapshot && self.fillSnapshot[a.id])) return false;
-              if (needle) {
-                var hay = normalize(a.name) + ' ' + normalize(a.manufacturer) + ' ' + normalize(a.origin) + ' ' + normalize(a.order_number);
-                if (hay.indexOf(needle) === -1) return false;
+              if (words.length) {
+                var hay = normalize(a.name) + ' ' + normalize(a.manufacturer) + ' ' + normalize(a.origin) + ' ' + normalize(a.order_number) + ' ' + normalize(a.note);
+                if (!words.every(function (w) { return hay.indexOf(w) !== -1; })) return false;
               }
               return true;
             });
@@ -600,6 +683,33 @@
           if (groups.length) out.push({ order: o.order, categories: groups });
         });
         return out;
+      },
+
+      // orders whose supplier has articles that are not in the order
+      catalogueOrders: function () {
+        return this.orders.filter(function (o) { return !!o.urls.catalogue; });
+      },
+
+      // [{a: catalogue article, orders: [order entries it can be added to]}]; on the
+      // combined page an article missing from several orders of a supplier is listed once
+      catalogueHits: function () {
+        var self = this, byId = {}, out = [];
+        this.catalogueOrders.forEach(function (o) {
+          var res = self.catalogue[o.order.id];
+          if (!res) return;
+          res.articles.forEach(function (a) {
+            if (!byId[a.id]) { byId[a.id] = { a: a, orders: [], warnings: {} }; out.push(byId[a.id]); }
+            byId[a.id].orders.push(o);
+            if (a.warnings) byId[a.id].warnings[o.order.id] = a.warnings;
+          });
+        });
+        return out;
+      },
+
+      catalogueTitle: function () {
+        var names = [];
+        this.catalogueOrders.forEach(function (o) { if (o.order.supplier && names.indexOf(o.order.supplier) === -1) names.push(o.order.supplier); });
+        return T.catalogueTitle(names.length === 1 ? names[0] : null);
       },
 
       total: function () {
@@ -646,6 +756,11 @@
       setInterval(function () { self.now = Date.now(); }, 60000);
       // remember which items needed filling when the filter is chosen, so an
       // item the member just completed stays visible instead of vanishing
+      this.$watch('search', function () {
+        clearTimeout(self._catalogueTimer);
+        if (normalize(self.search).trim().length < 2) { self.catalogue = {}; return; }
+        self._catalogueTimer = setTimeout(function () { self.searchCatalogue(); }, 300);
+      });
       this.$watch('filter', function (f) {
         if (f !== 'fill') { self.fillSnapshot = null; return; }
         self.fillSnapshot = self.snapshotFill();
@@ -679,7 +794,11 @@
         if (this._hashDone) return;
         this._hashDone = true;
         var m = /^#article-(\d+)$/.exec(window.location.hash || '');
-        var target = m && document.getElementById('article-' + m[1]);
+        if (m) this.scrollToArticle(m[1]);
+      },
+
+      scrollToArticle: function (id) {
+        var target = document.getElementById('article-' + id);
         if (!target) return;
         var toolbar = document.querySelector('.oa-toolbar');
         var offset = (toolbar ? toolbar.getBoundingClientRect().height : 0) + 6;
@@ -734,6 +853,99 @@
       openPrices: function (a) {
         var o = this.orderEntry(a);
         if (o && o.urls.prices) this.priceDialog = { name: a.name, url: o.urls.prices + '?order_article_id=' + a.id };
+      },
+
+      // ---- catalogue: supplier articles not in the order yet ----------------
+      searchCatalogue: function () {
+        var self = this, q = normalize(this.search).trim();
+        if (q.length < 2) return;
+        this.catalogueOrders.forEach(function (o) {
+          var id = o.order.id;
+          self.catalogueLoading++;
+          fetch(o.urls.catalogue + '?q=' + encodeURIComponent(q), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return self.parseResponse(r); })
+            .then(function (json) {
+              // a newer search has started (or the box was cleared) in the meantime
+              if (normalize(self.search).trim() !== q) return;
+              var next = Object.assign({}, self.catalogue);
+              next[id] = { articles: json.articles || [] };
+              self.catalogue = next;
+            })
+            .catch(function () { /* the order's own results still show */ })
+            .then(function () { self.catalogueLoading--; });
+        });
+      },
+
+      // produce orders: ask first when the server found a reason to think twice
+      confirmAdd: function (hit, entry) {
+        var warnings = hit.warnings[entry.order.id];
+        if (warnings) this.addWarning = { hit: hit, entry: entry, warnings: warnings };
+        else this.addFromCatalogue(hit.a, entry);
+      },
+
+      addAnyway: function () {
+        var w = this.addWarning;
+        this.addWarning = null;
+        if (w) this.addFromCatalogue(w.hit.a, w.entry);
+      },
+
+      // Puts the article in the order for everyone, then shows its card with one
+      // ordered (as the card's own "Add to order" does) so the member can adjust it.
+      addFromCatalogue: function (article, entry) {
+        if (this.adding) return;
+        var self = this, orderId = entry.order.id;
+        var token = document.querySelector('meta[name="csrf-token"]');
+        this.adding = article.id;
+        fetch(entry.urls.add_article, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-Token': token ? token.getAttribute('content') : ''
+          },
+          body: JSON.stringify({ article_id: article.id })
+        })
+          .then(function (r) { return self.parseResponse(r); })
+          .then(function (json) {
+            self.mergeArticles(orderId, self.wrapOrder(json));
+            // no longer a catalogue hit for this order
+            var res = self.catalogue[orderId];
+            if (res) {
+              var next = Object.assign({}, self.catalogue);
+              next[orderId] = { articles: res.articles.filter(function (a) { return a.id !== article.id; }) };
+              self.catalogue = next;
+            }
+            self.adding = null;
+            self.justAdded = json.added_id;
+            self.pendingStart = json.added_id;
+            self.$nextTick(function () {
+              self.pendingStart = null;
+              self.scrollToArticle(json.added_id);
+            });
+          })
+          .catch(function (err) {
+            self.adding = null;
+            if (err && err.kind === 'api' && err.body && err.body.error === 'closed') {
+              self.state = 'closed';
+              self.errorMessage = err.body.message || T.closed;
+            } else {
+              self.notify('error', (err && err.body && err.body.message) || T.addError);
+            }
+          });
+      },
+
+      // Takes the article list of a fresh snapshot (with the added article) but
+      // keeps the articles already on the page, so unsaved amounts and the lock
+      // version stay as they are.
+      mergeArticles: function (orderId, fresh) {
+        var entry = this.orders.filter(function (o) { return o.order.id === orderId; })[0];
+        if (!entry) return;
+        var existing = {};
+        entry.categories.forEach(function (c) { c.articles.forEach(function (a) { existing[a.id] = a; }); });
+        entry.categories = fresh.categories.map(function (c) {
+          return { name: c.name, articles: c.articles.map(function (a) { return existing[a.id] || a; }) };
+        });
       },
 
       orderEntry: function (a) {
@@ -835,6 +1047,7 @@
 
       reload: function () {
         this.dirty = false;
+        this.justAdded = null;
         this.load();
       },
 
@@ -957,7 +1170,7 @@
 
       // ---- toolbar (sticky) -----------------------------------------------
       '  <div class="oa-toolbar" v-if="state === \'ready\'">' +
-      '    <input class="oa-search" type="search" inputmode="search" autocomplete="off" :placeholder="T.search" v-model.trim="search">' +
+      '    <input class="oa-search" type="search" inputmode="search" autocomplete="off" :placeholder="catalogueOrders.length ? T.searchCatalogue : T.search" v-model.trim="search">' +
       '    <select class="oa-category-select oa-jump" v-if="combined && orders.length > 1" v-model="jumpTo" @change="jumpToOrder">' +
       '      <option value="">{{ T.jumpTo }}</option>' +
       '      <option v-for="o in orders" :key="o.order.id" :value="o.order.id">{{ jumpLabel(o.order) }}</option>' +
@@ -1001,10 +1214,34 @@
       '    </section>' +
       '    <section class="oa-category" v-for="group in og.categories" :key="og.order.id + \'-\' + group.name">' +
       '      <h2 class="oa-category-title">{{ group.name }} <small>{{ group.articles.length }}</small></h2>' +
-      '      <oa-article-card v-for="a in group.articles" :key="a.id" :a="a" :cfg="cfg" :price="prices[a.id] || null" @change="markDirty" @prices="openPrices"></oa-article-card>' +
+      '      <oa-article-card v-for="a in group.articles" :key="a.id" :a="a" :cfg="cfg" :price="prices[a.id] || null" :start-ordering="a.id === pendingStart" @change="markDirty" @prices="openPrices"></oa-article-card>' +
       '    </section>' +
       '    </template>' +
-      '    <p class="oa-empty" v-if="rows.length === 0">{{ orders.length ? T.noMatch : T.noOpenOrders }}</p>' +
+      '    <p class="oa-empty" v-if="rows.length === 0">{{ !orders.length ? T.noOpenOrders : (catalogueHits.length ? T.noMatchCatalogue : T.noMatch) }}</p>' +
+      '    <section class="oa-category oa-catalogue" v-if="search && (catalogueHits.length || catalogueLoading)">' +
+      '      <h2 class="oa-category-title">{{ catalogueTitle }} <small v-if="catalogueHits.length">{{ catalogueHits.length }}</small></h2>' +
+      '      <p class="oa-catalogue-hint">{{ catalogueHits.length ? T.catalogueHint : T.catalogueSearching }}</p>' +
+      '      <article class="oa-article oa-catalogue-hit" v-for="h in catalogueHits" :key="\'cat-\' + h.a.id">' +
+      '        <div class="oa-article-main">' +
+      '          <div class="oa-article-info">' +
+      '            <div class="oa-article-name">{{ h.a.name }}<small v-if="h.a.origin"> ({{ h.a.origin }})</small></div>' +
+      '            <div class="oa-article-sub">' +
+      '              <span v-if="h.a.manufacturer">{{ h.a.manufacturer }}</span>' +
+      '              <span v-if="combined">{{ h.a.supplier }}</span>' +
+      '              <span v-if="h.a.unit_quantity > 1">{{ T.caseOf }} {{ h.a.unit_quantity }}</span>' +
+      '              <span v-if="h.a.last_ordered_human">{{ T.lastOrdered(h.a.last_ordered_human) }}</span>' +
+      '              <span class="oa-article-note" v-if="h.a.note">{{ h.a.note }}</span>' +
+      '            </div>' +
+      '          </div>' +
+      '          <div class="oa-article-aside">' +
+      '            <div class="oa-article-price">{{ money(h.a.price) }} <span class="oa-per">{{ T.perUnit }} {{ h.a.unit }}</span></div>' +
+      '            <button type="button" class="oa-order-btn oa-add-btn" v-for="o in h.orders" :key="o.order.id" :disabled="adding != null" @click="confirmAdd(h, o)">' +
+      '              {{ adding === h.a.id ? T.adding : (h.orders.length > 1 ? T.addTo(jumpLabel(o.order)) : T.order) }}' +
+      '            </button>' +
+      '          </div>' +
+      '        </div>' +
+      '      </article>' +
+      '    </section>' +
       '  </main>' +
 
       // ---- footer (fixed) -------------------------------------------------
@@ -1062,6 +1299,7 @@
       '      </div>' +
       '    </div>' +
       '  </div>' +
+      '  <oa-add-warning v-if="addWarning" :name="addWarning.hit.a.name" :warnings="addWarning.warnings" :currency-unit="cfg.currency_unit || \'\'" @add="addAnyway" @cancel="addWarning = null"></oa-add-warning>' +
       '  <oa-price-dialog v-if="priceDialog" :name="priceDialog.name" :url="priceDialog.url" :currency-unit="cfg.currency_unit || \'\'" @close="priceDialog = null"></oa-price-dialog>' +
       '</div>'
   };
