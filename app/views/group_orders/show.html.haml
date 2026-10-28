@@ -13,7 +13,7 @@
       %dt= heading_helper Order, :name
       %dd= @order.name
       %dt= heading_helper Order, :note
-      %dd= @order.note
+      %dd= OrderCatalogueSerializer.member_note(@order.note)
       %dt= heading_helper Order, :ends
       %dd= format_time(@order.ends)
       %dt= heading_helper Order, :pickup

@@ -51,7 +51,9 @@ class OrderingSerializer
     {
       id: @order.id,
       name: @order.name,
-      note: @order.note.presence,
+      note: OrderCatalogueSerializer.member_note(@order.note),
+      # members may add catalogue articles ("user-can-add" in the note)
+      can_add: OrderCatalogueSerializer.user_can_add?(@order),
       supplier: (@order.stockit? ? nil : @order.supplier.try(:name)),
       created_by: @view.show_user(@order.created_by),
       ends: @order.ends.try(:iso8601),
@@ -117,9 +119,10 @@ class OrderingSerializer
       back: @view.group_orders_path,
       show: (@group_order.persisted? ? @view.group_order_path(@group_order) : nil),
       prices: @view.prices_ordering_path(@order),
-      # only when the supplier has articles that are not in the order
+      # only on orders that let members add ("user-can-add" in the note) and
+      # when the supplier has articles that are not in the order
       catalogue: (OrderCatalogueSerializer.more_in_catalogue?(@order) ? @view.catalogue_ordering_path(@order) : nil),
-      add_article: @view.add_article_ordering_path(@order),
+      add_article: (OrderCatalogueSerializer.user_can_add?(@order) ? @view.add_article_ordering_path(@order) : nil),
     }
   end
 

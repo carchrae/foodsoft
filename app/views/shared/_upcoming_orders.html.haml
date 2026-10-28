@@ -23,8 +23,8 @@
           %tr
             %td(colspan=5)
               %div.row-fluid
-                - if order.note
-                  .span= order.note.gsub(URI::DEFAULT_PARSER.make_regexp(['http','https']), '<a href="\0">\0</a>').html_safe
+                - if (note = OrderCatalogueSerializer.member_note(order.note))
+                  .span= note.gsub(URI::DEFAULT_PARSER.make_regexp(['http','https']), '<a href="\0">\0</a>').html_safe
               %div.row-fluid
                 - min_order_value = order.supplier.min_order_quantity.sub('$','').to_f
                 - if min_order_value > 0

@@ -94,14 +94,22 @@ class OrderingController < ApplicationController
   end
 
   def catalogue
+    return render(status: :forbidden, json: {error: 'not_allowed'}) unless OrderCatalogueSerializer.user_can_add?(@order)
     render json: OrderCatalogueSerializer.new(current_user, @order, params[:q], view_context)
   end
 
   # Any member may add an article of the order's supplier to an open order, for
   # suppliers whose catalogue is too big to put everything in the order up front.
+  # Only on orders with "user-can-add" in their note.
   def add_article
-    return render(status: :unprocessable_entity, json: {error: 'stock'}) if @order.stockit?
-    article = Article.available.not_in_stock.where(supplier_id: @order.supplier_id).find_by(id: params[:article_id])
+    return render(status: :forbidden, json: {error: 'not_allowed'}) unless OrderCatalogueSerializer.user_can_add?(@order)
+    # a second click finds the one added by the first
+    if (order_article = @order.order_articles.find_by(article_id: params[:article_id]))
+      return render json: serializer.as_json.merge(added_id: order_article.id)
+    end
+    # only what the catalogue search offers: not in another current order of the
+    # supplier, in the order's categories (OrderCatalogueSerializer.addable)
+    article = OrderCatalogueSerializer.addable(@order).find_by(id: params[:article_id])
     return render(status: :not_found, json: {error: 'article'}) unless article
     order_article = @order.order_articles.find_or_create_by!(article_id: article.id)
     render json: serializer.as_json.merge(added_id: order_article.id)

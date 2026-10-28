@@ -63,7 +63,8 @@ class DashboardSearchSerializer
   # Available articles of the suppliers (not the stock), leaving out the ones
   # already shown in an open order. Returns two lists: articles of suppliers
   # ordered from in the last 6 months, and those of the other suppliers.
-  # Articles of a supplier with exactly one open order can be added to it (add_to).
+  # An article can be added to an open order of its supplier (add_to) when exactly
+  # one order fits (OrderCatalogueSerializer: lets members add, same kind of items).
   def article_hits(skip_ids, open_orders = [])
     articles = Article.available.not_in_stock.joins(:supplier).merge(Supplier.undeleted)
       .includes(:supplier)
@@ -89,32 +90,50 @@ class DashboardSearchSerializer
   end
 
   # {article_id => {order: {...}, urls: {...}, warnings: {...}}} for the articles
-  # whose supplier has exactly one open order (OrderingController#add_article);
-  # with several the member would have to pick, which the ordering page does.
+  # that exactly one open order can take (OrderingController#add_article): it
+  # lets members add ("user-can-add" in its note), has items of the article's
+  # category and none of the supplier's current orders (open, or closed and
+  # not picked up yet) has the article. A supplier may have several orders
+  # open at once (Discovery: dairy, bulk, produce); only the one of the right
+  # kind is offered, never just the first.
   def add_targets(articles, open_orders)
     return {} if @ordergroup.nil? || articles.empty?
-    by_supplier = open_orders.reject(&:stockit?).group_by(&:supplier_id).select { |_, orders| orders.size == 1 }
-    group_orders = my_group_orders(by_supplier.values.flatten.map(&:id))
+    candidates = open_orders.select { |o| OrderCatalogueSerializer.user_can_add?(o) }.group_by(&:supplier_id)
+    group_orders = my_group_orders(candidates.values.flatten.map(&:id))
+    open_count = open_orders.group_by(&:supplier_id).transform_values(&:size)
     articles.group_by(&:supplier_id).each_with_object({}) do |(supplier_id, list), out|
-      order = by_supplier[supplier_id].try(:first)
-      next unless order
-      warnings = ProduceAddWarnings.produce?(order) ? ProduceAddWarnings.new(order, list).to_h : {}
-      group_order = group_orders[order.id]
-      list.each do |a|
-        out[a.id] = {
-          order: {id: order.id, name: order.name, open: true, stockit: false,
-                  ends_human: @view.format_date(order.ends), pickup_human: @view.format_date(order.pickup)},
-          urls: {
-            add: @view.add_article_ordering_path(order),
-            data: @view.data_ordering_path(order),
-            save: @view.ordering_path(order),
-            order_modern: @view.ordering_path(order),
-            order: (group_order ? @view.edit_group_order_path(group_order, order_id: order.id) : @view.new_group_order_path(order_id: order.id)),
-            show: (group_order && @view.group_order_path(group_order)),
-          },
-          warnings: warnings[a.id],
-        }.compact
+      orders = candidates[supplier_id] || []
+      next if orders.empty?
+      # article id => the orders that can take it
+      fits = Hash.new { |h, k| h[k] = [] }
+      orders.each do |order|
+        OrderCatalogueSerializer.addable(order).where(id: list.map(&:id)).pluck(:id).each { |id| fits[id] << order }
       end
+      list.group_by { |a| fits[a.id].size == 1 ? fits[a.id].first : nil }.each do |order, order_list|
+        next unless order
+        add_target_json(order, order_list, group_orders[order.id], open_count[supplier_id] > 1, out)
+      end
+    end
+  end
+
+  def add_target_json(order, list, group_order, several_open, out)
+    warnings = ProduceAddWarnings.produce?(order) ? ProduceAddWarnings.new(order, list).to_h : {}
+    list.each do |a|
+      out[a.id] = {
+        order: {id: order.id, name: order.name, open: true, stockit: false,
+                # tells the supplier's open orders apart: "Discovery Organics (Produce)"
+                label: (several_open ? OrderCatalogueSerializer.order_label(order) : order.name),
+                ends_human: @view.format_date(order.ends), pickup_human: @view.format_date(order.pickup)},
+        urls: {
+          add: @view.add_article_ordering_path(order),
+          data: @view.data_ordering_path(order),
+          save: @view.ordering_path(order),
+          order_modern: @view.ordering_path(order),
+          order: (group_order ? @view.edit_group_order_path(group_order, order_id: order.id) : @view.new_group_order_path(order_id: order.id)),
+          show: (group_order && @view.group_order_path(group_order)),
+        },
+        warnings: warnings[a.id],
+      }.compact
     end
   end
 

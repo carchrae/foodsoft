@@ -117,6 +117,8 @@
     // a catalogue item of a supplier with one open order (OrderingController#add_article)
     addToNamed: function (name) { return 'Add to ' + name + ' order'; },
     adding: 'Adding…',
+    canAdd: '+ You can add items from the catalogue',
+    canAddTitle: 'Search for anything this supplier sells and add it to this order',
     goToItem: 'Go to item',
     done: 'Done',
     autosaving: 'Saving…',
@@ -714,7 +716,7 @@
       '        </div>' +
       '        <div class="da-hit-side">' +
       '          <span class="da-muted da-hit-last">{{ h.last_ordered_human ? T.lastOrdered(h.last_ordered_human) : T.neverOrdered }}</span>' +
-      '          <button type="button" class="da-btn da-btn-small da-btn-primary" v-if="h.add_to && og" :disabled="adding != null" @click="addHit(h)">{{ adding === h.id ? T.adding : T.addToNamed(h.add_to.order.name) }}</button>' +
+      '          <button type="button" class="da-btn da-btn-small da-btn-primary" v-if="h.add_to && og" :disabled="adding != null" @click="addHit(h)">{{ adding === h.id ? T.adding : T.addToNamed(h.add_to.order.label || h.add_to.order.name) }}</button>' +
       '        </div>' +
       '      </div>' +
       '      </template>' +
@@ -739,6 +741,7 @@
       '    <article class="da-card da-order" v-for="o in d.open_orders" :key="o.id" :class="{ \'is-ordered\': o.my_order, \'has-note\': o.note_html }">' +
       '      <div class="da-order-head">' +
       '        <h3>{{ o.name }}</h3>' +
+      '        <a class="da-chip-add" v-if="o.can_add" :href="o.urls.order_modern || orderUrl(o)" :title="T.canAddTitle">{{ T.canAdd }}</a>' +
       '        <span class="da-closing" v-if="closing(o)" :class="closing(o).level">{{ closing(o).text }}</span>' +
       '      </div>' +
       '      <div class="da-note" v-if="o.note_html" v-html="o.note_html"></div>' +

@@ -150,7 +150,9 @@ class DashboardSerializer
     {
       id: order.id,
       name: order.name,
-      note_html: linkified(order.note),
+      note_html: linkified(OrderCatalogueSerializer.member_note(order.note)),
+      # members may add catalogue articles ("user-can-add" in the note)
+      can_add: (open && OrderCatalogueSerializer.user_can_add?(order)),
       ends: order.ends.try(:iso8601),
       ends_human: @view.format_time(order.ends),
       pickup: order.pickup.try(:iso8601),

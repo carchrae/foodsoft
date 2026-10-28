@@ -57,7 +57,8 @@
       -#= t '.sum_amount'
       -#= number_to_currency @order.sum
 
-    %p= "Note: #{@order.note}" if @order.note
+    - if (note = OrderCatalogueSerializer.member_note(@order.note))
+      %p= "Note: #{note}"
 
 .row-fluid
   .accordion{id: 'accordion_help'}

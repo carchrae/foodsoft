@@ -74,7 +74,28 @@ articles are tagged with their order id and stock flag on the client.
 
 For suppliers with a big catalogue (Purity, supplier 9, ~5000 articles) an
 order holds only a selection, as putting every article in makes the order
-slow. Any member can add more while the order is open: when the supplier has
+slow. On orders whose note contains `user-can-add` (no separate setting;
+`OrderCatalogueSerializer.user_can_add?`, checked by the snapshot, both
+endpoints and the dashboard search), any member can add more while the order
+is open. Members never see the marker: `OrderCatalogueSerializer.member_note`
+strips it from the note on the modern pages, the classic member pages
+(`shared/_*orders`, `group_orders/show`, `_form`) and the nearly-full email;
+the admin pages show the note as written, so copies keep it. Instead the
+dashboard order card shows a "+ You can add items from the catalogue" chip
+(linking to the ordering page) and the ordering page header says so too.
+What can be added (`OrderCatalogueSerializer.addable`): available articles
+of the supplier that are in none of its current orders (by id or by name, as
+the catalogue relists articles) and in a category the order already has.
+Current orders are the open ones and the closed ones whose pickup day has not
+passed: what is in them is already coming, so it is not offered again. A
+supplier may have several orders open at once (Discovery: Avalon dairy,
+bulk, produce); so the bulk flour is never offered for the dairy or the
+produce order, and the produce order only takes Produce and Vegetables.
+`add_article` refuses anything else. (Before this, the combined page offered
+an article missing from the dairy order for it, even when the bulk order had
+it, and the first button was the dairy order.)
+
+On such an order, when the supplier has
 available articles that are not in the order (`urls.catalogue` in the
 snapshot, `OrderCatalogueSerializer.more_in_catalogue?`), the search box reads
 "Search, or add from the catalogue…" and, from two letters on, a "More from
@@ -112,13 +133,14 @@ dialog ("Don't add" is the main button, "Add it anyway" adds) when:
 
 The dialog is `AddWarningDialog` in `ordering_app.js`, shared with the dashboard.
 
-**Dashboard search.** A catalogue hit whose supplier has exactly one open
-(non-stock) order gets "Add to <order> order" (`add_to` in
+**Dashboard search.** A catalogue hit that exactly one open order can take
+(it allows adding and `addable` includes the article) gets "Add to <order>
+order", labelled with the first line of the note when the supplier has more
+than one order open: "Add to Discovery Organics (Produce) order" (`add_to` in
 `DashboardSearchSerializer`, with the same produce warnings). It calls the same
 `add_article`, then moves the hit to the open-order results and opens its item
-card with one ordered, which autosaves like any quick edit. With several open
-orders from the supplier (Discovery, usually) there is no button; the combined
-ordering page lets the member pick.
+card with one ordered, which autosaves like any quick edit. When no order or
+more than one fits there is no button.
 
 ## Page width
 

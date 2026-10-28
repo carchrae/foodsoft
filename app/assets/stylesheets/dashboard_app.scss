@@ -180,6 +180,13 @@ $da-tap: 44px;
     &.urgent { background: $da-red-bg; color: $da-red; }
     &.past { background: #f0f0f0; color: $da-muted; }
   }
+  // members may add catalogue items to this order (OrderCatalogueSerializer.user_can_add?)
+  // in the card head, next to the closing chip
+  .da-chip-add {
+    display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 10px; white-space: nowrap;
+    background: #e8f3df; color: darken($da-green, 15%); text-decoration: none;
+    &:hover, &:focus { background: darken(#e8f3df, 5%); color: darken($da-green, 20%); text-decoration: none; }
+  }
   .da-order-meta { margin: 6px 0 0; font-size: 13px; color: $da-muted; span + span:before { content: " · "; } strong { color: $da-ink; font-weight: 600; } }
   .da-note {
     background: $da-amber-bg;
@@ -258,6 +265,9 @@ $da-tap: 44px;
   .da-hit-title { font-weight: 600; color: $da-ink; small { font-weight: 400; } }
   a.da-hit-title:hover { color: $da-green-dark; text-decoration: none; }
   .da-hit-side { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  // "Add to Discovery Organics (Produce) order" may be long: wrap it rather than overflow
+  .da-hit-past .da-hit-side { flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+  .da-hit-past .da-hit-side .da-btn { height: auto; min-height: 34px; line-height: 1.25; padding: 7px 14px; white-space: normal; text-align: center; }
   // same look as the note on the ordering page's item card
   .da-hit-note { font-size: 13px; color: #555; margin-top: 2px; font-style: italic; white-space: pre-line; }
   .da-show-older { display: block; margin: 8px 0 2px; font-size: 13px; }

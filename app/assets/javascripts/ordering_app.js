@@ -66,6 +66,7 @@
     adding: 'Adding…',
     addError: 'Could not add the item. Please try again.',
     lastOrdered: function (when) { return 'last ordered ' + when; },
+    canAdd: '+ You can add items from the catalogue: just search for them',
     // produce orders: asked before adding (ProduceAddWarnings)
     warnTitle: 'Before you add this…',
     warnIntro: 'Cases only ship when we fill them, so the produce order works best with fewer, popular items.',
@@ -1146,6 +1147,7 @@
       '      <span v-if="order.created_by"> · {{ T.createdBy }} {{ order.created_by }}</span>' +
       '    </p>' +
       '    <p class="oa-meta oa-households" v-if="order.ordergroups_ordered != null"><span class="oa-chip ok">{{ T.orderedSoFar(order.ordergroups_ordered) }}</span></p>' +
+      '    <p class="oa-meta" v-if="order.can_add"><span class="oa-chip ok">{{ T.canAdd }}</span></p>' +
       '    <div class="oa-note" v-if="order.note">{{ order.note }}</div>' +
       '    <div class="oa-help" v-if="showHelp">' +
       '      <h3>{{ T.help }}</h3>' +
@@ -1209,6 +1211,7 @@
       '        <span v-if="og.order.ends_human">{{ T.closes }} <strong>{{ og.order.ends_human }}</strong></span>' +
       '        <span v-if="og.order.pickup_human"> · {{ T.pickup }} {{ og.order.pickup_human }}</span>' +
       '        <span class="oa-chip ok" v-if="og.order.ordergroups_ordered != null">{{ T.orderedSoFar(og.order.ordergroups_ordered) }}</span>' +
+      '        <span class="oa-chip ok" v-if="og.order.can_add">{{ T.canAdd }}</span>' +
       '      </p>' +
       '      <div class="oa-note" v-if="og.order.note">{{ og.order.note }}</div>' +
       '    </section>' +
