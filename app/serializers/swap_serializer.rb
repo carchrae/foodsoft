@@ -13,13 +13,13 @@ class SwapSerializer
   def as_json(*)
     {
       order: order_json,
-      order_articles: @order.order_articles.includes(:article => :article_category, :group_order_articles => []).map { |oa| order_article_json(oa) },
+      order_articles: @order.order_articles.includes(:article_price, :article => :article_category, :group_order_articles => []).map { |oa| order_article_json(oa) },
       articles: available_articles.map { |a| article_json(a) },
       config: {currency_unit: FoodsoftConfig[:currency_unit] || ''},
       urls: {
         data: @view.data_swap_path(@order),
         save: @view.swap_path(@order),
-        legacy: @view.swap_order_path(@order, classic: 1),
+        legacy: (@order.open? ? @view.swap_order_path(@order, classic: 1) : nil),
         back: @view.order_path(@order),
       },
     }
@@ -34,6 +34,7 @@ class SwapSerializer
       supplier: (@order.supplier.try(:name) || @order.name),
       stockit: @order.stockit?,
       open: @order.open?,
+      finished: @order.finished?,
       ends: @order.ends.try(:iso8601),
       ends_human: (@order.ends ? @view.format_time(@order.ends) : nil),
     }
@@ -45,6 +46,7 @@ class SwapSerializer
   end
 
   def order_article_json(oa)
+    return closed_order_article_json(oa) unless @order.open?
     households = oa.group_order_articles.count { |goa| goa.quantity.to_i > 0 || goa.tolerance.to_i > 0 }
     article_json(oa.article).merge(
       id: oa.id,
@@ -56,6 +58,27 @@ class SwapSerializer
       households: households,
       # each member's wanted / extra, no names: lets the page preview a unit conversion
       amounts: oa.group_order_articles.map { |goa| [goa.quantity.to_i, goa.tolerance.to_i] }.reject { |q| q == [0, 0] },
+      available: oa.article.availability && !oa.article.deleted?,
+    )
+  end
+
+  # After closing the line has its own frozen price and case size, and what
+  # counts is what members get (result), which hand edits can leave fractional.
+  def closed_order_article_json(oa)
+    # by id, like OrderArticleSwap hands out rounded units
+    results = oa.group_order_articles.sort_by(&:id).map { |goa| goa[:result].to_f }.select { |r| r > 0 }
+    article_json(oa.article).merge(
+      id: oa.id,
+      article_id: oa.article_id,
+      price: oa.price.price.to_f.round(2),
+      unit_quantity: oa.price.unit_quantity.to_i,
+      quantity: oa.quantity.to_i,
+      tolerance: oa.tolerance.to_i,
+      units: oa.units.to_f,
+      missing_units: 0,
+      households: results.size,
+      result_total: results.sum.round(5),
+      amounts: results.map { |r| [r, 0] },
       available: oa.article.availability && !oa.article.deleted?,
     )
   end

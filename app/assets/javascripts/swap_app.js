@@ -1,5 +1,7 @@
-// Modern swap page (Vue 3): replace articles in an open order with similar
-// available ones. Plain ES5 on purpose (the production Uglifier is ES5 only).
+// Modern swap page (Vue 3): replace articles in an order with similar available
+// ones, while it is open or closed but not settled (order.finished: amounts are
+// then what members get, rounded so they add up; see OrderArticleSwap).
+// Plain ES5 on purpose (the production Uglifier is ES5 only).
 //
 // Mounted on #swap-app (app/views/orders/swap.html.haml). The JSON at data-url
 // (SwapSerializer) lists the order's articles and every available article of
@@ -15,6 +17,9 @@
   var T = {
     title: function (name) { return 'Swap articles in ' + name; },
     intro: 'Pick a similar available article for anything the supplier can no longer deliver. Members\' amounts carry over, so choose the same unit and case size where you can.',
+    introFinished: 'This order is closed: use this when the supplier sent something else. Members\' amounts, the cases and the price move to the new article and members are told. Nothing is sent to the supplier.',
+    willGet: function (n) { return 'members get ' + n; },
+    fillsPart: function (n, cases, size) { return n + ' is ' + cases + ' of a case of ' + size; },
     classic: 'Classic view',
     back: 'Back to order',
     unavailableOpen: function (open, total) {
@@ -55,6 +60,7 @@
     factorMembers: function (pairs) { return 'Members\' amounts ' + pairs + '.'; },
     factorExtra: function (pairs) { return 'Extra: ' + pairs + '.'; },
     factorRounded: 'Rounded to whole units.',
+    factorRoundedTotal: function (n) { return 'Rounded to whole units, adding up to ' + n + '.'; },
     factorZero: function (n) { return n + (n === 1 ? ' member' : ' members') + ' would end up with 0 and be dropped from this article.'; },
     factorBad: 'Enter a number above 0, e.g. 8, 0.125 or 1/8.',
     unitConvert: function (f, from, to) { return 'amounts ×' + f + ': 1×' + from + ' becomes ' + f + '×' + to; },
@@ -88,7 +94,7 @@
     partly: function (n) { return n + ' could not be swapped. See the marked articles.'; },
     loadError: 'Could not load the order. Your session may have expired.',
     saveError: 'Saving failed. Please try again.',
-    closed: 'This order is closed and can no longer be changed.',
+    closed: 'This order is settled and can no longer be changed.',
     reload: 'Reload',
     leave: 'You have unsaved changes. Leave anyway?'
   };
@@ -108,6 +114,19 @@
       conversionFactor = M.conversionFactor, equivalentPrice = M.equivalentPrice, pricePerLb = M.pricePerLb,
       unitWeightLb = M.unitWeightLb, unitText = M.unitText, parseFactor = M.parseFactor,
       scaleAmount = M.scaleAmount, caseFill = M.caseFill, tint = M.tint, ink = M.ink;
+
+  // whole member amounts adding up to the scaled total, like
+  // OrderArticleSwap#whole_shares: the rest goes to the largest fractions
+  function roundedShares(amounts, factor) {
+    var scaled = amounts.map(function (n) { return +(n * factor).toFixed(5); });
+    var shares = scaled.map(Math.floor), total = scaled.reduce(function (s, n) { return s + n; }, 0);
+    var left = Math.round(total) - shares.reduce(function (s, n) { return s + n; }, 0);
+    var order = scaled.map(function (n, i) { return i; }).sort(function (a, b) {
+      return (scaled[b] - shares[b]) - (scaled[a] - shares[a]) || a - b;
+    });
+    order.slice(0, left).forEach(function (i) { shares[i] += 1; });
+    return shares;
+  }
 
   // a cheaper article is only suggested on the card when it is this similar
   var CHEAPER_MIN_SCORE = 0.75;
@@ -403,7 +422,7 @@
         var conv = conversionFactor(oa.unit, a.unit), weights = !!(unitWeightLb(oa.unit) && unitWeightLb(a.unit));
         if (conv == null && weights) out.push({ text: T.unitDiffersWeight(oa.unit, unitText(oa.unit), a.unit, unitText(a.unit)), kind: factor !== 1 ? 'warn' : 'bad' });
         else if (conv == null) out.push({ text: T.unitDiffers + ': ' + oa.unit + ' → ' + a.unit, kind: factor !== 1 ? 'warn' : 'bad' });
-        else if (factor !== 1 && factor !== conv) out.push({ text: T.unitConvert(factor, oa.unit, a.unit).replace(/becomes .*$/, 'becomes ' + scaleAmount(1, factor) + '×' + a.unit), kind: 'ok' });
+        else if (factor !== 1 && factor !== conv) out.push({ text: T.unitConvert(factor, oa.unit, a.unit).replace(/becomes .*$/, 'becomes ' + this.scaled(1, factor) + '×' + a.unit), kind: 'ok' });
         else if (conv > 1) out.push({ text: T.unitConvert(conv, oa.unit, a.unit), kind: factor > 1 ? 'ok' : 'warn' });
         if (a.unit_quantity !== oa.unit_quantity) out.push({ text: T.caseDiffers(oa.unit_quantity, a.unit_quantity), kind: 'warn' });
         if (conv != null || factor !== 1) out.push(this.fillFor(oa, a, factor));
@@ -436,27 +455,43 @@
 
       // what a typed conversion does to the real member amounts
       exampleFor: function (oa, a, factor) {
-        var lines = [T.factorExample(oa.unit, a.unit, scaleAmount(1, factor))], zero = 0, rounded = false;
-        var amounts = oa.amounts || [];
-        var wanted = amounts.filter(function (p) { return p[0] > 0; }).map(function (p) {
-          var n = scaleAmount(p[0], factor);
-          if (n === 0 && scaleAmount(p[1], factor) === 0) zero++;
-          if (Math.abs(p[0] * factor - n) > 1e-9) rounded = true;
+        var self = this, lines = [T.factorExample(oa.unit, a.unit, this.scaled(1, factor))], zero = 0, rounded = false;
+        var amounts = oa.amounts || [], finished = this.d.order.finished;
+        var shares = finished ? roundedShares(amounts.map(function (p) { return p[0]; }), factor) : null;
+        var wanted = amounts.filter(function (p) { return p[0] > 0; }).map(function (p, i) {
+          var n = finished ? shares[i] : self.scaled(p[0], factor);
+          if (n === 0 && self.scaled(p[1], factor) === 0) zero++;
+          if (Math.abs(p[0] * factor - n) > 1e-5) rounded = true;
           return p[0] + '→' + n;
         });
-        var extra = amounts.filter(function (p) { return p[1] > 0; }).map(function (p) { return p[1] + '→' + scaleAmount(p[1], factor); });
+        var extra = amounts.filter(function (p) { return p[1] > 0; }).map(function (p) { return p[1] + '→' + self.scaled(p[1], factor); });
         if (wanted.length) lines.push(T.factorMembers(wanted.join(', ')));
         if (extra.length) lines.push(T.factorExtra(extra.join(', ')));
-        if (rounded) lines.push(T.factorRounded);
+        if (rounded) lines.push(finished ? T.factorRoundedTotal(shares.reduce(function (s, n) { return s + n; }, 0)) : T.factorRounded);
         return { lines: lines, zero: zero ? T.factorZero(zero) : null };
+      },
+
+      // one amount scaled; once closed exact, for "1×3LB becomes 4.5×CT" and
+      // the totals, as members' shares come from roundedShares
+      scaled: function (n, factor) {
+        return this.d.order.finished ? +(n * factor).toFixed(5) : scaleAmount(n, factor);
       },
 
       // would the current demand fill the other article's case? (amounts converted if needed)
       fillFor: function (oa, a, factor) {
+        if (this.d.order.finished) return this.closedFillFor(oa, a, factor);
         if (!(oa.quantity + oa.tolerance)) return { text: T.noDemand, kind: 'muted' };
         var f = caseFill(scaleAmount(oa.quantity, factor), scaleAmount(oa.tolerance, factor), a.unit_quantity);
         if (f.units > 0 && !f.missing) return { text: T.fillsCases(f.units, a.unit_quantity), kind: 'ok' };
         return { text: T.fillsShort(f.units, f.missing, a.unit_quantity), kind: f.units > 0 ? 'warn' : 'bad' };
+      },
+
+      // after closing: what members get, in cases of the other article
+      closedFillFor: function (oa, a, factor) {
+        var total = Math.round(this.scaled(oa.result_total, factor)), size = a.unit_quantity || 1, cases = total / size;
+        if (!total) return { text: T.noDemand, kind: 'muted' };
+        if (Math.abs(cases - Math.round(cases)) < 1e-4) return { text: T.fillsCases(Math.round(cases), size), kind: 'ok' };
+        return { text: T.fillsPart(total, +cases.toFixed(2), size), kind: 'warn' };
       },
 
       toggleAll: function (oa) {
@@ -544,9 +579,9 @@
       '    <div class="sw-titlebar">' +
       '      <a class="sw-back" :href="d.urls.back">‹ {{ T.back }}</a>' +
       '      <h1 class="sw-title">{{ T.title(d.order.name) }}</h1>' +
-      '      <a class="sw-classic" :href="d.urls.legacy">{{ T.classic }}</a>' +
+      '      <a class="sw-classic" v-if="d.urls.legacy" :href="d.urls.legacy">{{ T.classic }}</a>' +
       '    </div>' +
-      '    <p class="sw-intro">{{ T.intro }}</p>' +
+      '    <p class="sw-intro">{{ d.order.finished ? T.introFinished : T.intro }}</p>' +
       '    <div class="sw-summary" :class="{ ok: unavailableRows.length && !openRows.length, open: openRows.length }">' +
       '      {{ T.unavailableOpen(openRows.length, unavailableRows.length) }}' +
       '    </div>' +
@@ -583,6 +618,7 @@
       '      </div>' +
       '      <p class="sw-meta">' +
       '        <span>{{ T.wanted(r.oa.quantity, r.oa.quantity + r.oa.tolerance) }}</span>' +
+      '        <span v-if="d.order.finished">{{ T.willGet(r.oa.result_total) }}</span>' +
       '        <span>{{ T.households(r.oa.households) }}</span>' +
       '        <span :class="r.oa.units > 0 ? \'ok\' : \'\'">{{ T.cases(r.oa.units) }}</span>' +
       '        <span class="warn" v-if="r.oa.missing_units > 0">{{ T.short(r.oa.missing_units, r.oa.units) }}</span>' +

@@ -84,6 +84,7 @@
         class: "btn#{' btn-primary' unless @order.last_sent_mail}",
         data: {confirm: @order.last_sent_mail && t('.confirm_send_to_supplier', when: format_time(@order.last_sent_mail)) }
       = receive_button @order
+      = link_to t('.swap-articles'), swap_order_path(@order), class: 'btn'
 
     - unless @order.closed?
       = link_to t('ui.delete'), @order, data: {confirm: t('.confirm_delete')}, method: :delete,

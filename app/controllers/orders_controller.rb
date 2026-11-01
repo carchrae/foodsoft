@@ -116,7 +116,10 @@ class OrdersController < ApplicationController
   # allow swapping articles in an order for alternatives
   def swap
     @order = Order.includes(:articles).find(params[:id])
-    unless @order.open?
+    if OrderArticleSwap.allowed?(@order)
+      # the classic table only knows open orders
+      redirect_to swap_order_path(@order) if params[:classic].present?
+    elsif !@order.open?
       flash[:warn] = I18n.t('orders.swap.order_closed',
                             url: (view_context.link_to 'the balancing page', new_finance_order_path(order_id: @order.id))).html_safe
       redirect_to :action => 'show', :id => @order
@@ -131,6 +134,7 @@ class OrdersController < ApplicationController
       flash[:warn] = I18n.t('orders.swap.order_closed',
                             url: (view_context.link_to 'the balancing page', new_finance_order_path(order_id: @order.id))).html_safe
       redirect_to :action => 'show', :id => @order
+      return
     end
     render 'swap'
   end

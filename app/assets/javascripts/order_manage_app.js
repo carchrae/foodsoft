@@ -313,6 +313,7 @@
             list.push({ key: 'swap', label: T.swap, href: u.swap });
           } else if (!o.closed && !o.stockit) {
             list.push({ key: 'send', label: T.send, kind: (o.last_sent_mail_human ? '' : 'primary'), click: function () { self.confirmSend(); } });
+            list.push({ key: 'swap', label: T.swap, href: u.swap });
           }
           if (!o.open && !o.stockit) {
             list.push({ key: 'receive', label: T.receive, kind: (o.received ? '' : 'success'), href: u.receive });

@@ -1,6 +1,7 @@
 # JSON layer for the modern (Vue) swap page. The page itself is still served
 # by OrdersController#swap (app/views/orders/swap.html.haml), which also keeps
-# the closed-order check; ?classic=1 there shows the old table.
+# the settled-order check; ?classic=1 there shows the old table. Closed orders
+# that are not settled yet go through OrderArticleSwap.
 #
 #   GET /swap/:id/data  JSON: the order's articles and the supplier's available articles
 #   PUT /swap/:id       apply {changes: {order_article_id: article_id | {article_id, factor}, ...}},
@@ -17,7 +18,7 @@ class SwapController < ApplicationController
   end
 
   def update
-    unless @order.open?
+    unless @order.open? || OrderArticleSwap.allowed?(@order)
       render json: {error: I18n.t('orders.swap.order_closed', url: view_context.new_finance_order_path(order_id: @order.id))}, status: 410
       return
     end
@@ -39,15 +40,19 @@ class SwapController < ApplicationController
         errors[oa.id] = 'That article is no longer available.'
         next
       end
-      next if oa.article_id == article.id && factor == 1.0
+      next if oa.article_id == article.id && (factor == 1.0 || !@order.open?)
       begin
-        OrderArticle.transaction do
-          oa.article_id = article.id
-          oa.save!
-          multiply_amounts!(oa, factor) if factor != 1.0
-          oa.update_results!
-          # keep the ordergroups' totals in step with the new price
-          oa.group_order_articles.map(&:group_order).uniq.each(&:update_price!)
+        if @order.open?
+          OrderArticle.transaction do
+            oa.article_id = article.id
+            oa.save!
+            multiply_amounts!(oa, factor) if factor != 1.0
+            oa.update_results!
+            # keep the ordergroups' totals in step with the new price
+            oa.group_order_articles.map(&:group_order).uniq.each(&:update_price!)
+          end
+        else
+          OrderArticleSwap.new(oa, article, factor, @current_user).apply!
         end
         changed += 1
       rescue => e
