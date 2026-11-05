@@ -3,7 +3,7 @@
 <h1>Nearly Full Cases</h1>
 <p>
   <%= @order.name %> - <%= OrderCatalogueSerializer.member_note(@order.note) %>
-  (closes at <%= l @order.ends.in_time_zone("Pacific Time (US & Canada)"), locale: 'en', format: :long  %>)
+  (closes at <%= l @order.ends.in_time_zone(FoodsoftConfig[:time_zone]), locale: 'en', format: :long  %>)
 </p>
 <% min_order_value = @order.supplier.min_order_quantity.to_s.sub('$','').to_f %>
 <% if min_order_value > 0 %>
