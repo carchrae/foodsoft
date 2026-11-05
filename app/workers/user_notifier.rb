@@ -61,7 +61,7 @@ class UserNotifier
     orderer = order.created_by || order.updated_by
     contact = orderer && orderer.email.presence || FoodsoftConfig[:contact][:email]
     UserNotifier.email_updated_orders(args.push(
-      "The order has not been closed yet, but these are the changes recorded so far. " \
+      "The order has not been finalized yet, but these are the changes recorded so far. " \
       "Please contact #{contact} if anything is not correct.", true))
   end
 
