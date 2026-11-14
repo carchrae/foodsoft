@@ -40,9 +40,9 @@ class Mailer < ActionMailer::Base
 
     headers = {to: user,
                subject: I18n.t('mailer.welcome_new_member.subject', foodcoop: FoodsoftConfig[:name])}
-    # Optional: the group's own mailbox gets a copy, so the people who look
-    # after new members see who was welcomed and when.
-    copy_to = FoodsoftConfig[:new_member_copy_email].presence
+    # The admin mailbox the email is sent from also gets a copy, so the people
+    # who look after new members see who was welcomed and when.
+    copy_to = FoodsoftConfig[:email_sender].presence
     headers[:cc] = copy_to if copy_to
     mail headers
   end
