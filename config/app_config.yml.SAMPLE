@@ -34,6 +34,9 @@ default: &defaults
   #mailing_list_url: https://groups.google.com/g/example/about
   # The mailing_list_subscribe address below, when set, is offered in that
   # email as a way to subscribe without a Google account.
+  # Optional: address that gets a copy (cc) of every welcome email. Note the
+  # copy includes the new member's link for choosing their password.
+  #new_member_copy_email: welcome-copies@example.org
 
   # custom foodsoft software URL (used in footer)
   #foodsoft_url: https://github.com/foodcoops/foodsoft

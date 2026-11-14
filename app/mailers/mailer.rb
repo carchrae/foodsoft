@@ -38,8 +38,13 @@ class Mailer < ActionMailer::Base
     # Optional: subscribing by email, for people without a Google account.
     @mailing_list_email = FoodsoftConfig[:mailing_list_subscribe].presence
 
-    mail to: user,
-         subject: I18n.t('mailer.welcome_new_member.subject', foodcoop: FoodsoftConfig[:name])
+    headers = {to: user,
+               subject: I18n.t('mailer.welcome_new_member.subject', foodcoop: FoodsoftConfig[:name])}
+    # Optional: the group's own mailbox gets a copy, so the people who look
+    # after new members see who was welcomed and when.
+    copy_to = FoodsoftConfig[:new_member_copy_email].presence
+    headers[:cc] = copy_to if copy_to
+    mail headers
   end
 
   # Sends an invite email.

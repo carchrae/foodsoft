@@ -383,7 +383,7 @@ en:
         nothing_found: Nothing could be read from that text. Copy whole rows from the spreadsheet and paste them here.
         intro: Check the details below, correct anything that came out wrong, and untick any row you do not want to create. Ordergroups are named after the member; rename one if your coop does it differently.
         pasted_row: 'Pasted:'
-        referral_hint: Quoted back to them in the welcome email, which asks them to make this person their go-to for questions. Leave blank to leave it out.
+        referral_hint: Quoted back to them in the welcome email, which asks them to make this person their go-to for questions. Leave blank and the email asks them to contact whoever told them about the group instead.
         submit: Create accounts and send welcome emails
         title: Check the new members
         unnamed: (no name found)
@@ -1516,6 +1516,16 @@ en:
 
         and reply to the confirmation that comes back. Either way works, you only
         need to do one of them.
+      no_referral: |
+        Please get in touch with the person who told you about the group and
+        ask whether they will be your go-to person while you find your feet.
+        Everyone here learned the ropes from somebody, and having one person to
+        ask makes the first few orders much easier.
+      not_the_admin: |
+        Please take your getting-started questions to that person rather than to
+        Tom. Tom sets up the accounts and looks after the software, but he is
+        not the go-to person for new members. Your own contact knows how things
+        work day to day and can usually answer sooner.
       referral: |
         When you applied you told us who you know in the group:
 
