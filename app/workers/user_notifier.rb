@@ -129,16 +129,14 @@ class UserNotifier
   end
 
 
-  # If this order group's account balance is made negative by the given/last transaction,
-  # a message is sent to all users who have enabled notification.
+  # No longer queued (Ordergroup.remind_negative_balances sends these daily);
+  # kept so jobs queued before the upgrade still run.
   def self.negative_balance(args)
-    ordergroup_id, transaction_id = args
-    transaction = FinancialTransaction.find transaction_id
-
+    ordergroup_id, _transaction_id = args
     Ordergroup.find(ordergroup_id).users.each do |user|
       if user.settings.notify['negative_balance']
         Mailer.deliver_now_with_user_locale user do
-          Mailer.negative_balance(user, transaction)
+          Mailer.negative_balance(user)
         end
       end
     end

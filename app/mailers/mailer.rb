@@ -194,13 +194,15 @@ class Mailer < ActionMailer::Base
          subject: subject
   end
 
-  # Notify user if account balance is less than zero
-  def negative_balance(user, transaction)
+  # Notify user that their ordergroup's balance (including open orders) is below
+  # the minimum; see Ordergroup.remind_negative_balances. days_negative > 0 makes
+  # it the repeat reminder.
+  def negative_balance(user, days_negative = 0)
     @group = user.ordergroup
-    @transaction = transaction
+    @days_negative = days_negative.to_i
 
     mail to: user,
-         subject: I18n.t('mailer.negative_balance.subject')
+         subject: I18n.t(@days_negative > 0 ? 'mailer.negative_balance.reminder_subject' : 'mailer.negative_balance.subject')
   end
 
   def feedback(user, feedback)

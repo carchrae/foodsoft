@@ -12,6 +12,7 @@ every :day, :at => '7:20 am' do
   rake "multicoops:run TASK=foodsoft:notify_upcoming_tasks"
   rake "multicoops:run TASK=foodsoft:notify_users_of_weekly_task"
   rake "multicoops:run TASK=foodsoft:remind_settle"
+  rake "multicoops:run TASK=foodsoft:remind_negative_balances"
 end
 
 # Weekly taks

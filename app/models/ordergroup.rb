@@ -88,10 +88,41 @@ class Ordergroup < Group
       t.save!
       self.account_balance = financial_transactions.sum('amount')
       save!
-      # Notify only when order group had a positive balance before the last transaction:
-      if t.amount < 0 && self.account_balance < 0 && self.account_balance - t.amount >= 0
-        Resque.enqueue(UserNotifier, FoodsoftConfig.scope, 'negative_balance', self.id, t.id)
+    end
+  end
+
+  # The balance the ordering pages check against minimum_balance (they disable
+  # Save below it): the account balance minus orders not yet charged, or just the
+  # account balance when members are charged manually.
+  def ordering_balance
+    FoodsoftConfig[:charge_members_manually] ? account_balance : get_available_funds
+  end
+
+  NEGATIVE_BALANCE_REMINDER_DAYS = 3
+
+  # Run daily. Emails the members of every group whose ordering_balance is below
+  # minimum_balance, then again every 3 days while it stays there. Since when it
+  # has been low and when it last emailed is kept in the group's settings
+  # (settings.negative_balance = {'since' => iso date, 'notified' => iso date}).
+  def self.remind_negative_balances
+    minimum = FoodsoftConfig[:minimum_balance] || 0
+    today = Date.current
+    Ordergroup.undeleted.each do |ordergroup|
+      state = ordergroup.settings.negative_balance
+      if ordergroup.ordering_balance >= minimum
+        ordergroup.settings.negative_balance = nil if state.present?
+        next
       end
+      state = state.present? ? state.dup : {'since' => today.iso8601}
+      next if state['notified'] && (today - Date.parse(state['notified'])).to_i < NEGATIVE_BALANCE_REMINDER_DAYS
+      days = (today - Date.parse(state['since'])).to_i
+      ordergroup.users.each do |user|
+        next unless user.settings.notify['negative_balance']
+        Mailer.deliver_now_with_user_locale user do
+          Mailer.negative_balance(user, days)
+        end
+      end
+      ordergroup.settings.negative_balance = state.merge('notified' => today.iso8601)
     end
   end
 

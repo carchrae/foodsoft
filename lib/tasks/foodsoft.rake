@@ -17,6 +17,11 @@ namespace :foodsoft do
     end
   end
 
+  desc "Email ordergroups whose balance incl. open orders is below the minimum, every 3 days while it stays there"
+  task :remind_negative_balances => :environment do
+    Ordergroup.remind_negative_balances
+  end
+
   desc "Reminder to settle orders"
   task :remind_settle => :environment do
     Order.email_reminder_to_settle

@@ -1417,11 +1417,19 @@ en:
       text: |
         Dear %{group},
 
-        Your account balance has dropped below zero due to a recent order on %{when}: %{balance}
+        Your balance, including orders that haven't been charged yet, is %{balance}. You can't add to your orders until it is back above %{minimum}.
 
-        There was a charge of %{amount} for "%{note}" by %{user}.
+        Please make a deposit to your account as soon as possible. It takes time for a deposit to be credited to your account, so we recommend keeping your balance above %{recommended}. That way there is always room to order.
 
-        Please make a deposit to your account as soon as possible.
+
+        Kind regards from %{foodcoop}.
+      reminder_subject: 'Reminder: negative account balance'
+      reminder_text: |
+        Dear %{group},
+
+        Your balance, including orders that haven't been charged yet, has been below %{minimum} for %{days} days. It is now %{balance}, and you can't add to your orders until it is back above %{minimum}.
+
+        Please make a deposit to your account as soon as possible. It takes time for a deposit to be credited to your account, so we recommend keeping your balance above %{recommended}. That way there is always room to order.
 
 
         Kind regards from %{foodcoop}.

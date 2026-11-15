@@ -1,1 +1,2 @@
-= raw t '.text', group: @group.name, when: format_time(@transaction.created_on), balance: number_to_currency(@group.account_balance), amount: number_to_currency(@transaction.amount), note: @transaction.note, user: show_user(@transaction.user), foodcoop: FoodsoftConfig[:name]
+- args = {group: @group.name, balance: number_to_currency(@group.ordering_balance), minimum: number_to_currency(FoodsoftConfig[:minimum_balance] || 0), recommended: number_to_currency(FoodsoftConfig[:recommended_balance] || 200), days: @days_negative, foodcoop: FoodsoftConfig[:name]}
+= raw t(@days_negative > 0 ? '.reminder_text' : '.text', **args)
