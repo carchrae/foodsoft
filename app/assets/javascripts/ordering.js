@@ -252,9 +252,9 @@ function updateBalance() {
     var bgcolor = '';
     if (balance < minimumBalance) {
         bgcolor = '#FF0000';
-        $('#submit_button').attr('disabled', 'disabled')
+        $('.submit-button').attr('disabled', 'disabled')
     } else {
-        $('#submit_button').removeAttr('disabled')
+        $('.submit-button').removeAttr('disabled')
     }
     // update bgcolor
     for (i in itemTotal) {

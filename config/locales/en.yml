@@ -1138,6 +1138,7 @@ en:
       notice: The order was saved.
     errors:
       closed: This order is already closed.
+      insufficient_funds: Your order wasn't saved, it would take your balance below the minimum. Please remove some items.
       no_member: You are not a member of an ordergroup.
       notfound: Incorrect URL, this is not your order.
     form:

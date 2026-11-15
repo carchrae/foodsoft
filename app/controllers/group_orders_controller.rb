@@ -20,8 +20,10 @@ class GroupOrdersController < ApplicationController
   def create
     @group_order = GroupOrder.new(params[:group_order])
     begin
-      @group_order.save_ordering!
+      @group_order.save_ordering!(check_balance: true)
       redirect_to group_order_url(@group_order), :notice => I18n.t('group_orders.create.notice')
+    rescue GroupOrder::InsufficientFunds
+      redirect_to group_orders_url, alert: I18n.t('group_orders.errors.insufficient_funds')
     rescue ActiveRecord::StaleObjectError
       redirect_to group_orders_url, :alert => I18n.t('group_orders.create.error_stale')
     rescue => exception
@@ -41,8 +43,10 @@ class GroupOrdersController < ApplicationController
   def update
     @group_order.attributes = params[:group_order]
     begin
-      @group_order.save_ordering!
+      @group_order.save_ordering!(check_balance: true)
       redirect_to group_order_url(@group_order), :notice => I18n.t('group_orders.update.notice')
+    rescue GroupOrder::InsufficientFunds
+      redirect_to group_orders_url, alert: I18n.t('group_orders.errors.insufficient_funds')
     rescue ActiveRecord::StaleObjectError
       redirect_to group_orders_url, :alert => I18n.t('group_orders.update.error_stale')
     rescue => exception

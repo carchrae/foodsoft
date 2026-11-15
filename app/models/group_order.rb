@@ -4,6 +4,10 @@ class GroupOrder < ApplicationRecord
 
   attr_accessor :group_order_articles_attributes
 
+  # Raised by save_ordering!/save_ordering_changes! with check_balance: true
+  # when the saved order would take the ordergroup below the minimum balance.
+  class InsufficientFunds < StandardError; end
+
   belongs_to :order
   belongs_to :ordergroup
   has_many :group_order_articles, :dependent => :destroy
@@ -91,11 +95,14 @@ class GroupOrder < ApplicationRecord
   ORDER_SAVED_EMAIL_DELAY = 10.minutes
 
   # Save GroupOrder and updates group_order_articles/quantities accordingly
-  def save_ordering!
+  # check_balance: only for members saving their own order; admin edits elsewhere skip it
+  def save_ordering!(check_balance: false)
+    old_price = price || 0
     transaction do
       save!
       save_group_order_articles
       update_price!
+      ensure_minimum_balance!(old_price) if check_balance
       UserNotifier.queue_order_updated_email(
           delay: ORDER_SAVED_EMAIL_DELAY, group_order_id: id,
           message: 'Your order has been saved.  Here is a copy for your records.')
@@ -109,15 +116,27 @@ class GroupOrder < ApplicationRecord
   # OrderArticle, which takes 10+ seconds. Skipping untouched articles is safe:
   # OrderArticle#update_results! only changes when one of its own
   # group_order_articles changed. Used by the modern (Vue) ordering page.
-  def save_ordering_changes!
+  # check_balance: only for members saving their own order; admin edits elsewhere skip it
+  def save_ordering_changes!(check_balance: false)
+    old_price = price || 0
     transaction do
       save!
       save_changed_group_order_articles
       update_price!
+      ensure_minimum_balance!(old_price) if check_balance
       UserNotifier.queue_order_updated_email(
           delay: ORDER_SAVED_EMAIL_DELAY, group_order_id: id,
           message: 'Your order has been saved.  Here is a copy for your records.')
     end
+  end
+
+  # Same rule as the ordering pages: the balance after this order must not drop
+  # below minimum_balance. An order that doesn't cost more than before may still
+  # be saved, so a member who is already short can reduce or keep their order.
+  def ensure_minimum_balance!(old_price)
+    return if ordergroup.nil? || price <= old_price
+    base = FoodsoftConfig[:charge_members_manually] ? ordergroup.account_balance : ordergroup.get_available_funds(self)
+    raise InsufficientFunds if base - price < (FoodsoftConfig[:minimum_balance] || 0)
   end
 
   def save_changed_group_order_articles

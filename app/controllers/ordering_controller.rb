@@ -67,12 +67,14 @@ class OrderingController < ApplicationController
     end
     @group_order.group_order_articles_attributes = articles_attributes
     # only writes the articles that changed; see GroupOrder#save_ordering_changes!
-    @group_order.save_ordering_changes!
+    @group_order.save_ordering_changes!(check_balance: true)
 
     # re-read everything so the snapshot reflects the saved state
     @order = Order.includes(:supplier).find(@order.id)
     @group_order = GroupOrder.find(@group_order.id)
     render json: serializer.as_json.merge(saved: true, notice: I18n.t('group_orders.update.notice'))
+  rescue GroupOrder::InsufficientFunds
+    render status: :unprocessable_entity, json: {error: 'insufficient_funds', message: I18n.t('group_orders.errors.insufficient_funds')}
   rescue ActiveRecord::StaleObjectError
     render status: :conflict, json: {error: 'stale', message: I18n.t('group_orders.update.error_stale')}
   rescue StandardError => e

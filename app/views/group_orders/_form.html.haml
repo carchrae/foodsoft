@@ -150,7 +150,7 @@
   = f.hidden_field :ordergroup_id
 
   .pull-right
-    = button_tag( t('.action_save'), id: 'submit_button', class: 'btn btn-primary', type: 'submit', onclick: 'doSubmit();')
+    = button_tag( t('.action_save'), id: 'submit_button', class: 'btn btn-primary submit-button', type: 'submit', onclick: 'doSubmit();')
 
   %table.table.table-hover
     %thead
@@ -325,7 +325,7 @@
           %span.pull-left
             #{link_to 'Back', group_orders_path, class: 'btn'}
           %span.pull-right
-            = button_tag( t('.action_save'), id: 'submit_button', class: 'btn btn-primary', type: 'submit', onclick: 'doSubmit();')
+            = button_tag( t('.action_save'), class: 'btn btn-primary submit-button', type: 'submit', onclick: 'doSubmit();')
 
 
   %input.total_balance{name: "total_balance", type: "hidden", value: @ordergroup.account_balance - @group_order.price}/
