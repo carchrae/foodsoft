@@ -126,7 +126,8 @@ class FairExtra
       end
       lines.concat(article_lines)
 
-      total = split_total || oa.units.to_f * unit_size
+      # units_received keeps 5 decimals: 0.66667 of a 30CT is 20, not 20.0001
+      total = split_total || (oa.units.to_f * unit_size).round(3)
       whole = ->(v) { (v - v.round).abs < 1e-6 }
       # Lines edited by hand keep their amount: fractional results, or results
       # outside wanted..wanted+extra (e.g. a household added at pickup).

@@ -47,6 +47,23 @@ class CaseFill
     (full + served.to_f / @unit_size).round(5)
   end
 
+  # Called from Order#finish! for each line, after the price is frozen. A split
+  # case the demand fills (12 of a splittable 24CT) has 0 whole cases in
+  # units_to_order, so the supplier PDF left it out and members got nothing.
+  # Record what ships as received (0.5, 1.5), the way the receive page would,
+  # so OrderArticle#units, the PDF and balancing all see it. Returns the member
+  # total to share out (GroupOrderArticle#save_results!), or nil when the line
+  # is not a split, or was already received or billed.
+  def self.receive_split!(order_article)
+    return nil unless order_article.units_received.nil? && order_article.units_billed.nil?
+    fill = new(order_article)
+    return nil unless fill.split
+    units = fill.units
+    return nil unless units > order_article.units_to_order
+    order_article.update_attribute(:units_received, units)
+    (units * fill.unit_size).round
+  end
+
   # 0..100 share of the whole case that already ships as a split
   def served_percent
     @unit_size > 0 ? ((@served.to_f / @unit_size) * 100).round : 0

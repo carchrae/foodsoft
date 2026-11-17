@@ -241,8 +241,9 @@ class Order < ApplicationRecord
         # Clean up
         order_articles.includes(:article).each do |oa|
           oa.update_attribute(:article_price, oa.article.article_prices.first)
+          split_total = CaseFill.receive_split!(oa) # split case: record it as received
           oa.group_order_articles.each do |goa|
-            goa.save_results!
+            goa.save_results!(split_total)
             # Delete no longer required order-history (group_order_article_quantities) and
             # TODO: Do we need articles, which aren't ordered? (units_to_order == 0 ?)
             #    A: Yes, we do - for redistributing articles when the number of articles
